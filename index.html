@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расписание НКСЭ</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', "Segoe UI", Roboto, sans-serif']
+                    },
+                    colors: {
+                        darkbg: '#0B0F19',
+                        cardbg: '#121826',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+    <script>
+        (function () {
+            var root = document.documentElement;
+            var key = 'nkse-theme-v2';
+            var savedTheme = localStorage.getItem(key);
+            var useDark = savedTheme !== 'light';
+            root.classList.toggle('dark', useDark);
+            root.setAttribute('data-theme', useDark ? 'dark' : 'light');
+            localStorage.setItem(key, useDark ? 'dark' : 'light');
+        })();
+        function toggleTheme() {
+            var root = document.documentElement;
+            var key = 'nkse-theme-v2';
+            var useDark = root.classList.toggle('dark');
+            root.setAttribute('data-theme', useDark ? 'dark' : 'light');
+            localStorage.setItem(key, useDark ? 'dark' : 'light');
+        }
+    </script>
+</head>
+<body class="bg-slate-100 dark:bg-darkbg text-slate-900 dark:text-slate-100 min-h-full flex flex-col transition-colors duration-200">
+    
+    <!-- Header -->
+    <header class="bg-white/90 dark:bg-cardbg/90 backdrop-blur-md border-b border-slate-200/85 dark:border-slate-800 sticky top-0 z-50 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+            
+            <!-- Логотип и выбор группы -->
+            <div class="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl select-none">📅</span>
+                    <div>
+                        <h1 class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">Расписание НКСЭ</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium" id="last-updated">Загрузка...</p>
+                    </div>
+                </div>
+
+                <!-- Выпадающий список групп -->
+                <div class="relative">
+                    <select id="group-select" class="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs">
+                        <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 self-end sm:self-center">
+                <!-- Кнопка обновления -->
+                <button id="refresh-btn" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Обновить</span>
+                </button>
+
+                <!-- Переключатель темы (День / Ночь) -->
+                <button id="theme-toggle" onclick="toggleTheme()" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 rounded-xl transition cursor-pointer" title="Переключить тему">
+                    <svg id="theme-icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="theme-icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
+        
+        <!-- Segmented Control Tabs -->
+        <div class="bg-slate-200/80 dark:bg-slate-900 p-1.5 rounded-2xl flex overflow-x-auto pb-1.5 mb-8 gap-1.5 no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Schedule Grid -->
+        <div id="schedule-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading state -->
+            <div class="col-span-full py-24 text-center text-slate-400">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent mb-3"></div>
+                <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Загружаем расписание...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400 mt-auto bg-white dark:bg-cardbg">
+        <p class="font-bold tracking-wide">НКСЭ &bull; СИСТЕМА РАСПИСАНИЯ ЗАНЯТИЙ</p>
+    </footer>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

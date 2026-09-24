@@ -1,0 +1,52 @@
+name: Auto-Update Schedule & Deploy
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Авто-обновление каждые 6 часов в облаке
+  workflow_dispatch: # Ручной запуск кнопкой в GitHub
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update-schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Schedule Parser
+        run: python update_all_groups_v3.py
+
+      - name: Commit and push if schedule changed
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add schedule.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update schedule.json [skip ci]" && git push)
+
+  deploy:
+    needs: update-schedule
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
