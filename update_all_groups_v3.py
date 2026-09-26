@@ -91,25 +91,31 @@ for prefix in prefixes:
                                 teachers = []
                                 rooms = []
                                 
-                                teacher_col = 2 * c_i - 1
-                                room_col = 2 * c_i
-                                
-                                for r_offset in [0, 1]:
-                                    curr_r = t_idx + r_offset
-                                    if curr_r < len(table):
-                                        row_cells = table[curr_r]
-                                        
-                                        # Get teacher from teacher_col
-                                        if teacher_col < len(row_cells):
-                                            val = row_cells[teacher_col].strip()
-                                            if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject:
-                                                if val not in teachers: teachers.append(val)
-                                                
-                                        # Get room from room_col
-                                        if room_col < len(row_cells):
-                                            val = row_cells[room_col].strip()
-                                            if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject:
-                                                if val not in rooms: rooms.append(val)
+                                # Subgroup 1 (row t_idx)
+                                t1_col = 2 * c_i - 1
+                                r1_col = 2 * c_i
+                                if t_idx < len(table):
+                                    if t1_col < len(table[t_idx]):
+                                        val = table[t_idx][t1_col].strip()
+                                        if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject:
+                                            if val not in teachers: teachers.append(val)
+                                    if r1_col < len(table[t_idx]):
+                                        val = table[t_idx][r1_col].strip()
+                                        if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject:
+                                            if val not in rooms: rooms.append(val)
+
+                                # Subgroup 2 (row t_idx + 1)
+                                if t_idx + 1 < len(table):
+                                    t2_col = 2 * c_i - 2
+                                    r2_col = 2 * c_i - 1
+                                    if t2_col < len(table[t_idx + 1]):
+                                        val = table[t_idx + 1][t2_col].strip()
+                                        if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject and val not in teachers:
+                                            teachers.append(val)
+                                    if r2_col < len(table[t_idx + 1]):
+                                        val = table[t_idx + 1][r2_col].strip()
+                                        if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject and val not in rooms:
+                                            rooms.append(val)
 
                                 lessons.append({
                                     "number": num,
