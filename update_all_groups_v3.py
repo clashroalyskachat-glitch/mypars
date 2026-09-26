@@ -117,12 +117,20 @@ for prefix in prefixes:
                                         if val and not re.search(r'\d{1,2}:\d{2}', val) and val != subject and val not in rooms:
                                             rooms.append(val)
 
+                                subgroups = []
+                                max_len = max(len(teachers), len(rooms), 1)
+                                for i in range(max_len):
+                                    t = teachers[i] if i < len(teachers) else (teachers[0] if teachers else "")
+                                    r = rooms[i] if i < len(rooms) else (rooms[0] if rooms else "")
+                                    subgroups.append({"teacher": t, "room": r})
+
                                 lessons.append({
                                     "number": num,
                                     "time": time_str,
                                     "subject": subject,
                                     "teacher": ", ".join(teachers),
-                                    "room": ", ".join(rooms)
+                                    "room": ", ".join(rooms),
+                                    "subgroups": subgroups
                                 })
                             
                             if lessons:

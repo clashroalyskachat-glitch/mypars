@@ -326,16 +326,28 @@ function renderSchedule() {
                                     </span>
                                     
                                     <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                                        ${lesson.teacher ? `
-                                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-                                                👨‍🏫 ${lesson.teacher}
-                                            </span>
-                                        ` : ''}
-                                        ${lesson.room ? `
-                                            <button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 shadow-2xs hover:bg-blue-100 dark:hover:bg-blue-900 transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
-                                                <span>Каб: ${lesson.room}</span> 📋
-                                            </button>
-                                        ` : ''}
+                                        ${lesson.subgroups && lesson.subgroups.length > 1 ? `
+                                            <div class="flex flex-col gap-1.5 items-end">
+                                                ${lesson.subgroups.map((sub, sIdx) => `
+                                                    <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                                                        <span class="text-[10px] font-extrabold uppercase bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">П${sIdx + 1}</span>
+                                                        ${sub.teacher ? `<span class="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">👨‍🏫 ${sub.teacher}</span>` : ''}
+                                                        ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800 shadow-2xs hover:bg-blue-100 dark:hover:bg-blue-900 transition flex items-center gap-1 cursor-pointer whitespace-nowrap"><span>Каб: ${sub.room}</span> 📋</button>` : ''}
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        ` : `
+                                            ${lesson.teacher ? `
+                                                <span class="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">
+                                                    👨‍🏫 ${lesson.teacher}
+                                                </span>
+                                            ` : ''}
+                                            ${lesson.room ? `
+                                                <button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 shadow-2xs hover:bg-blue-100 dark:hover:bg-blue-900 transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                                                    <span>Каб: ${lesson.room}</span> 📋
+                                                </button>
+                                            ` : ''}
+                                        `}
                                     </div>
                                 </div>
 
