@@ -36,14 +36,19 @@ const CARD_ACCENTS = [
     'border-l-rose-600 dark:border-l-rose-500'
 ];
 
-document.addEventListener('DOMContentLoaded', () => {
-    const todayJsDay = new Date().getDay();
-    const todayName = JS_DAYS_MAP[todayJsDay];
-    currentDayFilter = (todayName && todayName !== 'Воскресенье') ? todayName : 'Понедельник';
+ function init() {
+     const todayJsDay = new Date().getDay();
+     const todayName = JS_DAYS_MAP[todayJsDay];
+     currentDayFilter = (todayName && todayName !== 'Воскресенье') ? todayName : 'Понедельник';
+     initUI();
+     loadSchedule();
+ }
 
-    initUI();
-    loadSchedule();
-});
+ if (document.readyState === 'loading') {
+     document.addEventListener('DOMContentLoaded', init);
+ } else {
+     init();
+ }
 
 function initUI() {
     fetch('/api/schedule-version')
