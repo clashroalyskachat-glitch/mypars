@@ -43,6 +43,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-type', 'application/json; charset=utf-8')
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "error", "message": str(e)}, ensure_ascii=False).encode('utf-8'))
+        elif self.path.startswith('/api/schedule-version'):
+            try:
+                if os.path.exists(JSON_PATH):
+                    mod_time = os.path.getmtime(JSON_PATH)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"mod_time": mod_time}, ensure_ascii=False).encode('utf-8'))
+                else:
+                    self.send_response(404)
+                    self.send_header('Content-type', 'application/json; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Schedule not found"}, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
         else:
             super().do_GET()
 

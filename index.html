@@ -165,6 +165,11 @@
             var next = current === 'dark' ? 'light' : 'dark';
             localStorage.setItem(key, next);
             document.documentElement.setAttribute('data-theme', next);
+            location.reload();
+        }
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('nkse-theme-v2', theme);
         }
     </script>
 </head>

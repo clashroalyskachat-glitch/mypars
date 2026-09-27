@@ -105,10 +105,35 @@ window.filterDay = function(dayId) {
     renderSchedule();
 }
 
-async function loadSchedule(forceRefresh = false) {
+ async function loadSchedule(forceRefresh = false) {
     const container = document.getElementById('schedule-container');
     const lastUpdatedEl = document.getElementById('last-updated');
     
+    const CACHE_KEY = 'nkse-schedule-cache';
+    const TIME_KEY = 'nkse-schedule-time';
+    const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
+
+    // Check cache first
+    if (!forceRefresh) {
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            const cachedTime = localStorage.getItem(TIME_KEY);
+            if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
+                allGroupsData = JSON.parse(cached);
+                populateGroupSelect();
+                checkAndAutoSwitchDay();
+                const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                lastUpdatedEl.textContent = `Обновлено: ${nowStr} (Из кэша, НКСЭ)`;
+                renderTabs();
+                renderSchedule();
+                checkForUpdates();
+                return;
+            }
+        } catch (e) {
+            console.error('Cache read error:', e);
+        }
+    }
+
     container.innerHTML = `
         <div class="col-span-full py-24 text-center text-slate-400">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent mb-3"></div>
@@ -122,6 +147,10 @@ async function loadSchedule(forceRefresh = false) {
         
         allGroupsData = await res.json();
         
+        // Save to cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify(allGroupsData));
+        localStorage.setItem(TIME_KEY, Date.now().toString());
+        
         populateGroupSelect();
         checkAndAutoSwitchDay();
 
@@ -131,6 +160,7 @@ async function loadSchedule(forceRefresh = false) {
         
         renderTabs();
         renderSchedule();
+        checkForUpdates();
     } catch (err) {
         console.error(err);
         container.innerHTML = `
@@ -382,6 +412,23 @@ function renderSchedule() {
         `;
         return;
     }
-
+    
     container.innerHTML = htmlContent;
+}
+
+let lastModTime = null;
+
+function checkForUpdates() {
+    fetch('/api/schedule-version')
+        .then(res => res.json())
+        .then(data => {
+            if (data.mod_time && lastModTime && data.mod_time !== lastModTime) {
+                console.log('[Update] New schedule detected!');
+                loadSchedule(true);
+            }
+            lastModTime = data.mod_time;
+        })
+        .catch(() => {});
+    
+    setTimeout(checkForUpdates, 10 * 60 * 1000);
 }
