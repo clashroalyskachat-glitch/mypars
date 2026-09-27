@@ -58,21 +58,6 @@
             position: relative;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .day-tab.active-indicator::after {
-            content: '';
-            position: absolute;
-            bottom: 4px;
-            left: 50%;
-            width: 60%;
-            height: 3px;
-            background: #ffffff;
-            border-radius: 2px;
-            transform: translateX(-50%);
-            animation: slideTab 0.3s ease forwards;
-        }
-        [data-theme="dark"] .day-tab.active-indicator::after {
-            background: #000000;
-        }
         .schedule-card {
             animation: fadeInUp 0.4s ease forwards;
             opacity: 0;

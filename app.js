@@ -87,7 +87,7 @@ function initUI() {
     var inactiveText = isDark ? 'text-gray-400' : 'text-slate-600';
     tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
         <button onclick="filterDay('${day.id}')" 
-            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText + ' active-indicator' : inactiveText}">
+            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText : inactiveText}">
             ${day.name}
         </button>
     `).join('');
