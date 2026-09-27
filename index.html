@@ -37,40 +37,56 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        /* True OLED / Space Black Theme */
+        /* Vercel / Linear inspired Modern Dark UI */
         [data-theme="dark"] body {
-            background-color: #000000 !important;
-            color: #ffffff !important;
+            background-color: #09090b !important;
+            color: #f4f4f5 !important;
         }
-        [data-theme="dark"] header,
-        [data-theme="dark"] footer,
+        [data-theme="dark"] header {
+            background-color: rgba(12, 12, 15, 0.9) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #f4f4f5 !important;
+        }
+        [data-theme="dark"] footer {
+            background-color: #0c0c0f !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #a1a1aa !important;
+        }
         [data-theme="dark"] .bg-white,
         [data-theme="dark"] .bg-slate-50,
-        [data-theme="dark"] .bg-slate-100,
+        [data-theme="dark"] .bg-slate-100 {
+            background-color: #121216 !important;
+            color: #f4f4f5 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+        }
         [data-theme="dark"] .bg-slate-200 {
-            background-color: #000000 !important;
-            color: #ffffff !important;
-            border-color: #222222 !important;
+            background-color: #18181b !important;
+            color: #f4f4f5 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
         }
         [data-theme="dark"] .text-slate-900,
         [data-theme="dark"] .text-slate-800,
-        [data-theme="dark"] .text-slate-700,
+        [data-theme="dark"] .text-slate-700 {
+            color: #ffffff !important;
+        }
         [data-theme="dark"] .text-slate-600,
         [data-theme="dark"] .text-slate-500 {
-            color: #cccccc !important;
+            color: #a1a1aa !important;
         }
         [data-theme="dark"] h1, [data-theme="dark"] h3, [data-theme="dark"] h4 {
             color: #ffffff !important;
         }
         [data-theme="dark"] .border-slate-200,
         [data-theme="dark"] .border-slate-300 {
-            border-color: #222222 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
         }
         [data-theme="dark"] select,
         [data-theme="dark"] button:not(.bg-blue-600) {
-            background-color: #111111 !important;
-            color: #ffffff !important;
-            border-color: #333333 !important;
+            background-color: #18181b !important;
+            color: #f4f4f5 !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
         }
     </style>
     <script>
