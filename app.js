@@ -3,6 +3,7 @@
 let allGroupsData = {};
 let currentGroup = localStorage.getItem('selected_group') || 'СЗ-13-26';
 let currentDayFilter = 'all';
+let lastModTime = null;
 
 const DAYS_OF_WEEK = [
     { id: 'all', name: '📅 Вся неделя' },
@@ -45,29 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initUI() {
-    const refreshBtn = document.getElementById('refresh-btn');
-    refreshBtn.addEventListener('click', async () => {
-        refreshBtn.disabled = true;
-        refreshBtn.classList.add('spinning');
-        try {
-            const res = await fetch('/api/refresh');
-            const data = await res.json();
-            if (data.status === 'success') {
-                await loadSchedule(true);
-            } else {
-                alert('Ошибка при обновлении: ' + data.message);
-            }
-        } catch (e) {
-            alert('Ошибка связи с сервером');
-        } finally {
-            refreshBtn.classList.remove('spinning');
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = `
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                <span>Обновить</span>
-            `;
-        }
-    });
+    fetch('/api/schedule-version')
+        .then(res => res.json())
+        .then(data => { lastModTime = data.mod_time; })
+        .catch(() => { lastModTime = 0; });
 
     const groupSelect = document.getElementById('group-select');
     groupSelect.addEventListener('change', (e) => {
@@ -80,26 +62,26 @@ function initUI() {
 }
 
  function renderTabs() {
-    const tabsContainer = document.getElementById('days-tabs');
-    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    var activeBg = isDark ? 'bg-white' : 'bg-blue-600';
-    var activeText = isDark ? 'text-black' : 'text-white';
-    var inactiveText = isDark ? 'text-gray-400' : 'text-slate-600';
-    tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
-        <button onclick="filterDay('${day.id}')" 
-            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText : inactiveText}"
-            style="${currentDayFilter === day.id ? 'animation: slideIn 0.3s ease forwards' : ''}">
-            ${day.name}
-        </button>
-    `).join('');
+     const tabsContainer = document.getElementById('days-tabs');
+     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+     var activeBg = isDark ? '' : 'bg-blue-600';
+     var activeText = isDark ? 'text-purple-400 border-purple-400' : 'text-white';
+     var inactiveText = isDark ? 'text-gray-400' : 'text-slate-600';
+     tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
+         <button onclick="filterDay('${day.id}')" 
+             class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText : inactiveText}"
+             >
+             ${day.name}
+         </button>
+     `).join('');
 
-    setTimeout(() => {
-        const activeTab = tabsContainer.querySelector(`button[onclick="filterDay('${currentDayFilter}')"]`);
-        if (activeTab) {
-            activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }
-    }, 100);
-}
+     setTimeout(() => {
+         const activeTab = tabsContainer.querySelector(`button[onclick="filterDay('${currentDayFilter}')"]`);
+         if (activeTab) {
+             activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+         }
+     }, 100);
+ }
 
 window.filterDay = function(dayId) {
     currentDayFilter = dayId;
@@ -108,72 +90,89 @@ window.filterDay = function(dayId) {
 }
 
  async function loadSchedule(forceRefresh = false) {
-    const container = document.getElementById('schedule-container');
-    const lastUpdatedEl = document.getElementById('last-updated');
-    
-    const CACHE_KEY = 'nkse-schedule-cache';
-    const TIME_KEY = 'nkse-schedule-time';
-    const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
+     const container = document.getElementById('schedule-container');
+     const lastUpdatedEl = document.getElementById('last-updated');
+     
+     const CACHE_KEY = 'nkse-schedule-cache';
+     const TIME_KEY = 'nkse-schedule-time';
+     const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
 
-    // Check cache first
-    if (!forceRefresh) {
-        try {
-            const cached = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(TIME_KEY);
-            if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
-                allGroupsData = JSON.parse(cached);
-                populateGroupSelect();
-                checkAndAutoSwitchDay();
-                const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                lastUpdatedEl.textContent = `Обновлено: ${nowStr} (Из кэша, НКСЭ)`;
-                renderTabs();
-                renderSchedule();
-                checkForUpdates();
-                return;
-            }
-        } catch (e) {
-            console.error('Cache read error:', e);
-        }
-    }
+     // Fetch server mod_time
+     let serverModTime = null;
+     try {
+         const infoRes = await fetch('/api/schedule-version');
+         if (infoRes.ok) {
+             const infoData = await infoRes.json();
+             serverModTime = infoData.mod_time;
+         }
+     } catch (e) {}
 
-    container.innerHTML = `
-        <div class="col-span-full py-24 text-center text-slate-400">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent mb-3"></div>
-            <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Загрузка расписания...</p>
-        </div>
-    `;
+     // Check cache first
+     if (!forceRefresh) {
+         try {
+             const cached = localStorage.getItem(CACHE_KEY);
+             const cachedTime = localStorage.getItem(TIME_KEY);
+             if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
+                 allGroupsData = JSON.parse(cached);
+                 populateGroupSelect();
+                 checkAndAutoSwitchDay();
 
-    try {
-        const res = await fetch(`schedule.json?_t=${forceRefresh ? Date.now() : Math.floor(Date.now() / (1000 * 60 * 15))}`);
-        if (!res.ok) throw new Error('Не удалось загрузить schedule.json');
-        
-        allGroupsData = await res.json();
-        
-        // Save to cache
-        localStorage.setItem(CACHE_KEY, JSON.stringify(allGroupsData));
-        localStorage.setItem(TIME_KEY, Date.now().toString());
-        
-        populateGroupSelect();
-        checkAndAutoSwitchDay();
+                 if (serverModTime) {
+                     const modDate = new Date(serverModTime * 1000);
+                     const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                     lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+                 }
+                 
+                 renderTabs();
+                 renderSchedule();
+                 checkForUpdates();
+                 return;
+             }
+         } catch (e) {
+             console.error('Cache read error:', e);
+         }
+     }
 
-        const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        const dateStr = new Date().toLocaleDateString('ru-RU');
-        lastUpdatedEl.textContent = `Обновлено: ${dateStr} в ${nowStr} (НКСЭ)`;
-        
-        renderTabs();
-        renderSchedule();
-        checkForUpdates();
-    } catch (err) {
-        console.error(err);
-        container.innerHTML = `
-            <div class="col-span-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-lg mx-auto text-red-700 dark:text-red-400">
-                <p class="font-extrabold mb-1">Ошибка загрузки расписания</p>
-                <p class="text-xs text-red-500 mb-4">${err.message}. Убедитесь, что запущен сервер (server.py).</p>
-                <button onclick="loadSchedule(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold">Повторить</button>
-            </div>
-        `;
-    }
-}
+     container.innerHTML = `
+         <div class="col-span-full py-24 text-center text-slate-400">
+             <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent mb-3"></div>
+             <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Загрузка расписания...</p>
+         </div>
+     `;
+
+     try {
+         const res = await fetch(`schedule.json?_t=${forceRefresh ? Date.now() : Math.floor(Date.now() / (1000 * 60 * 15))}`);
+         if (!res.ok) throw new Error('Не удалось загрузить schedule.json');
+         
+         allGroupsData = await res.json();
+         
+         // Save to cache
+         localStorage.setItem(CACHE_KEY, JSON.stringify(allGroupsData));
+         localStorage.setItem(TIME_KEY, Date.now().toString());
+         
+         populateGroupSelect();
+         checkAndAutoSwitchDay();
+
+         if (serverModTime) {
+             const modDate = new Date(serverModTime * 1000);
+             const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+             lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+         }
+         
+         renderTabs();
+         renderSchedule();
+         checkForUpdates();
+     } catch (err) {
+         console.error(err);
+         container.innerHTML = `
+             <div class="col-span-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-lg mx-auto text-red-700 dark:text-red-400">
+                 <p class="font-extrabold mb-1">Ошибка загрузки расписания</p>
+                 <p class="text-xs text-red-500 mb-4">${err.message}. Убедитесь, что запущен сервер (server.py).</p>
+                 <button onclick="loadSchedule(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold">Повторить</button>
+             </div>
+         `;
+     }
+ }
 
 function populateGroupSelect() {
     const groupSelect = document.getElementById('group-select');
@@ -417,8 +416,6 @@ function renderSchedule() {
     
     container.innerHTML = htmlContent;
 }
-
-let lastModTime = null;
 
 function checkForUpdates() {
     fetch('/api/schedule-version')

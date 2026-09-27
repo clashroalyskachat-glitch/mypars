@@ -61,24 +61,15 @@
         .day-tab {
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .day-tab.tab-enter {
-            animation: slideIn 0.3s ease forwards;
-        }
         .schedule-card {
             animation: fadeInUp 0.4s ease forwards;
             opacity: 0;
         }
-        #refresh-btn.spinning svg {
-            animation: spin 0.5s linear forwards;
+        @media (max-width: 640px) {
+            #days-tabs {
+                transition: transform 0.25s ease;
+            }
         }
-        #theme-toggle.rotating svg {
-            animation: rotate360 0.5s ease forwards;
-        }
-        /* Theme-specific text colors */
-        [data-theme="dark"] .text-slate-400 {
-            color: #9ca3af !important;
-        }
-        /* Ultimate Pure Black & White Theme */
         [data-theme="dark"] body {
             background-color: #000000 !important;
             background-image: none !important;
@@ -140,12 +131,17 @@
             background-color: #000000 !important;
             border-color: #ffffff !important;
         }
-        [data-theme="dark"] #days-tabs button {
-            background-color: #000000 !important;
-            border-color: #ffffff !important;
-            color: #ffffff !important;
-        }
-        [data-theme="dark"] select,
+         [data-theme="dark"] #days-tabs button {
+             background-color: #000000 !important;
+             border-color: #ffffff !important;
+             color: #ffffff !important;
+         }
+         [data-theme="dark"] #days-tabs button.day-tab-active {
+             background-color: transparent !important;
+             color: #a855f7 !important;
+             border-color: #a855f7 !important;
+         }
+         [data-theme="dark"] select,
         [data-theme="dark"] button:not(.bg-blue-600) {
             background: #000000 !important;
             backdrop-filter: none !important;
@@ -200,17 +196,13 @@
             var theme = saved ? saved : 'dark';
             document.documentElement.setAttribute('data-theme', theme);
         })();
-        function toggleTheme() {
-            var key = 'nkse-theme-v2';
-            var current = document.documentElement.getAttribute('data-theme');
-            var next = current === 'dark' ? 'light' : 'dark';
-            localStorage.setItem(key, next);
-            document.documentElement.setAttribute('data-theme', next);
-            var toggleBtn = document.getElementById('theme-toggle');
-            toggleBtn.classList.add('rotating');
-            setTimeout(() => toggleBtn.classList.remove('rotating'), 500);
-            location.reload();
-        }
+         function toggleTheme() {
+             var key = 'nkse-theme-v2';
+             var current = document.documentElement.getAttribute('data-theme');
+             var next = current === 'dark' ? 'light' : 'dark';
+             localStorage.setItem(key, next);
+             document.documentElement.setAttribute('data-theme', next);
+         }
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('nkse-theme-v2', theme);
@@ -239,23 +231,14 @@
                         <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="flex items-center gap-2 self-end sm:self-center">
-                <!-- Кнопка обновления -->
-                <button id="refresh-btn" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    <span>Обновить</span>
-                </button>
-
-                <!-- Переключатель темы (День / Ночь) -->
-                <button id="theme-toggle" onclick="toggleTheme()" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 rounded-xl transition cursor-pointer" title="Переключить тему">
-                    <svg id="theme-icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <svg id="theme-icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                </button>
-            </div>
-        </div>
-    </header>
+             </div>
+             <!-- Переключатель темы (День / Ночь) -->
+             <button id="theme-toggle" onclick="toggleTheme()" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 rounded-xl transition cursor-pointer" title="Переключить тему">
+                 <svg id="theme-icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                 <svg id="theme-icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+             </button>
+         </div>
+     </header>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
