@@ -37,22 +37,59 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
+        /* Dark theme overrides for instant switching */
+        [data-theme="dark"] body {
+            background-color: #0B0F19 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .bg-white,
+        [data-theme="dark"] header,
+        [data-theme="dark"] footer {
+            background-color: #121826 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .bg-slate-50,
+        [data-theme="dark"] .bg-slate-100 {
+            background-color: #161e31 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .bg-slate-200 {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .text-slate-900,
+        [data-theme="dark"] .text-slate-800,
+        [data-theme="dark"] .text-slate-700 {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .text-slate-600,
+        [data-theme="dark"] .text-slate-500 {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .border-slate-200,
+        [data-theme="dark"] .border-slate-300 {
+            border-color: #1e293b !important;
+        }
+        [data-theme="dark"] select,
+        [data-theme="dark"] button:not(.bg-blue-600) {
+            background-color: #1a2234 !important;
+            color: #f8fafc !important;
+            border-color: #2a374a !important;
+        }
     </style>
     <script>
         (function () {
-            var root = document.documentElement;
             var key = 'nkse-theme-v2';
-            var savedTheme = localStorage.getItem(key);
-            var useDark = savedTheme ? (savedTheme === 'dark') : window.matchMedia('(prefers-color-scheme: dark)').matches;
-            root.classList.toggle('dark', useDark);
-            root.setAttribute('data-theme', useDark ? 'dark' : 'light');
+            var saved = localStorage.getItem(key);
+            var theme = saved ? saved : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
         })();
         function toggleTheme() {
             var key = 'nkse-theme-v2';
-            var current = localStorage.getItem(key) === 'dark';
-            var next = current ? 'light' : 'dark';
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
             localStorage.setItem(key, next);
-            location.reload();
+            document.documentElement.setAttribute('data-theme', next);
         }
     </script>
 </head>
