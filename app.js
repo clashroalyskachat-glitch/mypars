@@ -310,7 +310,7 @@ function renderSchedule() {
                         const active = isLessonActive(lesson.time, dayName);
                         const passed = isLessonPassed(lesson.time, dayName);
                         
-                        let accentClass = `border-l-4 ${CARD_ACCENTS[idx % CARD_ACCENTS.length]} bg-slate-50/70 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900`;
+                        let accentClass = `border-l-4 ${CARD_ACCENTS[idx % CARD_ACCENTS.length]} bg-slate-50/70 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800`;
                         if (active) {
                             accentClass = 'border-l-4 border-l-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-md scale-101';
                         } else if (passed) {

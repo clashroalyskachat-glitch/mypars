@@ -43,10 +43,9 @@
             var root = document.documentElement;
             var key = 'nkse-theme-v2';
             var savedTheme = localStorage.getItem(key);
-            var useDark = savedTheme !== 'light';
+            var useDark = savedTheme ? (savedTheme === 'dark') : window.matchMedia('(prefers-color-scheme: dark)').matches;
             root.classList.toggle('dark', useDark);
             root.setAttribute('data-theme', useDark ? 'dark' : 'light');
-            localStorage.setItem(key, useDark ? 'dark' : 'light');
         })();
         function toggleTheme() {
             var root = document.documentElement;
