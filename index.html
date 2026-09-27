@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" class="h-full dark">
+<html lang="ru" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,11 +48,11 @@
             root.setAttribute('data-theme', useDark ? 'dark' : 'light');
         })();
         function toggleTheme() {
-            var root = document.documentElement;
             var key = 'nkse-theme-v2';
-            var useDark = root.classList.toggle('dark');
-            root.setAttribute('data-theme', useDark ? 'dark' : 'light');
-            localStorage.setItem(key, useDark ? 'dark' : 'light');
+            var current = localStorage.getItem(key) === 'dark';
+            var next = current ? 'light' : 'dark';
+            localStorage.setItem(key, next);
+            location.reload();
         }
     </script>
 </head>
