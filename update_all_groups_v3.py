@@ -62,7 +62,7 @@ for prefix in prefixes:
                 for r_i, row in enumerate(table):
                     for c_i, cell in enumerate(row):
                         cleaned_cell = cell.strip()
-                        if re.match(r'^[А-ЯЁA-Z\-\d]+$', cleaned_cell) and len(cleaned_cell) >= 3 and len(cleaned_cell) <= 15 and any(ch.isdigit() for ch in cleaned_cell):
+                        if re.match(r'^[А-ЯЁA-Z]+-\d+-\d+$', cleaned_cell) and len(cleaned_cell) >= 3 and len(cleaned_cell) <= 15:
                             group_name = cleaned_cell
                             if group_name not in master_schedule:
                                 master_schedule[group_name] = {d: [] for d in days_map.values()}
