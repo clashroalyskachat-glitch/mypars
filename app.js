@@ -48,7 +48,7 @@ function initUI() {
     const refreshBtn = document.getElementById('refresh-btn');
     refreshBtn.addEventListener('click', async () => {
         refreshBtn.disabled = true;
-        refreshBtn.textContent = 'Обновление...';
+        refreshBtn.classList.add('spinning');
         try {
             const res = await fetch('/api/refresh');
             const data = await res.json();
@@ -60,6 +60,7 @@ function initUI() {
         } catch (e) {
             alert('Ошибка связи с сервером');
         } finally {
+            refreshBtn.classList.remove('spinning');
             refreshBtn.disabled = false;
             refreshBtn.innerHTML = `
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -81,12 +82,12 @@ function initUI() {
  function renderTabs() {
     const tabsContainer = document.getElementById('days-tabs');
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    var activeBg = isDark ? 'bg-black' : 'bg-white';
-    var activeText = isDark ? 'text-white' : 'text-blue-600';
-    var inactiveText = isDark ? 'text-slate-400' : 'text-slate-600';
+    var activeBg = isDark ? 'bg-white' : 'bg-blue-600';
+    var activeText = isDark ? 'text-black' : 'text-white';
+    var inactiveText = isDark ? 'text-gray-400' : 'text-slate-600';
     tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
         <button onclick="filterDay('${day.id}')" 
-            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText : inactiveText}">
+            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText + ' active-indicator' : inactiveText}">
             ${day.name}
         </button>
     `).join('');
@@ -357,8 +358,8 @@ function renderSchedule() {
                              accentClass = `border-l-4 border-l-white opacity-100 ${bgClass}`;
                          }
                          
-                         return `
-                         <div class="border ${borderClass} rounded-xl p-4 transition hover:-translate-y-0.5 duration-200 shadow-none ${accentClass}">
+                        return `
+                        <div class="border ${borderClass} rounded-xl p-4 transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.05}s">
                              <div class="flex flex-col gap-2.5">
                                  <div class="flex items-center justify-between gap-2">
                                      <span class="text-xs font-extrabold ${active ? `bg-black ${textClass} border ${borderClass}` : `${textClass} ${bgClass} border ${borderClass}`} px-2.5 py-1 rounded-md tracking-wide">
