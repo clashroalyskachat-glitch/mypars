@@ -310,49 +310,55 @@ function renderSchedule() {
                         const active = isLessonActive(lesson.time, dayName);
                         const passed = isLessonPassed(lesson.time, dayName);
                         
-                         let accentClass = `border-l-4 ${CARD_ACCENTS[idx % CARD_ACCENTS.length]} bg-black hover:bg-black`;
-                        if (active) {
-                            accentClass = 'border-l-4 border-l-white bg-black ring-0 shadow-none scale-100';
-                        } else if (passed) {
-                            accentClass = 'border-l-4 border-l-white opacity-100 bg-black';
-                        }
-                        
-                        return `
-                        <div class="border border-white rounded-xl p-4 transition hover:-translate-y-0.5 duration-200 shadow-none ${accentClass}">
-                            <div class="flex flex-col gap-2.5">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs font-extrabold ${active ? 'bg-black text-white border border-white' : 'text-white bg-black border border-white'} px-2.5 py-1 rounded-md tracking-wide">
-                                        ${active ? '🟢 ИДЕТ СЕЙЧАС • ' : ''}№${lesson.number} &bull; ${lesson.time}
-                                    </span>
-                                    
-                                    <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                                        ${lesson.subgroups && lesson.subgroups.length > 1 ? `
-                                            <div class="flex flex-col gap-1.5 items-end">
-                                                ${lesson.subgroups.map((sub, sIdx) => `
-                                                    <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                                                        <span class="text-[10px] font-extrabold uppercase bg-black text-white border border-white px-1.5 py-0.5 rounded">П${sIdx + 1}</span>
-                                                        ${sub.teacher ? `<span class="text-xs font-semibold text-white bg-black px-2.5 py-0.5 rounded-md border border-white">👨‍🏫 ${sub.teacher}</span>` : ''}
-                                                        ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold text-white bg-black px-2 py-0.5 rounded-lg border border-white shadow-none cursor-pointer whitespace-nowrap"><span>Каб: ${sub.room}</span> 📋</button>` : ''}
-                                                    </div>
-                                                `).join('')}
-                                            </div>
-                                        ` : `
-                                            ${lesson.teacher ? `
-                                                <span class="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-md border border-white">
-                                                    👨‍🏫 ${lesson.teacher}
-                                                </span>
-                                            ` : ''}
-                                            ${lesson.room ? `
-                                                <button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold text-white bg-black px-2.5 py-1 rounded-lg border border-white shadow-none cursor-pointer whitespace-nowrap">
-                                                    <span>Каб: ${lesson.room}</span> 📋
-                                                </button>
-                                            ` : ''}
-                                        `}
+                         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                         let bgClass = isDark ? 'bg-black' : 'bg-white';
+                         let borderClass = isDark ? 'border-white' : 'border-black';
+                         let textClass = isDark ? 'text-white' : 'text-black';
+                         let hoverClass = isDark ? 'hover:bg-black' : 'hover:bg-slate-50';
+                         
+                         let accentClass = `border-l-4 ${CARD_ACCENTS[idx % CARD_ACCENTS.length]} ${bgClass} ${borderClass} ${hoverClass}`;
+                         if (active) {
+                             accentClass = `border-l-4 border-l-white ${bgClass} ring-0 shadow-none scale-100`;
+                         } else if (passed) {
+                             accentClass = `border-l-4 border-l-white opacity-100 ${bgClass}`;
+                         }
+                         
+                         return `
+                         <div class="border ${borderClass} rounded-xl p-4 transition hover:-translate-y-0.5 duration-200 shadow-none ${accentClass}">
+                             <div class="flex flex-col gap-2.5">
+                                 <div class="flex items-center justify-between gap-2">
+                                     <span class="text-xs font-extrabold ${active ? `bg-black ${textClass} border ${borderClass}` : `${textClass} ${bgClass} border ${borderClass}`} px-2.5 py-1 rounded-md tracking-wide">
+                                         ${active ? '🟢 ИДЕТ СЕЙЧАС • ' : ''}№${lesson.number} &bull; ${lesson.time}
+                                     </span>
+                                     
+                                     <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                                         ${lesson.subgroups && lesson.subgroups.length > 1 ? `
+                                             <div class="flex flex-col gap-1.5 items-end">
+                                                 ${lesson.subgroups.map((sub, sIdx) => `
+                                                     <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                                                         <span class="text-[10px] font-extrabold uppercase ${bgClass} ${textClass} border ${borderClass} px-1.5 py-0.5 rounded">П${sIdx + 1}</span>
+                                                         ${sub.teacher ? `<span class="text-xs font-semibold ${textClass} ${bgClass} px-2.5 py-0.5 rounded-md border ${borderClass}">👨‍🏫 ${sub.teacher}</span>` : ''}
+                                                         ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold ${textClass} ${bgClass} px-2 py-0.5 rounded-lg border ${borderClass} shadow-none cursor-pointer whitespace-nowrap"><span>Каб: ${sub.room}</span> 📋</button>` : ''}
+                                                     </div>
+                                                 `).join('')}
+                                             </div>
+                                         ` : `
+                                             ${lesson.teacher ? `
+                                                 <span class="text-xs font-semibold ${textClass} ${bgClass} px-2.5 py-1 rounded-md border ${borderClass}">
+                                                     👨‍🏫 ${lesson.teacher}
+                                                 </span>
+                                             ` : ''}
+                                             ${lesson.room ? `
+                                                 <button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold ${textClass} ${bgClass} px-2.5 py-1 rounded-lg border ${borderClass} shadow-none cursor-pointer whitespace-nowrap">
+                                                     <span>Каб: ${lesson.room}</span> 📋
+                                                 </button>
+                                             ` : ''}
+                                         `}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h4 class="font-extrabold text-base sm:text-lg text-white tracking-tight leading-snug">${lesson.subject}</h4>
+                                    <h4 class="font-extrabold text-base sm:text-lg ${textClass} tracking-tight leading-snug">${lesson.subject}</h4>
                                 </div>
                             </div>
                         </div>
