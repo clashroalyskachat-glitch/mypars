@@ -37,37 +37,46 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        /* Professional Ergonomic Dark Theme */
+        /* Cosmic iOS Glassmorphism Dark Theme */
         [data-theme="dark"] body {
-            background-color: #121212 !important;
-            color: #b0b3b8 !important;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 50%, #030712 100%) fixed !important;
+            color: #cbd5e1 !important;
+            min-height: 100vh;
         }
         [data-theme="dark"] header {
-            background-color: #18181c !important;
-            border-bottom: 1px solid #2a2a32 !important;
-            color: #e4e6eb !important;
+            background: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            color: #f1f5f9 !important;
         }
         [data-theme="dark"] footer {
-            background-color: #18181c !important;
-            border-top: 1px solid #2a2a32 !important;
-            color: #b0b3b8 !important;
+            background: rgba(3, 7, 18, 0.8) !important;
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+            color: #94a3b8 !important;
         }
         [data-theme="dark"] .bg-white {
-            background-color: #1e1e1e !important;
-            color: #e4e6eb !important;
-            border-color: #2c2c35 !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            background: rgba(30, 41, 59, 0.5) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            color: #f1f5f9 !important;
         }
         [data-theme="dark"] .bg-slate-50,
         [data-theme="dark"] .bg-slate-100 {
-            background-color: #25252d !important;
-            color: #e4e6eb !important;
-            border-color: #33333f !important;
+            background: rgba(15, 23, 42, 0.6) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #f1f5f9 !important;
         }
         [data-theme="dark"] .bg-slate-200 {
-            background-color: #24242c !important;
-            color: #e4e6eb !important;
-            border-color: #33333f !important;
+            background: rgba(30, 41, 59, 0.7) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #f1f5f9 !important;
         }
         [data-theme="dark"] .text-slate-900,
         [data-theme="dark"] .text-slate-800,
@@ -75,21 +84,23 @@
         [data-theme="dark"] h1, 
         [data-theme="dark"] h3, 
         [data-theme="dark"] h4 {
-            color: #e4e6eb !important;
+            color: #f8fafc !important;
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
         }
         [data-theme="dark"] .text-slate-600,
         [data-theme="dark"] .text-slate-500 {
-            color: #b0b3b8 !important;
+            color: #94a3b8 !important;
         }
         [data-theme="dark"] .border-slate-200,
         [data-theme="dark"] .border-slate-300 {
-            border-color: #2c2c35 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
         }
         [data-theme="dark"] select,
         [data-theme="dark"] button:not(.bg-blue-600) {
-            background-color: #24242c !important;
-            color: #e4e6eb !important;
-            border-color: #33333f !important;
+            background: rgba(30, 41, 59, 0.7) !important;
+            backdrop-filter: blur(12px);
+            color: #f1f5f9 !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
         }
     </style>
     <script>
