@@ -112,18 +112,22 @@ window.filterDay = function(dayId) {
          try {
              const cached = localStorage.getItem(CACHE_KEY);
              const cachedTime = localStorage.getItem(TIME_KEY);
-             if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
-                 allGroupsData = JSON.parse(cached);
-                 populateGroupSelect();
-                 checkAndAutoSwitchDay();
+              if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
+                  allGroupsData = JSON.parse(cached);
+                  populateGroupSelect();
+                  checkAndAutoSwitchDay();
 
-                  if (serverModTime) {
+                  const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
+                  if (cachedFileMtime) {
+                      const modDate = new Date(parseInt(cachedFileMtime));
+                      const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                      lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+                  } else if (serverModTime) {
                       const modDate = new Date(serverModTime * 1000);
                       const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                       lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
                   } else {
-                      const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                      lastUpdatedEl.textContent = `Обновлено: ${nowStr}`;
+                      lastUpdatedEl.textContent = 'Расписание обновляется каждые 6 часов';
                   }
                   
                   renderTabs();
@@ -143,31 +147,49 @@ window.filterDay = function(dayId) {
          </div>
      `;
 
-     try {
-         const res = await fetch(`schedule.json?_t=${forceRefresh ? Date.now() : Math.floor(Date.now() / (1000 * 60 * 15))}`);
-         if (!res.ok) throw new Error('Не удалось загрузить schedule.json');
-         
-         allGroupsData = await res.json();
-         
-         // Save to cache
-         localStorage.setItem(CACHE_KEY, JSON.stringify(allGroupsData));
-         localStorage.setItem(TIME_KEY, Date.now().toString());
-         
-         populateGroupSelect();
-         checkAndAutoSwitchDay();
+      try {
+          const res = await fetch(`schedule.json?_t=${forceRefresh ? Date.now() : Math.floor(Date.now() / (1000 * 60 * 15))}`);
+          if (!res.ok) throw new Error('Не удалось загрузить schedule.json');
+          
+          allGroupsData = await res.json();
+          
+          // Get last-modified from headers
+          let fileModTime = null;
+          const lastModified = res.headers.get('Last-Modified');
+          if (lastModified) {
+              fileModTime = new Date(lastModified).getTime();
+          }
+          
+          // Save to cache
+          localStorage.setItem(CACHE_KEY, JSON.stringify(allGroupsData));
+          localStorage.setItem(TIME_KEY, Date.now().toString());
+          if (fileModTime) localStorage.setItem('nkse-file-mtime', fileModTime.toString());
+          
+          populateGroupSelect();
+          checkAndAutoSwitchDay();
 
-          if (serverModTime) {
+          if (fileModTime) {
+              const modDate = new Date(fileModTime);
+              const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+              lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+          } else if (serverModTime) {
               const modDate = new Date(serverModTime * 1000);
               const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
               lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
           } else {
-              const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-              lastUpdatedEl.textContent = `Обновлено: ${nowStr}`;
+              const cachedTime = localStorage.getItem('nkse-file-mtime');
+              if (cachedTime) {
+                  const modDate = new Date(parseInt(cachedTime));
+                  const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                  lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+              } else {
+                  lastUpdatedEl.textContent = 'Расписание обновляется каждые 6 часов';
+              }
           }
-         
-         renderTabs();
-         renderSchedule();
-         checkForUpdates();
+          
+          renderTabs();
+          renderSchedule();
+          checkForUpdates();
      } catch (err) {
          console.error(err);
          container.innerHTML = `
