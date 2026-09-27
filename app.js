@@ -117,13 +117,16 @@ window.filterDay = function(dayId) {
                  populateGroupSelect();
                  checkAndAutoSwitchDay();
 
-                 if (serverModTime) {
-                     const modDate = new Date(serverModTime * 1000);
-                     const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                     lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-                 }
-                 
-                 renderTabs();
+                  if (serverModTime) {
+                      const modDate = new Date(serverModTime * 1000);
+                      const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                      lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+                  } else {
+                      const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                      lastUpdatedEl.textContent = `Обновлено: ${nowStr}`;
+                  }
+                  
+                  renderTabs();
                  renderSchedule();
                  checkForUpdates();
                  return;
@@ -153,11 +156,14 @@ window.filterDay = function(dayId) {
          populateGroupSelect();
          checkAndAutoSwitchDay();
 
-         if (serverModTime) {
-             const modDate = new Date(serverModTime * 1000);
-             const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-             lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-         }
+          if (serverModTime) {
+              const modDate = new Date(serverModTime * 1000);
+              const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+              lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
+          } else {
+              const nowStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+              lastUpdatedEl.textContent = `Обновлено: ${nowStr}`;
+          }
          
          renderTabs();
          renderSchedule();
