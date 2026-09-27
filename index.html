@@ -40,33 +40,27 @@
         /* True OLED / Space Black Theme */
         [data-theme="dark"] body {
             background-color: #000000 !important;
-            color: #ededed !important;
+            color: #ffffff !important;
         }
         [data-theme="dark"] header,
         [data-theme="dark"] footer,
-        [data-theme="dark"] .bg-white {
-            background-color: #0a0a0a !important;
-            color: #ededed !important;
-            border-color: #222222 !important;
-        }
+        [data-theme="dark"] .bg-white,
         [data-theme="dark"] .bg-slate-50,
-        [data-theme="dark"] .bg-slate-100 {
-            background-color: #141414 !important;
-            color: #ededed !important;
-            border-color: #262626 !important;
-        }
+        [data-theme="dark"] .bg-slate-100,
         [data-theme="dark"] .bg-slate-200 {
-            background-color: #1f1f1f !important;
-            color: #ededed !important;
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border-color: #222222 !important;
         }
         [data-theme="dark"] .text-slate-900,
         [data-theme="dark"] .text-slate-800,
-        [data-theme="dark"] .text-slate-700 {
-            color: #ffffff !important;
-        }
+        [data-theme="dark"] .text-slate-700,
         [data-theme="dark"] .text-slate-600,
         [data-theme="dark"] .text-slate-500 {
-            color: #a3a3a3 !important;
+            color: #cccccc !important;
+        }
+        [data-theme="dark"] h1, [data-theme="dark"] h3, [data-theme="dark"] h4 {
+            color: #ffffff !important;
         }
         [data-theme="dark"] .border-slate-200,
         [data-theme="dark"] .border-slate-300 {
@@ -74,16 +68,16 @@
         }
         [data-theme="dark"] select,
         [data-theme="dark"] button:not(.bg-blue-600) {
-            background-color: #141414 !important;
+            background-color: #111111 !important;
             color: #ffffff !important;
-            border-color: #262626 !important;
+            border-color: #333333 !important;
         }
     </style>
     <script>
         (function () {
             var key = 'nkse-theme-v2';
             var saved = localStorage.getItem(key);
-            var theme = saved ? saved : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            var theme = saved ? saved : 'dark';
             document.documentElement.setAttribute('data-theme', theme);
         })();
         function toggleTheme() {
