@@ -78,17 +78,21 @@ function initUI() {
     renderTabs();
 }
 
-function renderTabs() {
+ function renderTabs() {
     const tabsContainer = document.getElementById('days-tabs');
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var activeBg = isDark ? 'bg-black' : 'bg-white';
+    var activeText = isDark ? 'text-white' : 'text-blue-600';
+    var inactiveText = isDark ? 'text-slate-400' : 'text-slate-600';
     tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
         <button onclick="filterDay('${day.id}')" 
-            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition flex-shrink-0 font-bold ${currentDayFilter === day.id ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm scale-102' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}">
+            class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText : inactiveText}">
             ${day.name}
         </button>
     `).join('');
 
     setTimeout(() => {
-        const activeTab = tabsContainer.querySelector('.bg-white, .dark\\:bg-slate-800');
+        const activeTab = tabsContainer.querySelector(`button[onclick="filterDay('${currentDayFilter}')"]`);
         if (activeTab) {
             activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
