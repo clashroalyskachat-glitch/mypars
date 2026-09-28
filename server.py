@@ -29,13 +29,13 @@ def run_parser():
         return
     log("Запуск парсера...")
     try:
-        subprocess.run([sys.executable, parser_script], check=True, timeout=600)
+        subprocess.run([sys.executable, parser_script], check=True, timeout=240)
         log("Парсер успешно обновил schedule.json")
     except subprocess.CalledProcessError as e:
         # parser refused to write (safety check tripped) - existing file kept
         log(f"Парсер не обновил файл (код {e.returncode}), прежний schedule.json сохранён")
     except subprocess.TimeoutExpired:
-        log("Парсер не уложился в 600с, прежний schedule.json сохранён")
+        log("Парсер не уложился в 240с, прежний schedule.json сохранён")
     except Exception as e:
         log(f"Ошибка парсера: {e}")
 

@@ -240,6 +240,28 @@ const CARD_ACCENTS = [
      init();
  }
 
+function initOffline() {
+    if (!('serviceWorker' in navigator)) return;
+    // file:// and http on a LAN IP are not secure contexts; guard quietly.
+    if (location.protocol === 'file:') return;
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(
+            (reg) => {
+                window.__nkseSW = reg;
+            },
+            () => {
+                /* offline support unavailable - app still works online */
+            }
+        );
+    });
+}
+
+function clearOfflineCache() {
+    if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+    navigator.serviceWorker.controller.postMessage('CLEAR_CACHES');
+    setTimeout(() => window.location.reload(), 300);
+}
+
 function initUI() {
     // drop the preference from the removed week-view mode
     try { localStorage.removeItem('nkse-view'); } catch (e) {}
@@ -264,6 +286,7 @@ function initUI() {
     initNowBar();
 
     initSearch();
+    initOffline();
 
     document.addEventListener('keydown', (e) => {
         const tag = document.activeElement && document.activeElement.tagName;
