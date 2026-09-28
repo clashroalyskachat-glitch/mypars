@@ -49,7 +49,7 @@
             100% { transform: translateX(0); opacity: 1; }
         }
         @keyframes fadeInUp {
-            0% { transform: translateY(30px); opacity: 0; }
+            0% { transform: translateY(18px); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
         }
         @keyframes spin {
@@ -64,16 +64,37 @@
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
         /* Animation uses fill-mode "backwards" and NO opacity:0 on the element,
-           so cards are always visible even if animations never run. */
+           so cards are always visible even if animations never run.
+           Curves are soft ease-out (not fast-start) for a calm, premium feel. */
         .schedule-card {
-            animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            animation: fadeInUp 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
         }
         .day-card {
-            animation: fadeIn 0.3s ease backwards;
+            animation: fadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
         }
         @keyframes fadeIn {
             0% { opacity: 0; }
             100% { opacity: 1; }
+        }
+        /* smooth, eased hover + focus travel */
+        .schedule-card,
+        .day-card,
+        .quick-btn,
+        .pin-btn,
+        .search-input,
+        .day-tab {
+            transition:
+                transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                border-color 0.35s ease,
+                background-color 0.35s ease,
+                color 0.35s ease,
+                box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        @media (hover: hover) {
+            .schedule-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 30px -12px rgb(168 85 247 / 0.45);
+            }
         }
         @media (max-width: 640px) {
             #days-tabs {
@@ -295,11 +316,11 @@
             grid-template-columns: 1fr;
         }
         #schedule-container > div { min-width: 0; }
+        /* 6 day cards, so only balanced column counts: 1 / 2 / 3 / 6.
+           4 or 5 would leave a ragged 4+2 / 5+1 second row. */
         @media (min-width: 700px)  { #schedule-container { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1150px) { #schedule-container { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 1750px) { #schedule-container { grid-template-columns: repeat(4, 1fr); } }
-        @media (min-width: 2600px) { #schedule-container { grid-template-columns: repeat(5, 1fr); } }
-        @media (min-width: 3400px) { #schedule-container { grid-template-columns: repeat(6, 1fr); } }
+        @media (min-width: 1200px) { #schedule-container { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 2400px) { #schedule-container { grid-template-columns: repeat(6, 1fr); } }
 
         /* ---- lesson cards: fixed 3-row structure so every card
                has the same rhythm regardless of content length ---- */
@@ -379,67 +400,6 @@
             .now-bar .now-dot { animation: none; }
         }
 
-        /* ---- days bar + view toggle ---- */
-        .days-bar{
-            display: flex;
-            align-items: stretch;
-            gap: var(--gap-micro);
-            margin-bottom: var(--gap-grid);
-        }
-        .days-bar > #days-tabs { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
-        .view-toggle{
-            flex: 0 0 auto;
-            font-size: var(--fs-meta);
-            font-weight: 700;
-            padding-inline: var(--gap-soft);
-            border-radius: calc(var(--radius) - 0.2rem);
-            border: 1px solid rgb(148 163 184 / 0.5);
-            background: transparent;
-            color: inherit;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background-color .2s ease, border-color .2s ease, color .2s ease;
-        }
-        .view-toggle:hover { background: rgb(148 163 184 / 0.12); }
-        .view-toggle[aria-pressed="true"] { border-color: #a855f7; color: #a855f7; }
-        .days-bar.is-week { display: none; }
-
-        /* ---- compact week grid ---- */
-        .week-grid{
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 1px;
-            background: rgb(148 163 184 / 0.35);
-            border: 1px solid rgb(148 163 184 / 0.35);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-        .week-head{
-            font-size: var(--fs-meta);
-            font-weight: 800;
-            padding: var(--gap-micro) var(--gap-soft);
-            background: rgb(148 163 184 / 0.12);
-        }
-        .week-head.is-today { color: #a855f7; }
-        .week-cell{
-            padding: var(--gap-micro) var(--gap-soft);
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .week-cell.is-today { background: rgb(168 85 247 / 0.07); }
-        .week-time{ font-size: var(--fs-badge); opacity: .65; font-weight: 700; }
-        .week-subj{ font-size: var(--fs-meta); font-weight: 800; overflow-wrap: break-word; }
-        .week-meta{ font-size: var(--fs-badge); opacity: .7; overflow-wrap: break-word; }
-        .week-free{ font-size: var(--fs-badge); opacity: .35; }
-        @media (max-width: 1150px) {
-            .week-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        }
-        @media (max-width: 700px) {
-            .week-grid { grid-template-columns: minmax(0, 1fr); }
-            .week-head { position: sticky; left: 0; }
-        }
         .quick-btn{
             font-size: var(--fs-meta);
             font-weight: 700;
@@ -688,11 +648,8 @@
         <div id="search-results" hidden></div>
 
         <!-- Segmented Control Tabs -->
-        <div class="days-bar">
-            <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
-                <!-- Dynamically populated -->
-            </div>
-            <button id="view-toggle" class="view-toggle" title="Переключить вид расписания">Неделя</button>
+        <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
+            <!-- Dynamically populated -->
         </div>
 
         <!-- Schedule Grid -->

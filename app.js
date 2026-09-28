@@ -79,61 +79,7 @@ function renderQuickGroups() {
     });
 }
 
-/* ---------------- view mode: cards / week ---------------- */
-const VIEW_KEY = 'nkse-view';
-const WEEK_DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-let viewMode = localStorage.getItem(VIEW_KEY) === 'week' ? 'week' : 'cards';
-
-function applyViewMode() {
-    const bar = document.querySelector('.days-bar');
-    const btn = document.getElementById('view-toggle');
-    if (bar) bar.classList.toggle('is-week', viewMode === 'week');
-    if (btn) {
-        btn.setAttribute('aria-pressed', viewMode === 'week' ? 'true' : 'false');
-        btn.textContent = viewMode === 'week' ? 'Карточки' : 'Неделя';
-        btn.title = viewMode === 'week' ? 'Показать карточки по дням' : 'Показать неделю таблицей';
-    }
-}
-
-function toggleViewMode() {
-    viewMode = viewMode === 'week' ? 'cards' : 'week';
-    localStorage.setItem(VIEW_KEY, viewMode);
-    applyViewMode();
-    renderSchedule();
-}
-
-function renderWeek() {
-    const group = allGroupsData[currentGroup] || {};
-    let maxLessons = 0;
-    for (const d of WEEK_DAYS) maxLessons = Math.max(maxLessons, (group[d] || []).length);
-    if (maxLessons === 0) maxLessons = 3;
-
-    const todayName = JS_DAYS_MAP[new Date().getDay()];
-    const head = WEEK_DAYS.map(
-        (d) => `<div class="week-head ${d === todayName ? 'is-today' : ''}">${d}</div>`
-    ).join('');
-
-    let body = '';
-    for (let i = 0; i < maxLessons; i++) {
-        for (const d of WEEK_DAYS) {
-            const l = (group[d] || [])[i];
-            if (!l) {
-                body += `<div class="week-cell"><span class="week-free">—</span></div>`;
-                continue;
-            }
-            const who = [l.teacher, l.room].filter(Boolean).join(' · ');
-            body += `
-                <div class="week-cell ${d === todayName ? 'is-today' : ''}">
-                    <span class="week-time">${i + 1} · ${l.time || ''}</span>
-                    <span class="week-subj">${l.subject || ''}</span>
-                    ${who ? `<span class="week-meta">${who}</span>` : ''}
-                </div>`;
-        }
-    }
-    return `<div class="week-grid">${head}${body}</div>`;
-}
-
-/* ---------------- search across all groups ---------------- */
+/* ---------------- "what's happening now" bar ---------------- */
 const DAYS_SEARCH = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
 function escapeHtml(s) {
@@ -295,6 +241,9 @@ const CARD_ACCENTS = [
  }
 
 function initUI() {
+    // drop the preference from the removed week-view mode
+    try { localStorage.removeItem('nkse-view'); } catch (e) {}
+
     fetch('/api/schedule-version')
         .then(res => res.json())
         .then(data => { lastModTime = data.mod_time; })
@@ -311,9 +260,6 @@ function initUI() {
 
     const pinBtn = document.getElementById('pin-btn');
     if (pinBtn) pinBtn.addEventListener('click', togglePin);
-
-    const viewBtn = document.getElementById('view-toggle');
-    if (viewBtn) viewBtn.addEventListener('click', toggleViewMode);
 
     initNowBar();
 
@@ -782,7 +728,6 @@ function fallbackCopy(text, done) {
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     const groupSchedule = allGroupsData[currentGroup] || {};
-    applyViewMode();
 
     if (!groupSchedule || Object.keys(groupSchedule).length === 0) {
         container.innerHTML = `
@@ -794,11 +739,6 @@ function renderSchedule() {
     }
 
     renderNowBar();
-
-    if (viewMode === 'week') {
-        container.innerHTML = renderWeek();
-        return;
-    }
 
     let daysToDisplay = Object.keys(groupSchedule);
     if (currentDayFilter !== 'all') {
