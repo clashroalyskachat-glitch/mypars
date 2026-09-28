@@ -63,16 +63,13 @@
         .day-tab {
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        /* Card entrance: this is the exact motion that was approved before
-           (30px rise, 0.4s ease, 0.05s stagger).
-           Only change: fill-mode "backwards" instead of "forwards" + a bare
-           `opacity: 0`, so cards can never be left invisible if the
-           animation is skipped. */
+        /* Card entrance: 30px rise from above, 0.4s ease, 0.05s stagger.
+           Day cards are NOT animated - matching the original look.
+           Only change vs original: fill-mode "backwards" instead of
+           "forwards" + a bare `opacity: 0`, so cards can never be left
+           invisible if the animation is skipped. */
         .schedule-card {
             animation: fadeInUp 0.4s ease backwards;
-        }
-        .day-card {
-            animation: fadeIn 0.4s ease backwards;
         }
         @keyframes fadeIn {
             0% { opacity: 0; }
@@ -542,20 +539,18 @@
         }
 
         /* ---- accessibility ----
-           Keep a gentle fade instead of collapsing durations to 0.001ms:
-           zero-length animations made cards snap into place instantly,
-           which reads as a glitch rather than as calm motion. */
+           Reduced motion shortens and softens the entrance but KEEPS the
+           top-to-bottom travel, because removing the movement entirely made
+           cards look like they were simply blinking in. */
         @media (prefers-reduced-motion: reduce) {
-            .schedule-card,
-            .day-card {
-                animation: fadeOnly 0.45s ease-out backwards !important;
+            .schedule-card {
+                animation: fadeInUpSoft 0.35s ease-out backwards !important;
             }
-            @keyframes fadeOnly {
-                0% { opacity: 0; }
-                100% { opacity: 1; }
+            @keyframes fadeInUpSoft {
+                0%   { opacity: 0; transform: translateY(10px); }
+                100% { opacity: 1; transform: translateY(0); }
             }
             .schedule-card,
-            .day-card,
             .day-tab,
             .quick-btn,
             .pin-btn,
