@@ -730,6 +730,55 @@ function initNowBar() {
     setInterval(renderNowBar, 30 * 1000);
 }
 
+function dayToText(dayName) {
+    const lessons = (allGroupsData[currentGroup] || {})[dayName] || [];
+    const lines = [`${currentGroup} — ${dayName}`];
+    if (lessons.length === 0) {
+        lines.push('Занятий нет');
+    } else {
+        lessons.forEach((l) => {
+            let s = `${l.time}  ${l.subject || ''}`;
+            if (l.teacher) s += `  (${l.teacher})`;
+            if (l.room) s += `  [${l.room}]`;
+            lines.push(s);
+        });
+    }
+    return lines.join('\n');
+}
+
+window.copyDay = function(dayName, event) {
+    if (event) event.stopPropagation();
+    const text = dayToText(dayName);
+    const done = () => {
+        const btn = event && event.currentTarget;
+        if (!btn) return;
+        const old = btn.textContent;
+        btn.textContent = 'Скопировано';
+        setTimeout(() => (btn.textContent = old), 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+        fallbackCopy(text, done);
+    }
+};
+
+function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        done();
+    } catch (e) {
+        /* clipboard unavailable */
+    }
+    document.body.removeChild(ta);
+}
+
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     const groupSchedule = allGroupsData[currentGroup] || {};
@@ -781,7 +830,10 @@ function renderSchedule() {
                         <span class="truncate">${dayName}</span>
                         ${dayLabelBadge}
                     </h3>
-                    <span class="fs-badge chip shrink-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700">${lessons.length} пар(ы)</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="fs-badge chip bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700">${lessons.length} пар(ы)</span>
+                        <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge chip border border-slate-300 dark:border-slate-700 font-bold opacity-70 hover:opacity-100 cursor-pointer bg-transparent">Копировать</button>
+                    </div>
                 </div>
                 <div class="stack flex-grow">
                     ${lessons.length === 0 ? `
