@@ -785,18 +785,22 @@ function renderSchedule() {
                         const active = isLessonActive(lesson.time, dayName);
                         const passed = isLessonPassed(lesson.time, dayName);
                         
-                         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                         let bgClass = isDark ? 'bg-black' : 'bg-white';
-                         let borderClass = isDark ? 'border-white' : 'border-black';
-                         let textClass = isDark ? 'text-white' : 'text-black';
-                         let hoverClass = isDark ? 'hover:bg-black' : 'hover:bg-slate-50';
-                         
-                         let accentClass = `border-l-4 ${CARD_ACCENTS[idx % CARD_ACCENTS.length]} ${bgClass} ${borderClass} ${hoverClass}`;
-                         if (active) {
-                             accentClass = `border-l-4 border-l-white ${bgClass} ring-0 shadow-none scale-100`;
-                         } else if (passed) {
-                             accentClass = `border-l-4 border-l-white opacity-100 ${bgClass}`;
-                         }
+                        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        let bgClass = isDark ? 'bg-black' : 'bg-white';
+                        // soft hairline in light mode; pure black borders were harsh on white
+                        let borderClass = isDark ? 'border-white/70' : 'border-slate-200';
+                        let textClass = isDark ? 'text-white' : 'text-slate-900';
+                        let hoverClass = isDark ? 'hover:bg-black' : 'hover:bg-slate-50/70';
+                        // a white accent bar is invisible on a white card
+                        let activeAccent = isDark ? 'border-l-white' : 'border-l-slate-900';
+                        let passedAccent = isDark ? 'border-l-white/40' : 'border-l-slate-300';
+
+                        let accentClass = `border-l-4 ${CARD_ACCENTS[idx % CARD_ACCENTS.length]} ${bgClass} ${borderClass} ${hoverClass}`;
+                        if (active) {
+                            accentClass = `border-l-4 ${activeAccent} ${bgClass} ring-0 shadow-none scale-100`;
+                        } else if (passed) {
+                            accentClass = `border-l-4 ${passedAccent} opacity-100 ${bgClass}`;
+                        }
                          
                         return `
                         <div class="lesson-card border ${borderClass} transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.07}s">

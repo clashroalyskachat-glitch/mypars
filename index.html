@@ -641,6 +641,13 @@
              var next = current === 'dark' ? 'light' : 'dark';
              localStorage.setItem(key, next);
              document.documentElement.setAttribute('data-theme', next);
+             // Lesson-card colours are baked into class names at render time,
+             // so the schedule has to be re-rendered or it keeps the old theme
+             // until something else happens to trigger a redraw.
+             try {
+                 if (typeof renderSchedule === 'function') renderSchedule();
+                 if (typeof renderTabs === 'function') renderTabs();
+             } catch (e) {}
          }
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
