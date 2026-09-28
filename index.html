@@ -49,7 +49,7 @@
             100% { transform: translateX(0); opacity: 1; }
         }
         @keyframes fadeInUp {
-            0% { transform: translateY(18px); opacity: 0; }
+            0% { transform: translateY(30px); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
         }
         @keyframes spin {
@@ -63,29 +63,16 @@
         .day-tab {
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        /* Apple/iOS standard easing (0.32, 0.72, 0, 1) - long tail,
-           decelerates into place instead of snapping. */
-        :root {
-            --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
-            --ease-io:  cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Animation uses fill-mode "backwards" and NO opacity:0 on the element,
-           so cards are always visible even if animations never run. */
+        /* Card entrance: this is the exact motion that was approved before
+           (30px rise, 0.4s ease, 0.05s stagger).
+           Only change: fill-mode "backwards" instead of "forwards" + a bare
+           `opacity: 0`, so cards can never be left invisible if the
+           animation is skipped. */
         .schedule-card {
-            animation: cardIn 0.75s var(--ease-ios) backwards;
+            animation: fadeInUp 0.4s ease backwards;
         }
         .day-card {
-            animation: dayIn 0.6s var(--ease-ios) backwards;
-        }
-        @keyframes cardIn {
-            0%   { opacity: 0; transform: translateY(22px) scale(0.96); }
-            60%  { opacity: 1; }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes dayIn {
-            0%   { opacity: 0; transform: translateY(14px) scale(0.985); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
+            animation: fadeIn 0.4s ease backwards;
         }
         @keyframes fadeIn {
             0% { opacity: 0; }
@@ -99,16 +86,16 @@
         .search-input,
         .day-tab {
             transition:
-                transform 0.55s var(--ease-ios),
-                border-color 0.4s var(--ease-io),
-                background-color 0.4s var(--ease-io),
-                color 0.4s var(--ease-io),
-                box-shadow 0.55s var(--ease-ios);
+                transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+                border-color 0.3s ease,
+                background-color 0.3s ease,
+                color 0.3s ease,
+                box-shadow 0.3s ease;
         }
         @media (hover: hover) {
             .schedule-card:hover {
-                transform: translateY(-4px) scale(1.008);
-                box-shadow: 0 14px 34px -14px rgb(168 85 247 / 0.5);
+                transform: translateY(-2px);
+                box-shadow: 0 10px 26px -14px rgb(168 85 247 / 0.45);
             }
         }
         @media (max-width: 640px) {
