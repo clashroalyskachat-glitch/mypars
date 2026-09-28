@@ -15,7 +15,7 @@ def run_parser():
     parser_script = os.path.join(DIRECTORY, "update_all_groups_v3.py")
     if os.path.exists(parser_script):
         try:
-            subprocess.run([sys.executable, parser_script], check=True, timeout=60)
+            subprocess.run([sys.executable, parser_script], check=True, timeout=600)
             print("[Server] Парсер успешно обновил schedule.json")
         except Exception as e:
             print("[Server Parser Error]:", e)
@@ -74,7 +74,8 @@ if __name__ == '__main__':
         threading.Thread(target=run_parser, daemon=True).start()
 
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
+    socketserver.TCPServer.daemon_threads = True
+    with socketserver.ThreadingTCPServer(("", PORT), CustomHandler) as httpd:
         print(f"[Server] Сервер запущен: http://localhost:{PORT}")
         try:
             httpd.serve_forever()

@@ -74,8 +74,7 @@ function initUI() {
      var inactiveText = isDark ? 'text-gray-400' : 'text-slate-600';
      tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
          <button onclick="filterDay('${day.id}')" 
-             class="day-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText + ' day-tab-active' : inactiveText}"
-             >
+             class="day-tab whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText + ' day-tab-active' : inactiveText}">
              ${day.name}
          </button>
      `).join('');
@@ -100,6 +99,7 @@ window.filterDay = function(dayId) {
      
      const CACHE_KEY = 'nkse-schedule-cache';
      const TIME_KEY = 'nkse-schedule-time';
+     const CACHE_VER_KEY = 'nkse-cache-ver';
      const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
 
      // Fetch server mod_time
@@ -117,7 +117,10 @@ window.filterDay = function(dayId) {
          try {
              const cached = localStorage.getItem(CACHE_KEY);
              const cachedTime = localStorage.getItem(TIME_KEY);
-              if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
+             const cachedVer = localStorage.getItem(CACHE_VER_KEY);
+             const freshByTime = cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION);
+             const verMatches = !serverModTime || (cachedVer !== null && parseFloat(cachedVer) === serverModTime);
+             if (cached && freshByTime && verMatches) {
                   allGroupsData = JSON.parse(cached);
                   populateGroupSelect();
                   checkAndAutoSwitchDay();
@@ -145,12 +148,12 @@ window.filterDay = function(dayId) {
          }
      }
 
-     container.innerHTML = `
-         <div class="col-span-full py-24 text-center text-slate-400">
-             <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent mb-3"></div>
-             <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Загрузка расписания...</p>
-         </div>
-     `;
+    container.innerHTML = `
+        <div class="col-span-full state-box text-center text-slate-400">
+            <div class="inline-block animate-spin rounded-full border-3 border-blue-600 border-t-transparent mb-3" style="width: clamp(1.75rem, 1.2rem + 1.6vw, 3.5rem); height: clamp(1.75rem, 1.2rem + 1.6vw, 3.5rem);"></div>
+            <p class="fs-meta font-bold text-slate-600 dark:text-slate-300">Загрузка расписания...</p>
+        </div>
+    `;
 
       try {
           const res = await fetch(`schedule.json?_t=${forceRefresh ? Date.now() : Math.floor(Date.now() / (1000 * 60 * 15))}`);
@@ -168,6 +171,7 @@ window.filterDay = function(dayId) {
           // Save to cache
           localStorage.setItem(CACHE_KEY, JSON.stringify(allGroupsData));
           localStorage.setItem(TIME_KEY, Date.now().toString());
+          localStorage.setItem(CACHE_VER_KEY, String(serverModTime || 0));
           if (fileModTime) localStorage.setItem('nkse-file-mtime', fileModTime.toString());
           
           populateGroupSelect();
@@ -200,8 +204,8 @@ window.filterDay = function(dayId) {
          container.innerHTML = `
              <div class="col-span-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-lg mx-auto text-red-700 dark:text-red-400">
                  <p class="font-extrabold mb-1">Ошибка загрузки расписания</p>
-                 <p class="text-xs text-red-500 mb-4">${err.message}. Убедитесь, что запущен сервер (server.py).</p>
-                 <button onclick="loadSchedule(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold">Повторить</button>
+                <p class="fs-meta text-red-500 mb-4">${err.message}. Убедитесь, что запущен сервер (server.py).</p>
+                <button onclick="loadSchedule(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl fs-meta font-bold">Повторить</button>
              </div>
          `;
      }
@@ -263,9 +267,9 @@ function getRelativeDayLabel(targetDayName) {
         diff += 7;
     }
     
-    if (diff === 0) return '<span class="text-xs bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold px-2.5 py-0.5 rounded-md border border-emerald-300/60">Сегодня</span>';
-    if (diff === 1) return '<span class="text-xs bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md border border-blue-300/50">Завтра</span>';
-    if (diff === 2) return '<span class="text-xs bg-violet-100 dark:bg-violet-950/80 text-violet-800 dark:text-violet-300 font-bold px-2 py-0.5 rounded-md border border-violet-300/50">Послезавтра</span>';
+    if (diff === 0) return '<span class="fs-badge chip-sm bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold border border-emerald-300/60">Сегодня</span>';
+    if (diff === 1) return '<span class="fs-badge chip-sm bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-bold border border-blue-300/50">Завтра</span>';
+    if (diff === 2) return '<span class="fs-badge chip-sm bg-violet-100 dark:bg-violet-950/80 text-violet-800 dark:text-violet-300 font-bold border border-violet-300/50">Послезавтра</span>';
     
     return '';
 }
@@ -332,8 +336,8 @@ function renderSchedule() {
     
     if (!groupSchedule || Object.keys(groupSchedule).length === 0) {
         container.innerHTML = `
-            <div class="col-span-full bg-white dark:bg-cardbg border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-500 font-bold">
-                <p>Для группы ${currentGroup} нет данных расписания.</p>
+            <div class="col-span-full state-box bg-white dark:bg-cardbg border border-slate-200 dark:border-slate-800 text-center text-slate-500 font-bold">
+                <p class="fs-subj">Для группы ${currentGroup} нет данных расписания.</p>
             </div>
         `;
         return;
@@ -362,18 +366,18 @@ function renderSchedule() {
         const dayLabelBadge = getRelativeDayLabel(dayName);
 
         htmlContent += `
-            <div class="bg-white dark:bg-cardbg border ${isToday && currentDayFilter === 'all' ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-200/90 dark:border-slate-800'} rounded-2xl p-5 shadow-xs flex flex-col">
-                <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-800">
-                    <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2.5">
-                        <span class="w-3 h-3 rounded-full ${isToday ? 'bg-emerald-500 animate-pulse' : 'bg-blue-600 dark:bg-blue-500'}"></span>
-                        <span>${dayName}</span>
+            <div class="day-card bg-white dark:bg-cardbg border ${isToday && currentDayFilter === 'all' ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-200/90 dark:border-slate-800'} shadow-xs flex flex-col">
+                <div class="flex items-center justify-between gap-2 flex-wrap pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-800">
+                    <h3 class="fs-day font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5 min-w-0">
+                        <span class="w-3 h-3 rounded-full shrink-0 ${isToday ? 'bg-emerald-500 animate-pulse' : 'bg-blue-600 dark:bg-blue-500'}"></span>
+                        <span class="truncate">${dayName}</span>
                         ${dayLabelBadge}
                     </h3>
-                    <span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">${lessons.length} пар(ы)</span>
+                    <span class="fs-badge chip shrink-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700">${lessons.length} пар(ы)</span>
                 </div>
-                <div class="space-y-3.5 flex-grow">
+                <div class="stack flex-grow">
                     ${lessons.length === 0 ? `
-                        <p class="text-xs text-slate-400 dark:text-slate-500 text-center py-8 font-bold">Выходной день ☕</p>
+                        <p class="fs-meta text-slate-400 dark:text-slate-500 text-center py-8 font-bold">Выходной день ☕</p>
                     ` : lessons.map((lesson, idx) => {
                         const active = isLessonActive(lesson.time, dayName);
                         const passed = isLessonPassed(lesson.time, dayName);
@@ -392,42 +396,29 @@ function renderSchedule() {
                          }
                          
                         return `
-                        <div class="border ${borderClass} rounded-xl p-4 transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.05}s">
-                             <div class="flex flex-col gap-2.5">
-                                 <div class="flex items-center justify-between gap-2">
-                                     <span class="text-xs font-extrabold ${active ? `bg-black ${textClass} border ${borderClass}` : `${textClass} ${bgClass} border ${borderClass}`} px-2.5 py-1 rounded-md tracking-wide">
-                                         ${active ? '🟢 ИДЕТ СЕЙЧАС • ' : ''}№${lesson.number} &bull; ${lesson.time}
-                                     </span>
-                                     
-                                     <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                                         ${lesson.subgroups && lesson.subgroups.length > 1 ? `
-                                             <div class="flex flex-col gap-1.5 items-end">
-                                                 ${lesson.subgroups.map((sub, sIdx) => `
-                                                     <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                                                         <span class="text-[10px] font-extrabold uppercase ${bgClass} ${textClass} border ${borderClass} px-1.5 py-0.5 rounded">П${sIdx + 1}</span>
-                                                         ${sub.teacher ? `<span class="text-xs font-semibold ${textClass} ${bgClass} px-2.5 py-0.5 rounded-md border ${borderClass}">👨‍🏫 ${sub.teacher}</span>` : ''}
-                                                         ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold ${textClass} ${bgClass} px-2 py-0.5 rounded-lg border ${borderClass} shadow-none cursor-pointer whitespace-nowrap"><span>Каб: ${sub.room}</span> 📋</button>` : ''}
-                                                     </div>
-                                                 `).join('')}
-                                             </div>
-                                         ` : `
-                                             ${lesson.teacher ? `
-                                                 <span class="text-xs font-semibold ${textClass} ${bgClass} px-2.5 py-1 rounded-md border ${borderClass}">
-                                                     👨‍🏫 ${lesson.teacher}
-                                                 </span>
-                                             ` : ''}
-                                             ${lesson.room ? `
-                                                 <button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="text-xs font-bold ${textClass} ${bgClass} px-2.5 py-1 rounded-lg border ${borderClass} shadow-none cursor-pointer whitespace-nowrap">
-                                                     <span>Каб: ${lesson.room}</span> 📋
-                                                 </button>
-                                             ` : ''}
-                                         `}
-                                    </div>
-                                </div>
+                        <div class="lesson-card border ${borderClass} transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.05}s">
+                            <div class="lesson-head">
+                                <span class="fs-badge chip font-extrabold ${active ? `bg-black ${textClass} border ${borderClass}` : `${textClass} ${bgClass} border ${borderClass}`} tracking-wide">
+                                    №${lesson.number} &bull; ${lesson.time}
+                                </span>
+                                ${active ? `<span class="fs-badge chip-sm live-tag font-extrabold ${textClass} ${bgClass} border ${borderClass}">ИДЕТ СЕЙЧАС</span>` : ''}
+                            </div>
 
-                                <div>
-                                    <h4 class="font-extrabold text-base sm:text-lg ${textClass} tracking-tight leading-snug">${lesson.subject}</h4>
-                                </div>
+                            <h4 class="fs-subj font-extrabold ${textClass} tracking-tight leading-snug">${lesson.subject}</h4>
+
+                            <div class="lesson-meta">
+                                ${lesson.subgroups && lesson.subgroups.length > 1 ? `
+                                    ${lesson.subgroups.map((sub, sIdx) => `
+                                        <div class="lesson-meta-row">
+                                            <span class="fs-badge chip-sm font-extrabold uppercase ${bgClass} ${textClass} border ${borderClass}">П${sIdx + 1}</span>
+                                            ${sub.teacher ? `<span class="fs-meta chip font-semibold ${textClass} ${bgClass} border ${borderClass}">👨‍🏫 ${sub.teacher}</span>` : ''}
+                                            ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Кликните, чтобы скопировать кабинет" class="room-btn fs-meta chip font-bold ${textClass} ${bgClass} border ${borderClass} shadow-none cursor-pointer whitespace-nowrap">Каб: ${sub.room} 📋</button>` : ''}
+                                        </div>
+                                    `).join('')}
+                                ` : `
+                                    ${lesson.teacher ? `<span class="fs-meta chip font-semibold ${textClass} ${bgClass} border ${borderClass}">👨‍🏫 ${lesson.teacher}</span>` : ''}
+                                    ${lesson.room ? `<button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="room-btn fs-meta chip font-bold ${textClass} ${bgClass} border ${borderClass} shadow-none cursor-pointer whitespace-nowrap">Каб: ${lesson.room} 📋</button>` : ''}
+                                `}
                             </div>
                         </div>
                     `;
@@ -439,9 +430,9 @@ function renderSchedule() {
 
     if (totalLessonsCount === 0 && currentDayFilter !== 'all') {
         container.innerHTML = `
-            <div class="col-span-full bg-white dark:bg-cardbg border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-700 dark:text-slate-300">
-                <div class="text-3xl mb-2">🏖️</div>
-                <p class="font-extrabold text-base">В этот день у группы ${currentGroup} нет занятий</p>
+            <div class="col-span-full state-box bg-white dark:bg-cardbg border border-slate-200 dark:border-slate-800 text-center text-slate-700 dark:text-slate-300">
+                <div class="fs-day mb-2">🏖️</div>
+                <p class="fs-subj font-extrabold">В этот день у группы ${currentGroup} нет занятий</p>
             </div>
         `;
         return;

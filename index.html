@@ -2,7 +2,7 @@
 <html lang="ru" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Расписание НКСЭ</title>
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,9 +57,17 @@
         .day-tab {
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
+        /* Animation uses fill-mode "backwards" and NO opacity:0 on the element,
+           so cards are always visible even if animations never run. */
         .schedule-card {
-            animation: fadeInUp 0.4s ease forwards;
-            opacity: 0;
+            animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        }
+        .day-card {
+            animation: fadeIn 0.3s ease backwards;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
         @media (max-width: 640px) {
             #days-tabs {
@@ -185,6 +193,194 @@
         [data-theme="dark"] #schedule-container .border-blue-800 {
             border-color: #ffffff !important;
         }
+
+        /* ============================================================
+           FLUID SCALE — one continuous ramp for every screen size.
+           Phone -> tablet -> laptop -> desktop -> 4K TV.
+           Sizes are rem-based so the :root font-size steps below
+           scale the whole layout up on living-room displays.
+           ============================================================ */
+        :root {
+            /* type — flat up to ~1600px (original compact sizes), then grows */
+            --fs-badge:  clamp(0.750rem, 0.42rem + 0.22vw, 1.000rem);
+            --fs-meta:   clamp(0.8125rem, 0.46rem + 0.24vw, 1.0625rem);
+            --fs-subj:   clamp(1.000rem, 0.55rem + 0.30vw, 1.375rem);
+            --fs-day:    clamp(1.0625rem, 0.60rem + 0.32vw, 1.500rem);
+            --fs-title:  clamp(1.000rem, 0.55rem + 0.30vw, 1.375rem);
+
+            /* spacing — stays compact like the original design */
+            --pad-x:     clamp(1rem,     0.35rem + 0.55vw, 3rem);
+            --pad-y:     clamp(1.5rem,   1.20rem + 0.20vw, 3rem);
+            --pad-card:  clamp(1rem,     0.82rem + 0.12vw, 1.375rem);
+            --pad-day:   calc(var(--pad-card) * 1.15);
+            --pad-tab-y: clamp(0.625rem, 0.52rem + 0.06vw, 0.875rem);
+            --pad-tab-x: clamp(1rem,     0.85rem + 0.10vw, 1.5rem);
+            --gap-grid:  clamp(1rem,     0.80rem + 0.13vw, 2rem);
+            --gap-soft:  clamp(0.625rem, 0.52rem + 0.07vw, 1.125rem);
+            --gap-micro: clamp(0.375rem, 0.31rem + 0.04vw, 0.625rem);
+            --radius:    clamp(0.75rem,  0.66rem + 0.05vw, 1.25rem);
+            --border-w:  clamp(1px, 0.6px + 0.10vw, 3px);
+
+            --shell:     100%;
+            --shell-max: 1600px;
+            --tap-min:   44px;
+        }
+
+        /* Scale the whole layout up on large / TV displays.
+           rem-based tokens above follow automatically. */
+        @media (min-width: 1600px) { :root { font-size: 17px; --shell-max: 1760px; } }
+        @media (min-width: 2000px) { :root { font-size: 19px; --shell-max: 2100px; } }
+        @media (min-width: 2800px) { :root { font-size: 22px; --shell-max: 2900px; } }
+        @media (min-width: 3600px) { :root { font-size: 25px; --shell-max: 3700px; } }
+
+        /* ---- semantic type helpers (keep colour utilities intact) ---- */
+        .fs-badge { font-size: var(--fs-badge); }
+        .fs-meta  { font-size: var(--fs-meta); }
+        .fs-subj  { font-size: var(--fs-subj); }
+        .fs-day   { font-size: var(--fs-day); }
+        .fs-title { font-size: var(--fs-title); }
+
+        /* ---- layout shell ---- */
+        .shell {
+            width: 100%;
+            max-width: var(--shell-max);
+            margin-inline: auto;
+            padding-inline: max(var(--pad-x), env(safe-area-inset-left), env(safe-area-inset-right));
+        }
+        main.shell { padding-block: var(--pad-y); }
+
+        header .shell {
+            padding-block: clamp(0.75rem, 0.55rem + 0.6vw, 1.75rem);
+            padding-left:  max(var(--pad-x), env(safe-area-inset-left));
+            padding-right: max(var(--pad-x), env(safe-area-inset-right));
+        }
+        footer.shell {
+            padding-block: clamp(1rem, 0.7rem + 0.9vw, 2.25rem);
+            padding-bottom: max(clamp(1rem, 0.7rem + 0.9vw, 2.25rem), env(safe-area-inset-bottom));
+        }
+
+        html, body { min-height: 100%; }
+        body { min-height: 100dvh; overflow-x: hidden; }
+
+        /* ---- day tabs ---- */
+        #days-tabs {
+            padding: var(--gap-micro);
+            padding-bottom: calc(var(--gap-micro) + 0.25rem);
+            gap: var(--gap-micro);
+            margin-bottom: var(--gap-grid);
+            border-radius: var(--radius);
+            scroll-padding-inline: var(--pad-x);
+            -webkit-overflow-scrolling: touch;
+        }
+        .day-tab {
+            padding-block: var(--pad-tab-y);
+            padding-inline: var(--pad-tab-x);
+            border-radius: calc(var(--radius) - 0.25rem);
+            font-size: var(--fs-meta);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ---- schedule grid ---- */
+        #schedule-container {
+            display: grid;
+            gap: var(--gap-grid);
+            grid-template-columns: 1fr;
+        }
+        #schedule-container > div { min-width: 0; }
+        @media (min-width: 700px)  { #schedule-container { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1150px) { #schedule-container { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1750px) { #schedule-container { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 2600px) { #schedule-container { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 3400px) { #schedule-container { grid-template-columns: repeat(6, 1fr); } }
+
+        /* ---- lesson cards: fixed 3-row structure so every card
+               has the same rhythm regardless of content length ---- */
+        .day-card   { padding: var(--pad-day); border-radius: var(--radius); display: flex; flex-direction: column; }
+        .lesson-card{
+            padding: var(--pad-card);
+            border-radius: var(--radius);
+            border-left-width: var(--border-w);
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap-micro);
+            overflow-wrap: break-word;
+        }
+        .lesson-head{
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--gap-micro);
+        }
+        .live-tag { letter-spacing: 0.02em; }
+        /* wrapping row: chips keep their natural width, never stretch */
+        .lesson-meta{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--gap-micro);
+        }
+        .lesson-meta-row{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--gap-micro);
+            flex: 1 0 100%;
+        }
+        .chip       { padding: calc(var(--gap-micro) * 0.75) var(--gap-soft); border-radius: calc(var(--radius) - 0.35rem); }
+        .chip-sm    { padding: calc(var(--gap-micro) * 0.4) calc(var(--gap-micro) * 1.1); border-radius: calc(var(--radius) - 0.5rem); }
+        .stack      { display: flex; flex-direction: column; gap: var(--gap-soft); }
+        .row-wrap   { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-micro); }
+
+        /* lessons inside one day share a row so cards line up evenly */
+        #schedule-container .stack { flex: 1 1 auto; }
+        #schedule-container .stack > .lesson-card { flex: 1 1 0; }
+
+        /* room button needs a real touch target even though padding is tight */
+        .room-btn   { display: inline-flex; align-items: center; justify-content: center; }
+
+        /* enlarge tap targets only on actual touch devices */
+        @media (pointer: coarse) {
+            .day-tab,
+            .room-btn,
+            #theme-toggle,
+            #group-select { min-height: var(--tap-min); }
+            .room-btn, #theme-toggle { min-width: var(--tap-min); }
+        }
+
+        /* empty / loading states */
+        .state-box  { padding: calc(var(--pad-card) * 2.5); border-radius: var(--radius); }
+
+        /* ---- hover effects only where a real pointer exists ---- */
+        @media (hover: none) {
+            .schedule-card:hover { transform: none !important; }
+        }
+
+        /* ---- keyboard / remote focus ---- */
+        :focus-visible {
+            outline: 3px solid #a855f7;
+            outline-offset: 2px;
+            border-radius: calc(var(--radius) - 0.3rem);
+        }
+
+        /* ---- phone landscape: vertical space is scarce ---- */
+        @media (max-height: 520px) and (orientation: landscape) {
+            :root { --pad-y: clamp(0.75rem, 0.5rem + 1vw, 1.5rem); }
+            #days-tabs { margin-bottom: var(--gap-soft); }
+        }
+
+        /* ---- accessibility: honour reduced motion ---- */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+                scroll-behavior: auto !important;
+            }
+            .schedule-card { opacity: 1 !important; }
+        }
     </style>
     <script>
         (function () {
@@ -210,54 +406,54 @@
     
     <!-- Header -->
     <header class="bg-white/90 dark:bg-cardbg/90 backdrop-blur-md border-b border-slate-200/85 dark:border-slate-800 sticky top-0 z-50 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
-            
+        <div class="shell flex flex-col sm:flex-row justify-between items-center gap-3">
+
             <!-- Логотип и выбор группы -->
-            <div class="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-start">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl select-none">📅</span>
-                    <div>
-                        <h1 class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">Расписание НКСЭ</h1>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium" id="last-updated">Загрузка...</p>
+            <div class="flex items-center gap-3.5 w-full min-w-0 sm:w-auto sm:flex-1 justify-between sm:justify-start">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="fs-day select-none shrink-0">📅</span>
+                    <div class="min-w-0">
+                        <h1 class="fs-title font-extrabold tracking-tight text-slate-900 dark:text-white truncate">Расписание НКСЭ</h1>
+                        <p class="fs-meta text-slate-500 dark:text-slate-400 font-medium truncate" id="last-updated">Загрузка...</p>
                     </div>
                 </div>
 
                 <!-- Выпадающий список групп -->
-                <div class="relative">
-                    <select id="group-select" class="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs">
+                <div class="relative shrink-0">
+                    <select id="group-select" class="fs-meta bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[45vw] sm:max-w-none">
                         <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
                     </select>
                 </div>
              </div>
              <!-- Переключатель темы (День / Ночь) -->
-             <button id="theme-toggle" onclick="toggleTheme()" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 rounded-xl transition cursor-pointer" title="Переключить тему">
-                 <svg id="theme-icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                 <svg id="theme-icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+             <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 rounded-xl transition cursor-pointer" title="Переключить тему" style="display: inline-flex; align-items: center; justify-content: center;">
+                 <svg class="w-[1.15em] h-[1.15em] hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                 <svg class="w-[1.15em] h-[1.15em] block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
              </button>
          </div>
      </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
-        
+    <main class="shell flex-grow">
+
         <!-- Segmented Control Tabs -->
-        <div class="bg-slate-200/80 dark:bg-slate-900 p-1.5 rounded-2xl flex overflow-x-auto pb-1.5 mb-8 gap-1.5 no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
+        <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
             <!-- Dynamically populated -->
         </div>
 
         <!-- Schedule Grid -->
-        <div id="schedule-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="schedule-container">
             <!-- Loading state -->
-            <div class="col-span-full py-24 text-center text-slate-400">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-blue-600 border-t-transparent mb-3"></div>
-                <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Загружаем расписание...</p>
+            <div class="col-span-full state-box text-center text-slate-400">
+                <div class="inline-block animate-spin rounded-full border-3 border-blue-600 border-t-transparent mb-3" style="width: clamp(1.75rem, 1.2rem + 1.6vw, 3.5rem); height: clamp(1.75rem, 1.2rem + 1.6vw, 3.5rem);"></div>
+                <p class="fs-meta font-bold text-slate-600 dark:text-slate-300">Загружаем расписание...</p>
             </div>
         </div>
 
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400 mt-auto bg-white dark:bg-cardbg">
+    <footer class="shell border-t border-slate-200 dark:border-slate-800 text-center fs-meta text-slate-500 dark:text-slate-400 mt-auto bg-white dark:bg-cardbg">
         <p class="font-bold tracking-wide">НКСЭ &bull; СИСТЕМА РАСПИСАНИЯ ЗАНЯТИЙ</p>
     </footer>
 
