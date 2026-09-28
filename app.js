@@ -79,6 +79,60 @@ function renderQuickGroups() {
     });
 }
 
+/* ---------------- view mode: cards / week ---------------- */
+const VIEW_KEY = 'nkse-view';
+const WEEK_DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+let viewMode = localStorage.getItem(VIEW_KEY) === 'week' ? 'week' : 'cards';
+
+function applyViewMode() {
+    const bar = document.querySelector('.days-bar');
+    const btn = document.getElementById('view-toggle');
+    if (bar) bar.classList.toggle('is-week', viewMode === 'week');
+    if (btn) {
+        btn.setAttribute('aria-pressed', viewMode === 'week' ? 'true' : 'false');
+        btn.textContent = viewMode === 'week' ? 'Карточки' : 'Неделя';
+        btn.title = viewMode === 'week' ? 'Показать карточки по дням' : 'Показать неделю таблицей';
+    }
+}
+
+function toggleViewMode() {
+    viewMode = viewMode === 'week' ? 'cards' : 'week';
+    localStorage.setItem(VIEW_KEY, viewMode);
+    applyViewMode();
+    renderSchedule();
+}
+
+function renderWeek() {
+    const group = allGroupsData[currentGroup] || {};
+    let maxLessons = 0;
+    for (const d of WEEK_DAYS) maxLessons = Math.max(maxLessons, (group[d] || []).length);
+    if (maxLessons === 0) maxLessons = 3;
+
+    const todayName = JS_DAYS_MAP[new Date().getDay()];
+    const head = WEEK_DAYS.map(
+        (d) => `<div class="week-head ${d === todayName ? 'is-today' : ''}">${d}</div>`
+    ).join('');
+
+    let body = '';
+    for (let i = 0; i < maxLessons; i++) {
+        for (const d of WEEK_DAYS) {
+            const l = (group[d] || [])[i];
+            if (!l) {
+                body += `<div class="week-cell"><span class="week-free">—</span></div>`;
+                continue;
+            }
+            const who = [l.teacher, l.room].filter(Boolean).join(' · ');
+            body += `
+                <div class="week-cell ${d === todayName ? 'is-today' : ''}">
+                    <span class="week-time">${i + 1} · ${l.time || ''}</span>
+                    <span class="week-subj">${l.subject || ''}</span>
+                    ${who ? `<span class="week-meta">${who}</span>` : ''}
+                </div>`;
+        }
+    }
+    return `<div class="week-grid">${head}${body}</div>`;
+}
+
 /* ---------------- search across all groups ---------------- */
 const DAYS_SEARCH = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
@@ -257,6 +311,9 @@ function initUI() {
 
     const pinBtn = document.getElementById('pin-btn');
     if (pinBtn) pinBtn.addEventListener('click', togglePin);
+
+    const viewBtn = document.getElementById('view-toggle');
+    if (viewBtn) viewBtn.addEventListener('click', toggleViewMode);
 
     initSearch();
 
@@ -575,13 +632,19 @@ window.copyRoom = function(roomText, event) {
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     const groupSchedule = allGroupsData[currentGroup] || {};
-    
+    applyViewMode();
+
     if (!groupSchedule || Object.keys(groupSchedule).length === 0) {
         container.innerHTML = `
             <div class="col-span-full state-box bg-white dark:bg-cardbg border border-slate-200 dark:border-slate-800 text-center text-slate-500 font-bold">
                 <p class="fs-subj">Для группы ${currentGroup} нет данных расписания.</p>
             </div>
         `;
+        return;
+    }
+
+    if (viewMode === 'week') {
+        container.innerHTML = renderWeek();
         return;
     }
 

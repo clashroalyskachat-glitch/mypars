@@ -325,6 +325,68 @@
             margin-bottom: var(--gap-soft);
         }
         .quick-bar:empty { display: none; }
+
+        /* ---- days bar + view toggle ---- */
+        .days-bar{
+            display: flex;
+            align-items: stretch;
+            gap: var(--gap-micro);
+            margin-bottom: var(--gap-grid);
+        }
+        .days-bar > #days-tabs { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+        .view-toggle{
+            flex: 0 0 auto;
+            font-size: var(--fs-meta);
+            font-weight: 700;
+            padding-inline: var(--gap-soft);
+            border-radius: calc(var(--radius) - 0.2rem);
+            border: 1px solid rgb(148 163 184 / 0.5);
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+        }
+        .view-toggle:hover { background: rgb(148 163 184 / 0.12); }
+        .view-toggle[aria-pressed="true"] { border-color: #a855f7; color: #a855f7; }
+        .days-bar.is-week { display: none; }
+
+        /* ---- compact week grid ---- */
+        .week-grid{
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 1px;
+            background: rgb(148 163 184 / 0.35);
+            border: 1px solid rgb(148 163 184 / 0.35);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .week-head{
+            font-size: var(--fs-meta);
+            font-weight: 800;
+            padding: var(--gap-micro) var(--gap-soft);
+            background: rgb(148 163 184 / 0.12);
+        }
+        .week-head.is-today { color: #a855f7; }
+        .week-cell{
+            padding: var(--gap-micro) var(--gap-soft);
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .week-cell.is-today { background: rgb(168 85 247 / 0.07); }
+        .week-time{ font-size: var(--fs-badge); opacity: .65; font-weight: 700; }
+        .week-subj{ font-size: var(--fs-meta); font-weight: 800; overflow-wrap: break-word; }
+        .week-meta{ font-size: var(--fs-badge); opacity: .7; overflow-wrap: break-word; }
+        .week-free{ font-size: var(--fs-badge); opacity: .35; }
+        @media (max-width: 1150px) {
+            .week-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 700px) {
+            .week-grid { grid-template-columns: minmax(0, 1fr); }
+            .week-head { position: sticky; left: 0; }
+        }
         .quick-btn{
             font-size: var(--fs-meta);
             font-weight: 700;
@@ -569,8 +631,11 @@
         <div id="search-results" hidden></div>
 
         <!-- Segmented Control Tabs -->
-        <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
-            <!-- Dynamically populated -->
+        <div class="days-bar">
+            <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
+                <!-- Dynamically populated -->
+            </div>
+            <button id="view-toggle" class="view-toggle" title="Переключить вид расписания">Неделя</button>
         </div>
 
         <!-- Schedule Grid -->
