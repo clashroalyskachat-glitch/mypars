@@ -796,7 +796,7 @@ function renderSchedule() {
                          }
                          
                         return `
-                        <div class="lesson-card border ${borderClass} transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.05}s">
+                        <div class="lesson-card border ${borderClass} transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${Math.min(idx, 5) * 0.09}s">
                             <div class="lesson-head">
                                 <span class="fs-badge chip font-extrabold ${active ? `bg-black ${textClass} border ${borderClass}` : `${textClass} ${bgClass} border ${borderClass}`} tracking-wide">
                                     №${lesson.number} &bull; ${lesson.time}
