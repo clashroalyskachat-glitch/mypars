@@ -326,6 +326,36 @@
         }
         .quick-bar:empty { display: none; }
 
+        /* ---- "what's happening now" bar ---- */
+        .now-bar{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--gap-micro) var(--gap-soft);
+            font-size: var(--fs-meta);
+            padding: var(--gap-micro) var(--gap-soft);
+            margin-bottom: var(--gap-soft);
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.45);
+        }
+        .now-bar[hidden] { display: none; }
+        .now-bar .now-dot{
+            width: .55em; height: .55em; border-radius: 999px;
+            background: #a855f7; flex: 0 0 auto;
+            animation: nowPulse 1.8s ease-in-out infinite;
+        }
+        .now-bar.is-live { border-color: #a855f7; }
+        .now-bar.is-free .now-dot { background: #64748b; animation: none; }
+        .now-bar b { font-weight: 800; }
+        .now-bar .now-left { opacity: .7; }
+        @keyframes nowPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .35; transform: scale(.75); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .now-bar .now-dot { animation: none; }
+        }
+
         /* ---- days bar + view toggle ---- */
         .days-bar{
             display: flex;
@@ -616,6 +646,9 @@
 
     <!-- Main Content -->
     <main class="shell flex-grow">
+
+        <!-- Что идёт прямо сейчас -->
+        <div id="now-bar" class="now-bar" hidden></div>
 
         <!-- Быстрый доступ к закреплённым группам -->
         <div class="quick-bar" id="quick-groups" aria-label="Закреплённые группы">

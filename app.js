@@ -315,6 +315,8 @@ function initUI() {
     const viewBtn = document.getElementById('view-toggle');
     if (viewBtn) viewBtn.addEventListener('click', toggleViewMode);
 
+    initNowBar();
+
     initSearch();
 
     document.addEventListener('keydown', (e) => {
@@ -629,6 +631,83 @@ window.copyRoom = function(roomText, event) {
     });
 }
 
+/* ---------------- "what's happening now" bar ---------------- */
+function parseLessonRange(timeStr) {
+    const parts = String(timeStr || '').split('-');
+    if (parts.length !== 2) return null;
+    const toMin = (s) => {
+        const [h, m] = s.trim().split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
+    };
+    return { start: toMin(parts[0]), end: toMin(parts[1]) };
+}
+
+function fmtLeft(mins) {
+    if (mins < 1) return 'меньше минуты';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h <= 0) return `${m} мин`;
+    return `${h} ч ${m} мин`;
+}
+
+function renderNowBar() {
+    const bar = document.getElementById('now-bar');
+    if (!bar) return;
+    const todayName = JS_DAYS_MAP[new Date().getDay()];
+    const lessons = (allGroupsData[currentGroup] || {})[todayName] || [];
+    const now = new Date();
+    const cur = now.getHours() * 60 + now.getMinutes();
+
+    if (!todayName || todayName === 'Воскресенье' || lessons.length === 0) {
+        bar.hidden = true;
+        return;
+    }
+
+    const live = lessons.find((l) => {
+        const r = parseLessonRange(l.time);
+        return r && cur >= r.start && cur <= r.end;
+    });
+
+    if (live) {
+        const r = parseLessonRange(live.time);
+        bar.hidden = false;
+        bar.className = 'now-bar is-live';
+        bar.innerHTML = `
+            <span class="now-dot"></span>
+            <span><b>Идёт сейчас:</b> ${live.subject || ''}</span>
+            ${live.room ? `<span>Каб: ${live.room}</span>` : ''}
+            <span class="now-left">до ${String(Math.floor(r.end / 60)).padStart(2, '0')}:${String(r.end % 60).padStart(2, '0')} · осталось ${fmtLeft(r.end - cur)}</span>`;
+        return;
+    }
+
+    const next = lessons.find((l) => {
+        const r = parseLessonRange(l.time);
+        return r && r.start > cur;
+    });
+
+    if (next) {
+        const r = parseLessonRange(next.time);
+        bar.hidden = false;
+        bar.className = 'now-bar is-free';
+        bar.innerHTML = `
+            <span class="now-dot"></span>
+            <span><b>Следующая пара</b> в ${String(Math.floor(r.start / 60)).padStart(2, '0')}:${String(r.start % 60).padStart(2, '0')}</span>
+            <span>${next.subject || ''}</span>
+            ${next.room ? `<span>Каб: ${next.room}</span>` : ''}
+            <span class="now-left">через ${fmtLeft(r.start - cur)}</span>`;
+        return;
+    }
+
+    bar.hidden = false;
+    bar.className = 'now-bar is-free';
+    bar.innerHTML = `<span class="now-dot"></span><span>На сегодня пары закончились</span>`;
+}
+
+function initNowBar() {
+    renderNowBar();
+    setInterval(renderNowBar, 30 * 1000);
+}
+
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     const groupSchedule = allGroupsData[currentGroup] || {};
@@ -642,6 +721,8 @@ function renderSchedule() {
         `;
         return;
     }
+
+    renderNowBar();
 
     if (viewMode === 'week') {
         container.innerHTML = renderWeek();
