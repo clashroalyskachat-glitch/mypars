@@ -5,6 +5,176 @@ let currentGroup = localStorage.getItem('selected_group') || 'СЗ-13-26';
 let currentDayFilter = 'all';
 let lastModTime = null;
 
+const PIN_KEY = 'nkse-pinned-groups';
+
+/* ?group=СЗ-13-26 — lets a classmate share a link straight to their group */
+(function applyGroupFromUrl() {
+    try {
+        const g = new URLSearchParams(location.search).get('group');
+        if (g) {
+            currentGroup = g;
+            localStorage.setItem('selected_group', g);
+        }
+    } catch (e) {}
+})();
+
+function getPinned() {
+    try {
+        const v = JSON.parse(localStorage.getItem(PIN_KEY) || '[]');
+        return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function setPinned(list) {
+    localStorage.setItem(PIN_KEY, JSON.stringify(list));
+    renderQuickGroups();
+    renderPinButton();
+}
+
+function togglePin() {
+    const pinned = getPinned();
+    const i = pinned.indexOf(currentGroup);
+    if (i === -1) {
+        pinned.push(currentGroup);
+    } else {
+        pinned.splice(i, 1);
+    }
+    setPinned(pinned);
+}
+
+function renderPinButton() {
+    const btn = document.getElementById('pin-btn');
+    if (!btn) return;
+    const on = getPinned().includes(currentGroup);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.textContent = on ? 'Открепить' : 'Закрепить';
+}
+
+function renderQuickGroups() {
+    const bar = document.getElementById('quick-groups');
+    if (!bar) return;
+    const pinned = getPinned();
+    if (pinned.length === 0) {
+        bar.innerHTML = '';
+        return;
+    }
+    const available = pinned.filter((g) => allGroupsData[g]);
+    bar.innerHTML = available
+        .map(
+            (g) =>
+                `<button class="quick-btn" data-group="${g}" aria-current="${g === currentGroup}">${g}</button>`
+        )
+        .join('');
+    bar.querySelectorAll('.quick-btn').forEach((b) => {
+        b.addEventListener('click', () => {
+            currentGroup = b.dataset.group;
+            localStorage.setItem('selected_group', currentGroup);
+            populateGroupSelect();
+            renderQuickGroups();
+            renderPinButton();
+            renderSchedule();
+        });
+    });
+}
+
+/* ---------------- search across all groups ---------------- */
+const DAYS_SEARCH = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function runSearch(query) {
+    const box = document.getElementById('search-results');
+    if (!box) return;
+    const q = query.trim().toLowerCase();
+    if (q.length < 2) {
+        box.hidden = true;
+        box.innerHTML = '';
+        return;
+    }
+    const hits = [];
+    for (const group of Object.keys(allGroupsData)) {
+        const days = allGroupsData[group];
+        for (const day of DAYS_SEARCH) {
+            for (const l of days[day] || []) {
+                const subs = (l.subgroups || []).map((s) => `${s.teacher || ''} ${s.room || ''}`).join(' ');
+                const hay = `${l.subject || ''} ${l.teacher || ''} ${l.room || ''} ${subs}`.toLowerCase();
+                if (hay.includes(q)) {
+                    hits.push({ group, day, l });
+                }
+            }
+        }
+    }
+    hits.sort((a, b) => DAYS_SEARCH.indexOf(a.day) - DAYS_SEARCH.indexOf(b.day) || a.group.localeCompare(b.group));
+
+    if (hits.length === 0) {
+        box.hidden = false;
+        box.innerHTML = `<div class="search-hit"><span class="muted">Ничего не найдено по запросу «${escapeHtml(query.trim())}»</span></div>`;
+        return;
+    }
+
+    const shown = hits.slice(0, 120);
+    box.hidden = false;
+    box.innerHTML =
+        `<div class="search-hit"><span class="muted">Найдено ${hits.length}${hits.length > shown.length ? `, показаны первые ${shown.length}` : ''}</span></div>` +
+        shown
+            .map(
+                (h) => `
+        <div class="search-hit">
+            <button class="quick-btn" data-group="${escapeHtml(h.group)}"><b>${escapeHtml(h.group)}</b></button>
+            <span>${escapeHtml(h.day)}</span>
+            <span class="muted">№${escapeHtml(h.l.number || '')} &bull; ${escapeHtml(h.l.time || '')}</span>
+            <b>${escapeHtml(h.l.subject || '')}</b>
+            ${h.l.teacher ? `<span class="muted">${escapeHtml(h.l.teacher)}</span>` : ''}
+            ${h.l.room ? `<span class="muted">Каб: ${escapeHtml(h.l.room)}</span>` : ''}
+        </div>`
+            )
+            .join('');
+
+    box.querySelectorAll('[data-group]').forEach((b) => {
+        b.addEventListener('click', () => {
+            currentGroup = b.dataset.group;
+            localStorage.setItem('selected_group', currentGroup);
+            populateGroupSelect();
+            renderPinButton();
+            renderQuickGroups();
+            clearSearch();
+            renderSchedule();
+        });
+    });
+}
+
+function clearSearch() {
+    const input = document.getElementById('search-input');
+    const box = document.getElementById('search-results');
+    const reset = document.getElementById('search-reset');
+    if (input) input.value = '';
+    if (box) {
+        box.hidden = true;
+        box.innerHTML = '';
+    }
+    if (reset) reset.hidden = true;
+}
+
+function initSearch() {
+    const input = document.getElementById('search-input');
+    const reset = document.getElementById('search-reset');
+    if (!input) return;
+    input.addEventListener('input', () => {
+        reset.hidden = input.value.length === 0;
+        runSearch(input.value);
+    });
+    if (reset) {
+        reset.addEventListener('click', () => {
+            clearSearch();
+            input.focus();
+        });
+    }
+}
+
 const DAYS_OF_WEEK = [
     { id: 'all', name: '📅 Вся неделя' },
     { id: 'Понедельник', name: 'Понедельник' },
@@ -60,10 +230,32 @@ function initUI() {
     groupSelect.addEventListener('change', (e) => {
         currentGroup = e.target.value;
         localStorage.setItem('selected_group', currentGroup);
+        renderPinButton();
+        renderQuickGroups();
         renderSchedule();
     });
 
+    const pinBtn = document.getElementById('pin-btn');
+    if (pinBtn) pinBtn.addEventListener('click', togglePin);
+
+    initSearch();
+
+    document.addEventListener('keydown', (e) => {
+        const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
+        if (e.key === '/' && !typing) {
+            e.preventDefault();
+            const si = document.getElementById('search-input');
+            if (si) si.focus();
+        } else if (e.key === 'Escape') {
+            if (document.activeElement && document.activeElement.id === 'search-input') {
+                clearSearch();
+                document.activeElement.blur();
+            }
+        }
+    });
+
     renderTabs();
+    renderPinButton();
 }
 
  function renderTabs() {
@@ -121,9 +313,11 @@ window.filterDay = function(dayId) {
              const freshByTime = cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION);
              const verMatches = !serverModTime || (cachedVer !== null && parseFloat(cachedVer) === serverModTime);
              if (cached && freshByTime && verMatches) {
-                  allGroupsData = JSON.parse(cached);
-                  populateGroupSelect();
-                  checkAndAutoSwitchDay();
+                allGroupsData = JSON.parse(cached);
+                populateGroupSelect();
+                renderQuickGroups();
+                renderPinButton();
+                checkAndAutoSwitchDay();
 
                   const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
                   if (cachedFileMtime) {
@@ -175,6 +369,8 @@ window.filterDay = function(dayId) {
           if (fileModTime) localStorage.setItem('nkse-file-mtime', fileModTime.toString());
           
           populateGroupSelect();
+          renderQuickGroups();
+          renderPinButton();
           checkAndAutoSwitchDay();
 
           if (fileModTime) {

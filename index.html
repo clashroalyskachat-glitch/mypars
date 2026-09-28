@@ -315,6 +315,99 @@
             gap: var(--gap-micro);
         }
         .live-tag { letter-spacing: 0.02em; }
+
+        /* ---- quick access to pinned groups ---- */
+        .quick-bar{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--gap-micro);
+            margin-bottom: var(--gap-soft);
+        }
+        .quick-bar:empty { display: none; }
+        .quick-btn{
+            font-size: var(--fs-meta);
+            font-weight: 700;
+            padding: calc(var(--gap-micro) * 0.9) var(--gap-soft);
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.5);
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+        }
+        .quick-btn:hover { background: rgb(148 163 184 / 0.12); }
+        .quick-btn[aria-current="true"] {
+            border-color: #a855f7;
+            color: #a855f7;
+        }
+        .pin-btn{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--fs-meta);
+            padding: calc(var(--gap-micro) * 0.9) var(--gap-soft);
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.5);
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color .2s ease, border-color .2s ease, color .2s ease, opacity .2s ease;
+        }
+        .pin-btn:hover { background: rgb(148 163 184 / 0.12); }
+        .pin-btn[aria-pressed="true"] { border-color: #a855f7; color: #a855f7; }
+        .pin-btn:disabled { opacity: .4; cursor: default; }
+
+        /* ---- search ---- */
+        .search-wrap{
+            display: flex;
+            align-items: center;
+            gap: var(--gap-micro);
+            margin-bottom: var(--gap-soft);
+            flex-wrap: wrap;
+        }
+        .search-input{
+            flex: 1 1 16rem;
+            font-size: var(--fs-meta);
+            padding: calc(var(--gap-micro) * 1.4) var(--gap-soft);
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.5);
+            background: transparent;
+            color: inherit;
+            min-width: 0;
+        }
+        .search-input:focus { outline: none; border-color: #a855f7; }
+        .search-reset{
+            border: none;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font-size: var(--fs-meta);
+            padding: calc(var(--gap-micro) * 1.4) var(--gap-soft);
+            border-radius: 999px;
+            opacity: .6;
+        }
+        .search-reset:hover { opacity: 1; }
+        .search-results{
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap-micro);
+            margin-bottom: var(--gap-soft);
+        }
+        .search-hit{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: var(--gap-micro) var(--gap-soft);
+            font-size: var(--fs-meta);
+            padding: var(--gap-micro) var(--gap-soft);
+            border-radius: calc(var(--radius) - 0.4rem);
+            border: 1px solid rgb(148 163 184 / 0.4);
+        }
+        .search-hit b { font-weight: 800; }
+        .search-hit .muted { opacity: .65; }
         /* wrapping row: chips keep their natural width, never stretch */
         .lesson-meta{
             display: flex;
@@ -419,10 +512,11 @@
                 </div>
 
                 <!-- Выпадающий список групп -->
-                <div class="relative shrink-0">
-                    <select id="group-select" class="fs-meta bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[45vw] sm:max-w-none">
+                <div class="relative shrink-0 flex items-center gap-2">
+                    <select id="group-select" class="fs-meta bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[38vw] sm:max-w-none">
                         <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
                     </select>
+                    <button id="pin-btn" class="pin-btn" aria-pressed="false" title="Закрепить группу в быстрый доступ">Закрепить</button>
                 </div>
              </div>
              <!-- Переключатель темы (День / Ночь) -->
@@ -435,6 +529,19 @@
 
     <!-- Main Content -->
     <main class="shell flex-grow">
+
+        <!-- Быстрый доступ к закреплённым группам -->
+        <div class="quick-bar" id="quick-groups" aria-label="Закреплённые группы">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Поиск по всем группам -->
+        <div class="search-wrap" id="search-wrap">
+            <input id="search-input" class="search-input" type="search" autocomplete="off"
+                   placeholder="Поиск: преподаватель, кабинет, предмет…" aria-label="Поиск по расписанию">
+            <button id="search-reset" class="search-reset" hidden>Очистить</button>
+        </div>
+        <div id="search-results" hidden></div>
 
         <!-- Segmented Control Tabs -->
         <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
