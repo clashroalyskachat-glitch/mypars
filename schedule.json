@@ -25,7 +25,8 @@
             "teacher": "Парфенова Е В",
             "room": "А409"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -260,7 +261,8 @@
             "teacher": "Парфенова Е В",
             "room": "А423"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -342,7 +344,8 @@
             "teacher": "Фёдорова Н А",
             "room": "А317"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -549,7 +552,8 @@
             "teacher": "Даниленко О В",
             "room": "А312"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -590,7 +594,8 @@
             "teacher": "Лазарь Т С",
             "room": "А425"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -644,7 +649,8 @@
             "teacher": "Калустьянц Т В",
             "room": "А420"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -730,7 +736,8 @@
             "teacher": "Лазарь Т С",
             "room": "А322"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -814,7 +821,8 @@
             "teacher": "Пушкина Т П",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -855,7 +863,8 @@
             "teacher": "Лукша Л В",
             "room": "А219"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -909,7 +918,8 @@
             "teacher": "Лукша Л В",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -950,7 +960,8 @@
             "teacher": "Лазарь Т С",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -1079,7 +1090,8 @@
             "teacher": "Орехова М В",
             "room": "А413"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -1217,7 +1229,8 @@
             "teacher": "Шалуба М А",
             "room": "А420"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -1314,7 +1327,8 @@
             "teacher": "Орехова М В",
             "room": "А413"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -1478,7 +1492,8 @@
             "teacher": "Шалуба М А",
             "room": "А420"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -1534,7 +1549,8 @@
             "teacher": "Пушкина Т П",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -1575,7 +1591,8 @@
             "teacher": "Пушкина Т П",
             "room": "А208"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -1616,7 +1633,8 @@
             "teacher": "Пушкина Т П",
             "room": "А208"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -1672,7 +1690,8 @@
             "teacher": "Пушкина Т П",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -1713,7 +1732,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -1726,7 +1746,8 @@
             "teacher": "Дьякова В С",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -1786,7 +1807,8 @@
             "teacher": "Фёдорова Н А",
             "room": "А321"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -1827,7 +1849,8 @@
             "teacher": "Шалуба М А",
             "room": "А423"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -2239,7 +2262,8 @@
             "teacher": "Шалуба М А",
             "room": "А420"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -2256,7 +2280,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А416"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -2269,7 +2294,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А407"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -2338,7 +2364,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А413"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -2351,7 +2378,8 @@
             "teacher": "Парфенова Е В",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -2379,7 +2407,8 @@
             "teacher": "Лазарь Т С",
             "room": "А312"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -2433,7 +2462,8 @@
             "teacher": "Лазарь Т С",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -2487,7 +2517,8 @@
             "teacher": "Лазарь Т С",
             "room": "А322"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -2517,7 +2548,8 @@
             "teacher": "Фёдорова Н А",
             "room": "А321"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -2545,7 +2577,8 @@
             "teacher": "Шалуба М А",
             "room": "А423"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -2612,7 +2645,8 @@
             "teacher": "Фёдорова Н А",
             "room": "А317"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -3058,7 +3092,8 @@
             "teacher": "Шалуба М А",
             "room": "А423"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -3265,7 +3300,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А420"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -3278,7 +3314,8 @@
             "teacher": "Орехова М В",
             "room": "А416"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -3334,7 +3371,8 @@
             "teacher": "Парфенова Е В",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -3401,7 +3439,8 @@
             "teacher": "Чирков А Н",
             "room": "А321"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -3500,7 +3539,8 @@
             "teacher": "Андреева Р А",
             "room": "А209"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -3649,7 +3689,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -4517,7 +4558,8 @@
             "teacher": "Чирков А Н",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -4530,7 +4572,8 @@
             "teacher": "Чирков А Н",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -4612,7 +4655,8 @@
             "teacher": "Шалуба М А",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -4709,7 +4753,8 @@
             "teacher": "Лазарь Т С",
             "room": "А322"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -4735,7 +4780,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -4752,7 +4798,8 @@
             "teacher": "Орехова М В",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -4946,7 +4993,8 @@
             "teacher": "Дьякова В С",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -5030,7 +5078,8 @@
             "teacher": "Парфенова Е В",
             "room": "А409"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -5099,7 +5148,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -5112,7 +5162,8 @@
             "teacher": "Орехова М В",
             "room": "А413"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -5375,7 +5426,8 @@
             "teacher": "Маслова А С",
             "room": "Чит.зал"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -5429,7 +5481,8 @@
             "teacher": "Попкова Л Ф",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -5567,7 +5620,8 @@
             "teacher": "Москвина Р В",
             "room": "А306"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -5636,7 +5690,8 @@
             "teacher": "Маслова А С",
             "room": "А001"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -5664,7 +5719,8 @@
             "teacher": "Попкова Л Ф",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -5793,7 +5849,8 @@
             "teacher": "Попкова Л Ф",
             "room": "А413"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -6108,7 +6165,8 @@
             "teacher": "Парфенова Е В",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -6218,7 +6276,8 @@
             "teacher": "Селиверстова А М",
             "room": "А301"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -6231,7 +6290,8 @@
             "teacher": "Бойко Е Н",
             "room": "А324"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -6261,7 +6321,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -6315,7 +6376,8 @@
             "teacher": "Парфенова Е В",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -6397,7 +6459,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -6479,7 +6542,8 @@
             "teacher": "Ольховик Т А",
             "room": "А409"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -6496,7 +6560,8 @@
             "teacher": "Полусмак О М",
             "room": "А305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -6509,7 +6574,8 @@
             "teacher": "Полусмак О М",
             "room": "А312"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -6537,7 +6603,8 @@
             "teacher": "Полусмак О М",
             "room": "А305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -6578,7 +6645,8 @@
             "teacher": "Полусмак О М",
             "room": "А305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -6619,7 +6687,8 @@
             "teacher": "Полусмак О М",
             "room": "А317"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -6645,7 +6714,8 @@
             "teacher": "Полусмак О М",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -6660,7 +6730,8 @@
             "teacher": "Полусмак О М",
             "room": "А305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -6880,7 +6951,8 @@
             "teacher": "Крылова Н В",
             "room": "А103"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -6893,7 +6965,8 @@
             "teacher": "Крылова Н В",
             "room": "А103"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -6934,7 +7007,8 @@
             "teacher": "Лутцева Т В",
             "room": "А307"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -6992,7 +7066,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -7128,7 +7203,8 @@
             "teacher": "Ишмаева Т А",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -7197,7 +7273,8 @@
             "teacher": "Ольховик Т А",
             "room": "А409"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -7266,7 +7343,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -7281,7 +7359,8 @@
             "teacher": "Гладких И О",
             "room": "А320"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -7363,7 +7442,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -7458,7 +7538,8 @@
             "teacher": "Ольховик Т А",
             "room": "А409"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -7488,7 +7569,8 @@
             "teacher": "Давыдова Н Н",
             "room": "А001"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -7706,7 +7788,8 @@
             "teacher": "Яковленко С И",
             "room": "А402"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -7719,7 +7802,8 @@
             "teacher": "Селиверстова А М",
             "room": "А301"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -7831,7 +7915,8 @@
             "teacher": "Задорожный Ф К",
             "room": "А401"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -7844,7 +7929,8 @@
             "teacher": "Диденко И С",
             "room": "А311"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -7859,7 +7945,8 @@
             "teacher": "Ишмаева Т А",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -7900,7 +7987,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -8120,7 +8208,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -8318,7 +8407,8 @@
             "teacher": "Лаганин С В",
             "room": "А312"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -8566,7 +8656,8 @@
             "teacher": "Бенеш Э В",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -8661,7 +8752,8 @@
             "teacher": "Бенеш Э В",
             "room": "А109"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -8790,7 +8882,8 @@
             "teacher": "Бенеш Э В",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -8831,7 +8924,8 @@
             "teacher": "Сокольская А Н",
             "room": "А324"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -9025,7 +9119,8 @@
             "teacher": "Бенеш Э В",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -9070,7 +9165,8 @@
             "teacher": "Гарифова Д С",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -9372,7 +9468,8 @@
             "teacher": "Барсукова Е А",
             "room": "А212"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -9426,7 +9523,8 @@
             "teacher": "Барсукова Е А",
             "room": "А212"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -9984,7 +10082,8 @@
             "teacher": "Коряк С В",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -9997,7 +10096,8 @@
             "teacher": "Сюсюка И О",
             "room": "А208"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -10161,7 +10261,8 @@
             "teacher": "Кривоносова Н В",
             "room": "А213"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -10202,7 +10303,8 @@
             "teacher": "Слинько О В",
             "room": "А223"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -10215,7 +10317,8 @@
             "teacher": "Кривоносова Н В",
             "room": "А213"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -10493,7 +10596,8 @@
             "teacher": "Давыдова Н Н",
             "room": "А003"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -10980,7 +11084,8 @@
             "teacher": "Парфенова Е В",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -11047,7 +11152,8 @@
             "teacher": "Парфенова Е В",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -11170,7 +11276,8 @@
             "teacher": "Ордиянц А В",
             "room": "А201"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -11269,7 +11376,8 @@
             "teacher": "Бенеш Э В",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -11437,7 +11545,8 @@
             "teacher": "Барсукова Е А",
             "room": "А212"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -11521,7 +11630,8 @@
             "teacher": "Пушкина Т П",
             "room": "А305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -11534,7 +11644,8 @@
             "teacher": "Бенеш Э В",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -11633,7 +11744,8 @@
             "teacher": "Брагина Е Н",
             "room": "А427"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -11661,7 +11773,8 @@
             "teacher": "Айсин В Р",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -11689,7 +11802,8 @@
             "teacher": "Пушкина Т П",
             "room": "А322"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -11702,7 +11816,8 @@
             "teacher": "Барсукова Е А",
             "room": "А212"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -11773,7 +11888,8 @@
             "teacher": "Крылова Н В",
             "room": "А301"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -11950,7 +12066,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -12185,7 +12302,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -12228,7 +12346,8 @@
             "teacher": "Бенеш Э В",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -12282,7 +12401,8 @@
             "teacher": "Парфенова Е В",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -12323,7 +12443,8 @@
             "teacher": "Куликова Е А",
             "room": "А109"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -12351,7 +12472,8 @@
             "teacher": "Айсин Р К",
             "room": "А110"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -12502,7 +12624,8 @@
             "teacher": "Ордиянц А В",
             "room": "А213"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -12517,7 +12640,8 @@
             "teacher": "Шалуба М А",
             "room": "А423"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -12625,7 +12749,8 @@
             "teacher": "Лубенская В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -12640,7 +12765,8 @@
             "teacher": "Яковленко С И",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -12653,7 +12779,8 @@
             "teacher": "Яковленко С И",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -12694,7 +12821,8 @@
             "teacher": "Горшенина Т А",
             "room": "А406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -12836,7 +12964,8 @@
             "teacher": "Задорожный Ф К",
             "room": "А401"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -12892,7 +13021,8 @@
             "teacher": "Бенеш Э В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -12905,7 +13035,8 @@
             "teacher": "Дьякова В С",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -13043,7 +13174,8 @@
             "teacher": "Бихе А В",
             "room": "А317"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -13347,7 +13479,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -13388,7 +13521,8 @@
             "teacher": "Ордиянц А В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -13455,7 +13589,8 @@
             "teacher": "Лучинина И А",
             "room": "А314"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -13498,7 +13633,8 @@
             "teacher": "Лаганин С В",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -13513,7 +13649,8 @@
             "teacher": "Верещагина Э А",
             "room": "А311-a"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -13539,7 +13676,8 @@
             "teacher": "Галанова Н А",
             "room": "А312"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -13567,7 +13705,8 @@
             "teacher": "Лаганин С В",
             "room": "А420"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -13580,7 +13719,8 @@
             "teacher": "Ордиянц А В",
             "room": "А103"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -13662,7 +13802,8 @@
             "teacher": "Лаганин С В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -13733,7 +13874,8 @@
             "teacher": "Бенеш Э В",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -13746,7 +13888,8 @@
             "teacher": "Брянцева М М",
             "room": "А412"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -13955,7 +14098,8 @@
             "teacher": "Задорожный Ф К",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -13985,7 +14129,8 @@
             "teacher": "Верещагина Э А",
             "room": "А311-a"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -14039,7 +14184,8 @@
             "teacher": "Бенеш Э В",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -14080,7 +14226,8 @@
             "teacher": "Лучинина И А",
             "room": "А314"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -14136,7 +14283,8 @@
             "teacher": "Айсин В Р",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -14162,7 +14310,8 @@
             "teacher": "Айсин В Р",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -14246,7 +14395,8 @@
             "teacher": "Верещагина Э А",
             "room": "А311-a"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -14498,7 +14648,8 @@
             "teacher": "Бенеш Э В",
             "room": "А107"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -14554,7 +14705,8 @@
             "teacher": "Диденко И С",
             "room": "А311"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -14690,7 +14842,8 @@
             "teacher": "Задорожный Ф К",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -15319,7 +15472,8 @@
             "teacher": "Лучинина И А",
             "room": "А314"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -15472,7 +15626,8 @@
             "teacher": "Слинько О В",
             "room": "А224"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -15554,7 +15709,8 @@
             "teacher": "Лучинина И А",
             "room": "А314"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -15621,7 +15777,8 @@
             "teacher": "Айсин В Р",
             "room": "А410"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -15649,7 +15806,8 @@
             "teacher": "Коряк С В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -15733,7 +15891,8 @@
             "teacher": "Коряк С В",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -16104,7 +16263,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -16365,7 +16525,8 @@
             "teacher": "Шалуба М А",
             "room": "А421"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -16546,7 +16707,8 @@
             "teacher": "Губарева И М",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -16669,7 +16831,8 @@
             "teacher": "Кривоносова Н В",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -16835,7 +16998,8 @@
             "teacher": "Бойко Е Н",
             "room": "А412"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -16904,7 +17068,8 @@
             "teacher": "Бойко Е Н",
             "room": "А416"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -17070,7 +17235,8 @@
             "teacher": "Брянцева М М",
             "room": "А209"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -17443,7 +17609,8 @@
             "teacher": "Яковленко С И",
             "room": "А402"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -17456,7 +17623,8 @@
             "teacher": "Яковленко С И",
             "room": "А402"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -17469,7 +17637,8 @@
             "teacher": "Гусятинская Е Ю",
             "room": "А219"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -17566,7 +17735,8 @@
             "teacher": "Ворожцова М В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -17633,7 +17803,8 @@
             "teacher": "Яковленко С И",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -17674,7 +17845,8 @@
             "teacher": "Гусятинская Е Ю",
             "room": "А224"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -18062,7 +18234,8 @@
             "teacher": "Лаганин С В",
             "room": "А312"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -18075,7 +18248,8 @@
             "teacher": "Брянцева М М",
             "room": "А209"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -18254,7 +18428,8 @@
             "teacher": "Масловская Е Ю",
             "room": "А405"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -18545,7 +18720,8 @@
             "teacher": "Куликова Е А",
             "room": "А109"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -18959,7 +19135,8 @@
             "teacher": "Тищенко С В",
             "room": "Полигон"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -19013,7 +19190,8 @@
             "teacher": "Гонская О М",
             "room": "А301"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -19235,7 +19413,8 @@
             "teacher": "Крылова Н В",
             "room": "А404"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -19248,7 +19427,8 @@
             "teacher": "Гарифова Д С",
             "room": "А415"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -19442,7 +19622,8 @@
             "teacher": "Давыдова Н Н",
             "room": "А003"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -19455,7 +19636,8 @@
             "teacher": "Теренченко В А",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -19468,7 +19650,8 @@
             "teacher": "Давыдова Н Н",
             "room": "А003"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -19731,7 +19914,8 @@
             "teacher": "Лутцева Т В",
             "room": "А306"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -19938,7 +20122,8 @@
             "teacher": "Слинько О В",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -20005,7 +20190,8 @@
             "teacher": "Кривоносова Н В",
             "room": "А213"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -20020,7 +20206,8 @@
             "teacher": "Сюсюка И О",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -20087,7 +20274,8 @@
             "teacher": "Слинько О В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -20199,7 +20387,8 @@
             "teacher": "Слинько О В",
             "room": "А223"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -20253,7 +20442,8 @@
             "teacher": "Кривоносова Н В",
             "room": "А213"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -20281,7 +20471,8 @@
             "teacher": "Слинько О В",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -20350,7 +20541,8 @@
             "teacher": "Кривоносова Н В",
             "room": "А214"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -20419,7 +20611,8 @@
             "teacher": "Слинько О В",
             "room": "А223"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -20488,7 +20681,8 @@
             "teacher": "Сюсюка И О",
             "room": "А208"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -20557,7 +20751,8 @@
             "teacher": "Слинько О В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -20624,7 +20819,8 @@
             "teacher": "Слинько О В",
             "room": "А223"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -20645,7 +20841,8 @@
             "teacher": "Бессарабова О Ю",
             "room": "В108"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -20712,7 +20909,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -20768,7 +20966,8 @@
             "teacher": "Кузьмина И В",
             "room": "В501"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -20822,7 +21021,8 @@
             "teacher": "Задорожный Ф К",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -20964,7 +21164,8 @@
             "teacher": "Бессарабова Т В",
             "room": "В406"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -21119,7 +21320,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -21166,7 +21368,8 @@
             "teacher": "Бессарабова Т В",
             "room": "В305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -21207,7 +21410,8 @@
             "teacher": "Бессарабова Т В",
             "room": "В406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -21276,7 +21480,8 @@
             "teacher": "Бойко Е А",
             "room": "В400"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -21362,7 +21567,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -21431,7 +21637,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -21590,7 +21797,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -21702,7 +21910,8 @@
             "teacher": "Кузьмина И В",
             "room": "В503"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -21810,7 +22019,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В300"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -21825,7 +22035,8 @@
             "teacher": "Задорожный Ф К",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -22025,7 +22236,8 @@
             "teacher": "Выскуб А А",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -22264,7 +22476,8 @@
             "teacher": "Коптев А И",
             "room": "В208"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -22499,7 +22712,8 @@
             "teacher": "Мастяева Т Н",
             "room": "В406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -22682,7 +22896,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -23520,7 +23735,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В105"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -23552,7 +23768,8 @@
             "teacher": "Захарова Н В",
             "room": "В310"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -23565,7 +23782,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -23731,7 +23949,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -23830,7 +24049,8 @@
             "teacher": "Музалева М А",
             "room": "В510"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -23871,7 +24091,8 @@
             "teacher": "Задорожный Ф К",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -23899,7 +24120,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В306"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -23912,7 +24134,8 @@
             "teacher": "Боброва Т В",
             "room": "В501"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -23970,7 +24193,8 @@
             "teacher": "Сыроежкина Е В",
             "room": "В305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24138,7 +24362,8 @@
             "teacher": "Боброва Т В",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24164,7 +24389,8 @@
             "teacher": "Задорожный Ф К",
             "room": "В306"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -24181,7 +24407,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24239,7 +24466,8 @@
             "teacher": "Ногайцева А С",
             "room": "В408"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -24312,7 +24540,8 @@
             "teacher": "Гусятинская Е Ю",
             "room": "В402"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24420,7 +24649,8 @@
             "teacher": "Сыроежкина Е В",
             "room": "В305"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -24478,7 +24708,8 @@
             "teacher": "Ногайцева А С",
             "room": "В406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24609,7 +24840,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24635,7 +24867,8 @@
             "teacher": "Ногайцева А С",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -24663,7 +24896,8 @@
             "teacher": "Коптев А И",
             "room": "В208"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -24734,7 +24968,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -24850,7 +25085,8 @@
             "teacher": "Гусятинская Е Ю",
             "room": "В402"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -24906,7 +25142,8 @@
             "teacher": "Захарова В В",
             "room": "В306"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -25759,7 +25996,8 @@
             "teacher": "Таразевич П С",
             "room": "В002"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26048,7 +26286,8 @@
             "teacher": "Таразевич П С",
             "room": "В002"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26287,7 +26526,8 @@
             "teacher": "Здор Е П",
             "room": "В300"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26300,7 +26540,8 @@
             "teacher": "Здор Е П",
             "room": "В300"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26313,7 +26554,8 @@
             "teacher": "Здор Е П",
             "room": "В300"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -26354,7 +26596,8 @@
             "teacher": "Морщавка И И",
             "room": "В505"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -26457,7 +26700,8 @@
             "teacher": "Аверкиева А А",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26470,7 +26714,8 @@
             "teacher": "Аверкиева А А",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26483,7 +26728,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В503"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -26511,7 +26757,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26524,7 +26771,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -26565,7 +26813,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -26580,7 +26829,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26593,7 +26843,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26679,7 +26930,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26750,7 +27002,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26776,7 +27029,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -26791,7 +27045,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26817,7 +27072,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -26832,7 +27088,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26845,7 +27102,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26858,7 +27116,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -26890,7 +27149,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26918,7 +27178,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26931,7 +27192,8 @@
             "teacher": "Боброва Т В",
             "room": "В406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26944,7 +27206,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -26961,7 +27224,8 @@
             "teacher": "Куницына Т П",
             "room": "В109"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -26974,7 +27238,8 @@
             "teacher": "Куницына Т П",
             "room": "В109"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -26987,7 +27252,8 @@
             "teacher": "Куницына Т П",
             "room": "В109"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -27196,7 +27462,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -27430,7 +27697,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -27456,7 +27724,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -28267,7 +28536,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -28282,7 +28552,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28295,7 +28566,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28308,7 +28580,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -28349,7 +28622,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -28364,7 +28638,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28377,7 +28652,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28390,7 +28666,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -28405,7 +28682,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28418,7 +28696,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28431,7 +28710,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -28446,7 +28726,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28472,7 +28753,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -28502,7 +28784,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28515,7 +28798,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -28556,7 +28840,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -28584,7 +28869,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28625,7 +28911,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28653,7 +28940,8 @@
             "teacher": "Каспрук А А",
             "room": "В507"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28666,7 +28954,8 @@
             "teacher": "Каспрук А А",
             "room": "В507"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28707,7 +28996,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28754,7 +29044,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -28823,7 +29114,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28849,7 +29141,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -28864,7 +29157,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28931,7 +29225,8 @@
             "teacher": "Каспрук А А",
             "room": "В105"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -28946,7 +29241,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -28972,7 +29268,8 @@
             "teacher": "Каспрук А А",
             "room": "В506"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -29047,7 +29344,8 @@
             "teacher": "Неронов А А",
             "room": "В004"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -29060,7 +29358,8 @@
             "teacher": "Неронов А А",
             "room": "В004"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -29245,7 +29544,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -29258,7 +29558,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "5",
@@ -29271,7 +29572,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -29286,7 +29588,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -29299,7 +29602,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -29312,7 +29616,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -29327,7 +29632,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -29340,7 +29646,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -29353,7 +29660,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -29368,7 +29676,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -29381,7 +29690,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -29394,7 +29704,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -29409,7 +29720,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -29422,7 +29734,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -29435,7 +29748,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В304"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -29450,7 +29764,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -29463,7 +29778,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -29476,7 +29792,8 @@
             "teacher": "Гамзина Е Г",
             "room": "В504"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -29601,7 +29918,8 @@
             "teacher": "Достовалова Л А",
             "room": "В308"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -29616,7 +29934,8 @@
             "teacher": "Достовалова Л А",
             "room": "В308"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -29642,7 +29961,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -29885,7 +30205,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -30042,7 +30363,8 @@
             "teacher": "Будылдина Л А",
             "room": "В310"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -30096,7 +30418,8 @@
             "teacher": "Достовалова Л А",
             "room": "В308"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -30109,7 +30432,8 @@
             "teacher": "Достовалова Л А",
             "room": "В308"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -30124,7 +30448,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -30339,7 +30664,8 @@
             "teacher": "Белеткова Е Д",
             "room": "В002"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "2",
@@ -30365,7 +30691,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -30505,7 +30832,8 @@
             "teacher": "Кузьмина И В",
             "room": "В507"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -30591,7 +30919,8 @@
             "teacher": "Сыроежкина Е В",
             "room": "В305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -30843,7 +31172,8 @@
             "teacher": "Московцева В М",
             "room": "В406"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -31009,7 +31339,8 @@
             "teacher": "Сысина Г А",
             "room": "В402"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -31162,7 +31493,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -31278,7 +31610,8 @@
             "teacher": "Сысина Г А",
             "room": "В403"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -31291,7 +31624,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -31388,7 +31722,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -31442,7 +31777,8 @@
             "teacher": "Муханеева В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -31455,7 +31791,8 @@
             "teacher": "Муханеева В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -31584,7 +31921,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -32396,7 +32734,8 @@
             "teacher": "Ладовер Т М",
             "room": "В501"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -32409,7 +32748,8 @@
             "teacher": "Волкова А В",
             "room": "В300"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -32424,7 +32764,8 @@
             "teacher": "Ладовер Т М",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -32590,7 +32931,8 @@
             "teacher": "Заикина Я А",
             "room": "В501"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -32603,7 +32945,8 @@
             "teacher": "Сыроежкина Е В",
             "room": "В305"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -32773,7 +33116,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -32818,7 +33162,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -32831,7 +33176,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -32859,7 +33205,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -32872,7 +33219,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -32941,7 +33289,8 @@
             "teacher": "Коваль С А",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -32954,7 +33303,8 @@
             "teacher": "Коваль С А",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Суббота": [
@@ -32969,7 +33319,8 @@
             "teacher": "Коваль С А",
             "room": "лаборатория"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -33193,7 +33544,8 @@
             "teacher": "Каспрук А А",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -33221,7 +33573,8 @@
             "teacher": "Ильичева Т Е",
             "room": "В107"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -33234,7 +33587,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -33486,7 +33840,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -33615,7 +33970,8 @@
             "teacher": "Сердериди О В",
             "room": "В507"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -33628,7 +33984,8 @@
             "teacher": "Савостина Т Н",
             "room": "В303"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -33863,7 +34220,8 @@
             "teacher": "Савостина Т Н",
             "room": "В303"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -33876,7 +34234,8 @@
             "teacher": "Айсин В Р",
             "room": "В300"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -34188,7 +34547,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -34201,7 +34561,8 @@
             "teacher": "Достовалова Л А",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -34412,7 +34773,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -34440,7 +34802,8 @@
             "teacher": "Достовалова Л А",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -34619,7 +34982,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -34632,7 +34996,8 @@
             "teacher": "Сердериди О В",
             "room": "В405"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -35024,7 +35389,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -35078,7 +35444,8 @@
             "teacher": "Аверкиева А А",
             "room": "В306"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -35091,7 +35458,8 @@
             "teacher": "Аверкиева А А",
             "room": "В306"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -35106,7 +35474,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -35119,7 +35488,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -35132,7 +35502,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -35173,7 +35544,8 @@
             "teacher": "Муханеева В В",
             "room": "В206"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -35188,7 +35560,8 @@
             "teacher": "Муханеева В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -35255,7 +35628,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -35313,7 +35687,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -35490,7 +35865,8 @@
             "teacher": "Кузьменко Р Д",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -35891,7 +36267,8 @@
             "teacher": "Ладовер Т М",
             "room": "В501"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -35904,7 +36281,8 @@
             "teacher": "Волкова А В",
             "room": "В308"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -36139,7 +36517,8 @@
             "teacher": "Задорожная В В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -36264,7 +36643,8 @@
             "teacher": "Мишанкина Л Г",
             "room": "В510"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -36290,7 +36670,8 @@
             "teacher": "Мишанкина Л Г",
             "room": "В510"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -36372,7 +36753,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -36413,7 +36795,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -36441,7 +36824,8 @@
             "teacher": "Белова С В",
             "room": ""
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -36566,7 +36950,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "4",
@@ -36579,7 +36964,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Среда": [
@@ -36620,7 +37006,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -36635,7 +37022,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -36743,7 +37131,8 @@
             "teacher": "Белова С В",
             "room": "В508"
           }
-        ]
+        ],
+        "substituted": true
       }
     ]
   },
@@ -37090,7 +37479,8 @@
             "teacher": "Дубровская Т В",
             "room": "В403"
           }
-        ]
+        ],
+        "substituted": true
       },
       {
         "number": "3",
@@ -37116,7 +37506,8 @@
             "teacher": "Московцева В М",
             "room": "В408"
           }
-        ]
+        ],
+        "substituted": true
       }
     ],
     "Четверг": [

@@ -684,6 +684,7 @@ function dayToText(dayName) {
     } else {
         lessons.forEach((l) => {
             let s = `${l.time}  ${l.subject || ''}`;
+            if (l.substituted) s += '  (замена)';
             if (l.teacher) s += `  (${l.teacher})`;
             if (l.room) s += `  [${l.room}]`;
             lines.push(s);
@@ -761,6 +762,7 @@ function renderSchedule() {
 
         const isToday = (dayName === todayName);
         const dayLabelBadge = getRelativeDayLabel(dayName);
+        const subCount = lessons.filter((l) => l.substituted).length;
 
         htmlContent += `
             <div class="day-card bg-white dark:bg-cardbg border ${isToday && currentDayFilter === 'all' ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-200/90 dark:border-slate-800'} shadow-xs flex flex-col">
@@ -772,6 +774,7 @@ function renderSchedule() {
                     </h3>
                     <div class="flex items-center gap-3 shrink-0">
                         <span class="fs-badge day-count">${lessons.length} ${lessons.length === 1 ? 'пара' : lessons.length < 5 ? 'пары' : 'пар(ы)'}</span>
+                        ${subCount ? `<span class="fs-badge sub-flag">${subCount} ${subCount === 1 ? 'замена' : 'замены'}</span>` : ''}
                         <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge day-copy">Копировать</button>
                     </div>
                 </div>
@@ -803,6 +806,7 @@ function renderSchedule() {
                                     <span class="num-time">${lesson.time}</span>
                                 </span>
                                 ${active ? `<span class="fs-badge live-tag">ИДЕТ СЕЙЧАС</span>` : ''}
+                                ${lesson.substituted ? `<span class="fs-badge sub-flag" title="Занятие по замене">замена</span>` : ''}
                             </div>
 
                             <h4 class="fs-subj font-extrabold ${textClass} tracking-tight leading-snug">${lesson.subject}</h4>

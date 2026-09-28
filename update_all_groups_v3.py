@@ -9,20 +9,35 @@ import time
 sys.stdout.reconfigure(encoding='utf-8')
 
 class DetailedTableParser(HTMLParser):
+    """Parses the table and also records row/td class names, which is how the
+    source marks substituted lessons (background-color: LightGreen)."""
+
     def __init__(self):
         super().__init__()
         self.rows = []
         self.current_row = []
         self.in_cell = False
         self.cell_content = []
+        self.tr_class = ""
+        self.cell_class = ""
+        # (row_index, col_index) -> (tr_class, td_class)
+        self.cell_keys = {}
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
         if tag == 'tr':
             self.current_row = []
+            self.tr_class = ""
+            for k, v in attrs:
+                if k.lower() == 'class':
+                    self.tr_class = v or ""
         elif tag in ('td', 'th'):
             self.in_cell = True
             self.cell_content = []
+            self.cell_class = ""
+            for k, v in attrs:
+                if k.lower() == 'class':
+                    self.cell_class = v or ""
 
     def handle_endtag(self, tag):
         tag = tag.lower()
@@ -31,11 +46,23 @@ class DetailedTableParser(HTMLParser):
         elif tag in ('td', 'th'):
             self.in_cell = False
             text = "".join(self.cell_content).strip()
+            self.cell_keys[(len(self.rows), len(self.current_row))] = (self.tr_class, self.cell_class)
             self.current_row.append(text)
 
     def handle_data(self, data):
         if self.in_cell:
             self.cell_content.append(data)
+
+
+def parse_green_cells(html):
+    """Return the set of (tr_class, td_class) pairs styled LightGreen.
+    Those cells are substituted lessons (замена) on the source site."""
+    green = set()
+    for m in re.finditer(r"tr\.(\S+)\s+td\.(\S+)\s*\{([^}]*)\}", html):
+        tr_class, td_class, body = m.group(1), m.group(2), m.group(3)
+        if 'lightgreen' in body.lower():
+            green.add((tr_class, td_class))
+    return green
 
 days_map = {
     'pn': 'Понедельник',
@@ -82,6 +109,7 @@ for prefix in prefixes:
             failed_pages.append((prefix, code))
             continue
         try:
+            green_cells = parse_green_cells(html)
             parser = DetailedTableParser()
             parser.feed(html)
             
@@ -90,6 +118,18 @@ for prefix in prefixes:
                 print(f"[WARN] Empty table from {url}")
                 failed_pages.append((prefix, code))
                 continue
+            
+            def is_substituted(row_idx, col_idx):
+                key = parser.cell_keys.get((row_idx, col_idx))
+                if not key:
+                    return False
+                tr_class, td_class = key
+                if not td_class:
+                    return False
+                if (tr_class, td_class) in green_cells:
+                    return True
+                # some stylesheets omit the tr qualifier
+                return any(td == td_class for (tr, td) in green_cells)
             
             for r_i, row in enumerate(table):
                 for c_i, cell in enumerate(row):
@@ -156,14 +196,17 @@ for prefix in prefixes:
                                 r = rooms[i] if i < len(rooms) else (rooms[0] if rooms else "")
                                 subgroups.append({"teacher": t, "room": r})
 
-                            lessons.append({
+                            lesson = {
                                 "number": num,
                                 "time": time_str,
                                 "subject": subject,
                                 "teacher": ", ".join(teachers),
                                 "room": ", ".join(rooms),
                                 "subgroups": subgroups
-                            })
+                            }
+                            if is_substituted(s_idx, c_i):
+                                lesson["substituted"] = True
+                            lessons.append(lesson)
                         
                         if lessons:
                             master_schedule[group_name][day_name] = lessons
