@@ -50,19 +50,31 @@ prefixes = ['A_1', 'A_2', 'B_1', 'B_2']
 master_schedule = {}
 failed_pages = []
 
-def fetch_page(url, attempts=3):
-    for attempt in range(attempts):
+# Global time budget: a total outage must fail fast instead of hanging.
+# 24 pages x retries x socket timeout can otherwise add up to ~24 minutes.
+DEADLINE = time.time() + 180
+PER_REQUEST_TIMEOUT = 10
+ATTEMPTS = 2
+
+def fetch_page(url):
+    for attempt in range(ATTEMPTS):
+        if time.time() > DEADLINE:
+            return None
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with urllib.request.urlopen(req, timeout=PER_REQUEST_TIMEOUT) as resp:
                 return resp.read().decode('utf-8', errors='ignore')
-        except Exception as e:
-            if attempt < attempts - 1:
-                time.sleep(2)
+        except Exception:
+            if attempt < ATTEMPTS - 1:
+                time.sleep(1)
     return None
 
 for prefix in prefixes:
     for code, day_name in days_map.items():
+        if time.time() > DEADLINE:
+            print("[WARN] Time budget exhausted, stopping fetch loop")
+            failed_pages.append((prefix, code))
+            continue
         url = f"http://do.nkse.ru/html_pages/{prefix}_{code}.htm"
         html = fetch_page(url)
         if html is None:
