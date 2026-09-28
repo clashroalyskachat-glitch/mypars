@@ -424,6 +424,7 @@ window.filterDay = function(dayId) {
                 checkAndAutoSwitchDay();
 
                   const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
+                  markStaleness(cachedFileMtime ? parseInt(cachedFileMtime) : null, true);
                   if (cachedFileMtime) {
                       const modDate = new Date(parseInt(cachedFileMtime));
                       const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -478,6 +479,7 @@ window.filterDay = function(dayId) {
           renderDataHealth();
           checkAndAutoSwitchDay();
 
+          markStaleness(fileModTime || null, false);
           if (fileModTime) {
               const modDate = new Date(fileModTime);
               const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -648,6 +650,26 @@ function fmtLeft(mins) {
     const m = mins % 60;
     if (h <= 0) return `${m} мин`;
     return `${h} ч ${m} мин`;
+}
+
+const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // match the cloud re-parse cadence
+
+function markStaleness(modTimeMs, fromCache) {
+    const dot = document.getElementById('stale-dot');
+    if (!dot) return;
+    if (!modTimeMs) {
+        dot.hidden = !fromCache;
+        dot.title = 'Не удалось определить время обновления данных';
+        return;
+    }
+    const age = Date.now() - modTimeMs;
+    if (age > STALE_AFTER_MS) {
+        dot.hidden = false;
+        const h = Math.round(age / 3600000);
+        dot.title = `Данные не обновлялись около ${h} ч. Возможно, парсер не отвечает.`;
+    } else {
+        dot.hidden = true;
+    }
 }
 
 function renderNowBar() {

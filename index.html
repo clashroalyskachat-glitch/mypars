@@ -332,6 +332,23 @@
         }
         .quick-bar:empty { display: none; }
 
+        /* ---- staleness indicator ---- */
+        .stale-dot{
+            flex: 0 0 auto;
+            width: .6em; height: .6em;
+            border-radius: 999px;
+            background: #f59e0b;
+            align-self: center;
+        }
+        .stale-dot[hidden] { display: none; }
+        @media (prefers-reduced-motion: no-preference) {
+            .stale-dot { animation: staleBlink 2.4s ease-in-out infinite; }
+            @keyframes staleBlink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: .3; }
+            }
+        }
+
         /* ---- "what's happening now" bar ---- */
         .now-bar{
             display: flex;
@@ -633,6 +650,7 @@
                         <p class="fs-meta text-slate-500 dark:text-slate-400 font-medium truncate" id="last-updated">Загрузка...</p>
                     </div>
                 </div>
+                <span id="stale-dot" class="stale-dot" hidden title="Данные могут быть неактуальны"></span>
 
                 <!-- Выпадающий список групп -->
                 <div class="relative shrink-0 flex items-center gap-2">
