@@ -1,0 +1,20 @@
+{
+  "name": "Расписание НКСЭ",
+  "short_name": "НКСЭ",
+  "description": "Расписание занятий НКСЭ — по группам и дням, с поиском по преподавателям и кабинетам.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
