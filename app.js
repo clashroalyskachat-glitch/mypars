@@ -147,6 +147,26 @@ function runSearch(query) {
     });
 }
 
+function renderDataHealth() {
+    const el = document.getElementById('data-health');
+    if (!el) return;
+    const groups = Object.keys(allGroupsData).length;
+    if (groups === 0) {
+        el.textContent = '';
+        return;
+    }
+    let lessons = 0;
+    let emptyDays = 0;
+    for (const g of Object.keys(allGroupsData)) {
+        for (const day of Object.keys(allGroupsData[g])) {
+            const n = (allGroupsData[g][day] || []).length;
+            lessons += n;
+            if (n === 0) emptyDays++;
+        }
+    }
+    el.textContent = `${groups} групп · ${lessons} пар${emptyDays ? ` · дней без пар: ${emptyDays}` : ''}`;
+}
+
 function clearSearch() {
     const input = document.getElementById('search-input');
     const box = document.getElementById('search-results');
@@ -241,16 +261,40 @@ function initUI() {
     initSearch();
 
     document.addEventListener('keydown', (e) => {
-        const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
+        const tag = document.activeElement && document.activeElement.tagName;
+        const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(tag);
         if (e.key === '/' && !typing) {
             e.preventDefault();
             const si = document.getElementById('search-input');
             if (si) si.focus();
-        } else if (e.key === 'Escape') {
-            if (document.activeElement && document.activeElement.id === 'search-input') {
+            return;
+        }
+        if (e.key === 'Escape') {
+            if (tag === 'INPUT') {
                 clearSearch();
                 document.activeElement.blur();
             }
+            return;
+        }
+        if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+        /* day navigation: arrows / Home / End */
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            const i = DAYS_OF_WEEK.findIndex((d) => d.id === currentDayFilter);
+            const next = e.key === 'ArrowLeft' ? (i - 1 + DAYS_OF_WEEK.length) % DAYS_OF_WEEK.length : (i + 1) % DAYS_OF_WEEK.length;
+            window.filterDay(DAYS_OF_WEEK[next].id);
+            return;
+        }
+        if (e.key === 'Home' || e.key === 'End') {
+            e.preventDefault();
+            window.filterDay(e.key === 'Home' ? DAYS_OF_WEEK[0].id : DAYS_OF_WEEK[DAYS_OF_WEEK.length - 1].id);
+            return;
+        }
+        /* theme toggle */
+        if (e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') {
+            e.preventDefault();
+            toggleTheme();
         }
     });
 
@@ -317,6 +361,7 @@ window.filterDay = function(dayId) {
                 populateGroupSelect();
                 renderQuickGroups();
                 renderPinButton();
+                renderDataHealth();
                 checkAndAutoSwitchDay();
 
                   const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
@@ -371,6 +416,7 @@ window.filterDay = function(dayId) {
           populateGroupSelect();
           renderQuickGroups();
           renderPinButton();
+          renderDataHealth();
           checkAndAutoSwitchDay();
 
           if (fileModTime) {

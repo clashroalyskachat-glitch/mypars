@@ -474,6 +474,31 @@
             }
             .schedule-card { opacity: 1 !important; }
         }
+        /* ---- print: strip chrome, keep the schedule readable on paper ---- */
+        @media print {
+            @page { margin: 12mm; }
+            html, body { background: #fff !important; color: #000 !important; }
+            [data-theme="dark"] body,
+            [data-theme="dark"] header,
+            [data-theme="dark"] footer,
+            [data-theme="dark"] .day-card,
+            [data-theme="dark"] .lesson-card,
+            [data-theme="dark"] #days-tabs,
+            [data-theme="dark"] #days-tabs button { background: #fff !important; color: #000 !important; }
+            [data-theme="dark"] .border-slate-200,
+            [data-theme="dark"] .border-slate-300,
+            [data-theme="dark"] .border-slate-700,
+            [data-theme="dark"] .border-slate-800,
+            [data-theme="dark"] .border { border-color: #999 !important; }
+            header, footer, #theme-toggle, #pin-btn, #quick-groups,
+            #search-wrap, #search-results, .no-scrollbar { display: none !important; }
+            main.shell { padding: 0 !important; max-width: none !important; }
+            #days-tabs { display: none !important; }
+            #schedule-container { grid-template-columns: repeat(2, 1fr) !important; gap: 8mm !important; }
+            .day-card, .lesson-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+            .schedule-card, .day-card { animation: none !important; opacity: 1 !important; }
+            .chip, .room-btn, .quick-btn { border-color: #999 !important; }
+        }
     </style>
     <script>
         (function () {
@@ -562,6 +587,7 @@
     <!-- Footer -->
     <footer class="shell border-t border-slate-200 dark:border-slate-800 text-center fs-meta text-slate-500 dark:text-slate-400 mt-auto bg-white dark:bg-cardbg">
         <p class="font-bold tracking-wide">НКСЭ &bull; СИСТЕМА РАСПИСАНИЯ ЗАНЯТИЙ</p>
+        <p id="data-health" class="mt-1 opacity-60"></p>
     </footer>
 
     <!-- App Logic -->
