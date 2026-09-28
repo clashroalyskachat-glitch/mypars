@@ -48,10 +48,6 @@
             0% { transform: translateX(0); opacity: 0; }
             100% { transform: translateX(0); opacity: 1; }
         }
-        @keyframes fadeInUp {
-            0% { transform: translateY(30px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -69,7 +65,11 @@
            "forwards" + a bare `opacity: 0`, so cards can never be left
            invisible if the animation is skipped. */
         .schedule-card {
-            animation: fadeInUp 0.4s ease backwards;
+            animation: fadeInUp 0.52s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+        }
+        @keyframes fadeInUp {
+            0% { transform: translateY(36px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
         @keyframes fadeIn {
             0% { opacity: 0; }
@@ -341,6 +341,42 @@
             gap: var(--gap-micro);
         }
         .live-tag { letter-spacing: 0.02em; }
+        /* ---- minimal lesson card: no nested boxes, hierarchy from space/weight ---- */
+        .lesson-num {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.5em;
+            font-weight: 800;
+            opacity: .55;
+        }
+        .lesson-num .num-time { font-weight: 700; opacity: .85; }
+        .lesson-num.is-active { opacity: 1; color: #a855f7; }
+        .sub-tag {
+            font-weight: 800;
+            opacity: .45;
+            letter-spacing: 0.04em;
+        }
+        .meta-item { opacity: .6; font-weight: 600; }
+        .meta-item.is-room {
+            opacity: .75;
+            font-weight: 700;
+            border-bottom: 1px dashed currentColor;
+            padding-bottom: 1px;
+        }
+        .meta-item.is-room:hover { opacity: 1; }
+
+        /* ---- day header: quiet, borderless ---- */
+        .day-count { opacity: .5; font-weight: 700; }
+        .day-copy {
+            font-weight: 700;
+            opacity: .45;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: inherit;
+            padding: 0;
+        }
+        .day-copy:hover { opacity: .9; }
 
         /* ---- quick access to pinned groups ---- */
         .quick-bar{
@@ -487,7 +523,7 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: var(--gap-micro);
+            gap: var(--gap-micro) var(--gap-soft);
         }
         .lesson-meta-row{
             display: flex;
@@ -544,10 +580,10 @@
            cards look like they were simply blinking in. */
         @media (prefers-reduced-motion: reduce) {
             .schedule-card {
-                animation: fadeInUpSoft 0.35s ease-out backwards !important;
+                animation: fadeInUpSoft 0.42s ease-out backwards !important;
             }
             @keyframes fadeInUpSoft {
-                0%   { opacity: 0; transform: translateY(10px); }
+                0%   { opacity: 0; transform: translateY(12px); }
                 100% { opacity: 1; transform: translateY(0); }
             }
             .schedule-card,

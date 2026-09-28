@@ -770,9 +770,9 @@ function renderSchedule() {
                         <span class="truncate">${dayName}</span>
                         ${dayLabelBadge}
                     </h3>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <span class="fs-badge chip bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700">${lessons.length} пар(ы)</span>
-                        <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge chip border border-slate-300 dark:border-slate-700 font-bold opacity-70 hover:opacity-100 cursor-pointer bg-transparent">Копировать</button>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="fs-badge day-count">${lessons.length} ${lessons.length === 1 ? 'пара' : lessons.length < 5 ? 'пары' : 'пар(ы)'}</span>
+                        <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge day-copy">Копировать</button>
                     </div>
                 </div>
                 <div class="stack flex-grow">
@@ -796,12 +796,13 @@ function renderSchedule() {
                          }
                          
                         return `
-                        <div class="lesson-card border ${borderClass} transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.05}s">
+                        <div class="lesson-card border ${borderClass} transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.07}s">
                             <div class="lesson-head">
-                                <span class="fs-badge chip font-extrabold ${active ? `bg-black ${textClass} border ${borderClass}` : `${textClass} ${bgClass} border ${borderClass}`} tracking-wide">
-                                    №${lesson.number} &bull; ${lesson.time}
+                                <span class="fs-badge lesson-num ${active ? 'is-active' : ''}">
+                                    <span class="num">№${lesson.number}</span>
+                                    <span class="num-time">${lesson.time}</span>
                                 </span>
-                                ${active ? `<span class="fs-badge chip-sm live-tag font-extrabold ${textClass} ${bgClass} border ${borderClass}">ИДЕТ СЕЙЧАС</span>` : ''}
+                                ${active ? `<span class="fs-badge live-tag">ИДЕТ СЕЙЧАС</span>` : ''}
                             </div>
 
                             <h4 class="fs-subj font-extrabold ${textClass} tracking-tight leading-snug">${lesson.subject}</h4>
@@ -810,14 +811,14 @@ function renderSchedule() {
                                 ${lesson.subgroups && lesson.subgroups.length > 1 ? `
                                     ${lesson.subgroups.map((sub, sIdx) => `
                                         <div class="lesson-meta-row">
-                                            <span class="fs-badge chip-sm font-extrabold uppercase ${bgClass} ${textClass} border ${borderClass}">П${sIdx + 1}</span>
-                                            ${sub.teacher ? `<span class="fs-meta chip font-semibold ${textClass} ${bgClass} border ${borderClass}">👨‍🏫 ${sub.teacher}</span>` : ''}
-                                            ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Кликните, чтобы скопировать кабинет" class="room-btn fs-meta chip font-bold ${textClass} ${bgClass} border ${borderClass} shadow-none cursor-pointer whitespace-nowrap">Каб: ${sub.room} 📋</button>` : ''}
+                                            <span class="fs-badge sub-tag">П${sIdx + 1}</span>
+                                            ${sub.teacher ? `<span class="fs-meta meta-item">${sub.teacher}</span>` : ''}
+                                            ${sub.room ? `<button onclick="copyRoom('${sub.room}', event)" title="Скопировать кабинет" class="room-btn fs-meta meta-item is-room">${sub.room}</button>` : ''}
                                         </div>
                                     `).join('')}
                                 ` : `
-                                    ${lesson.teacher ? `<span class="fs-meta chip font-semibold ${textClass} ${bgClass} border ${borderClass}">👨‍🏫 ${lesson.teacher}</span>` : ''}
-                                    ${lesson.room ? `<button onclick="copyRoom('${lesson.room}', event)" title="Кликните, чтобы скопировать кабинет" class="room-btn fs-meta chip font-bold ${textClass} ${bgClass} border ${borderClass} shadow-none cursor-pointer whitespace-nowrap">Каб: ${lesson.room} 📋</button>` : ''}
+                                    ${lesson.teacher ? `<span class="fs-meta meta-item">${lesson.teacher}</span>` : ''}
+                                    ${lesson.room ? `<button onclick="copyRoom('${lesson.room}', event)" title="Скопировать кабинет" class="room-btn fs-meta meta-item is-room">${lesson.room}</button>` : ''}
                                 `}
                             </div>
                         </div>
