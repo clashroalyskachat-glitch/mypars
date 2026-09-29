@@ -94,19 +94,29 @@ self.addEventListener('fetch', (event) => {
 
     if (!isShellRequest(url)) return;
 
-    // App shell: cache-first.
+    // App shell: stale-while-revalidate.
+    // Cache-first-forever would pin returning users to the copy they got on
+    // their first visit, so a newly deployed index.html/app.js would never
+    // reach them. Serving the cached copy keeps the instant paint, while the
+    // background refetch means the next load shows the new version.
+    const isLocal = url.origin === self.location.origin;
     event.respondWith(
-        caches.match(req, { ignoreSearch: true }).then((hit) => {
-            if (hit) return hit;
-            return fetch(req)
+        caches.open(SHELL_CACHE).then(async (cache) => {
+            const hit = await cache.match(req, { ignoreSearch: true });
+            const fresh = fetch(req)
                 .then((res) => {
-                    if (res && (res.ok || res.type === 'opaque')) {
-                        const copy = res.clone();
-                        caches.open(SHELL_CACHE).then((c) => c.put(req, copy));
-                    }
+                    if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
                     return res;
                 })
-                .catch(() => caches.match('index.html'));
+                .catch(() => null);
+
+            if (hit) {
+                // do not await fresh: respond now, let it update the cache
+                if (isLocal) event.waitUntil(fresh);
+                return hit;
+            }
+            const res = await fresh;
+            return res || (await cache.match('index.html')) || Response.error();
         })
     );
 });
