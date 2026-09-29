@@ -1,6 +1,11 @@
 name: Auto-Update Schedule & Deploy
 
 on:
+  push:
+    # Any push to main goes live. The parser's own schedule.json commit uses
+    # "[skip ci]" so it cannot retrigger this workflow - no loop.
+    branches:
+      - main
   schedule:
     # NB: cron is UTC (GitHub Actions). Moscow = UTC+3.
     # Times avoid the :00 slot on purpose - GitHub delays scheduled runs
