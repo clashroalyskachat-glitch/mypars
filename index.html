@@ -323,6 +323,12 @@
         @media (min-width: 1200px) { #schedule-container { grid-template-columns: repeat(3, 1fr); } }
         @media (min-width: 2400px) { #schedule-container { grid-template-columns: repeat(6, 1fr); } }
 
+        /* subject is the hero line: sized to carry the card width */
+        .lesson-card h4 {
+            font-size: clamp(1.05rem, 0.90rem + 0.55vw, 1.70rem);
+            margin-block: 0.12em 0.30em;
+        }
+
         /* ---- lesson cards: fixed 3-row structure so every card
                has the same rhythm regardless of content length ---- */
         .day-card   { padding: var(--pad-day); border-radius: var(--radius); display: flex; flex-direction: column; }
@@ -341,6 +347,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: var(--gap-micro);
+            justify-content: space-between;
         }
         .live-tag { letter-spacing: 0.02em; }
         /* ---- minimal lesson card: no nested boxes, hierarchy from space/weight ---- */
@@ -364,13 +371,19 @@
             letter-spacing: 0.05em;
             color: #f59e0b;
             opacity: .95;
+            margin-left: auto;
         }
+        /* number+time anchor left, any flag hugs the right edge */
+        .lesson-head > .lesson-num { margin-right: auto; }
         .meta-item { opacity: .6; font-weight: 600; }
+        /* room sits at the far right so the row spans the card instead of
+           leaving a dead gap - same job the old bordered chips did */
         .meta-item.is-room {
             opacity: .75;
             font-weight: 700;
             border-bottom: 1px dashed currentColor;
             padding-bottom: 1px;
+            margin-left: auto;
         }
         .meta-item.is-room:hover { opacity: 1; }
 
