@@ -244,7 +244,9 @@
             --gap-grid:  clamp(1rem,     0.80rem + 0.13vw, 2rem);
             --gap-soft:  clamp(0.625rem, 0.52rem + 0.07vw, 1.125rem);
             --gap-micro: clamp(0.375rem, 0.31rem + 0.04vw, 0.625rem);
-            --radius:    clamp(0.75rem,  0.66rem + 0.05vw, 1.25rem);
+            --radius:    clamp(1rem, 0.90rem + 0.30vw, 1.40rem);
+            --radius-sm: calc(var(--radius) - 0.30rem);
+            --radius-xs: calc(var(--radius) - 0.55rem);
             --border-w:  clamp(1px, 0.6px + 0.10vw, 3px);
 
             --shell:     100%;
@@ -326,7 +328,7 @@
         .day-card   { padding: var(--pad-day); border-radius: var(--radius); display: flex; flex-direction: column; }
         .lesson-card{
             padding: var(--pad-card);
-            border-radius: var(--radius);
+            border-radius: var(--radius-sm);
             border-left-width: var(--border-w);
             min-width: 0;
             display: flex;
@@ -674,14 +676,14 @@
 
                 <!-- Выпадающий список групп -->
                 <div class="relative shrink-0 flex items-center gap-2">
-                    <select id="group-select" class="fs-meta bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[38vw] sm:max-w-none">
+                    <select id="group-select" class="fs-meta bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold px-3.5 py-2 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[38vw] sm:max-w-none" style="border-radius: var(--radius-sm);">
                         <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
                     </select>
                     <button id="pin-btn" class="pin-btn" aria-pressed="false" title="Закрепить группу в быстрый доступ">Закрепить</button>
                 </div>
              </div>
              <!-- Переключатель темы (День / Ночь) -->
-             <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 rounded-xl transition cursor-pointer" title="Переключить тему" style="display: inline-flex; align-items: center; justify-content: center;">
+             <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 transition cursor-pointer" title="Переключить тему" style="border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center;">
                  <svg class="w-[1.15em] h-[1.15em] hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                  <svg class="w-[1.15em] h-[1.15em] block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
              </button>

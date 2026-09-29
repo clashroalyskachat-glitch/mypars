@@ -474,10 +474,10 @@ window.filterDay = function(dayId) {
      } catch (err) {
          console.error(err);
          container.innerHTML = `
-             <div class="col-span-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-lg mx-auto text-red-700 dark:text-red-400">
+             <div class="col-span-full state-box bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-center max-w-lg mx-auto text-red-700 dark:text-red-400">
                  <p class="font-extrabold mb-1">Ошибка загрузки расписания</p>
                 <p class="fs-meta text-red-500 mb-4">${err.message}. Убедитесь, что запущен сервер (server.py).</p>
-                <button onclick="loadSchedule(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl fs-meta font-bold">Повторить</button>
+                <button onclick="loadSchedule(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 fs-meta font-bold" style="border-radius: var(--radius-sm);">Повторить</button>
              </div>
          `;
      }
