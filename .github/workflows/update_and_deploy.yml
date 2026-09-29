@@ -2,8 +2,25 @@ name: Auto-Update Schedule & Deploy
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Авто-обновление каждые 6 часов в облаке
+    # NB: cron is UTC (GitHub Actions). Moscow = UTC+3.
+    # Times avoid the :00 slot on purpose - GitHub delays scheduled runs
+    # most heavily on the hour, by 15-60 minutes.
+    - cron: '7 23 * * *'    # 02:07 МСК - ночной, ловит правки на следующий день
+    - cron: '25 6 * * *'    # 09:25 МСК - за 5 мин до конца 1-й пары (09:30)
+    - cron: '55 7 * * *'    # 10:55 МСК - за 5 мин до конца 2-й пары (11:00)
+    - cron: '15 9 * * *'    # 12:15 МСК - за 5 мин до конца пары 12:20
+    - cron: '35 9 * * *'    # 12:35 МСК - за 5 мин до конца пары 12:40
+    - cron: '3 10 * * *'    # 13:03 МСК - доп. прогон после обеда
+    - cron: '25 11 * * *'   # 14:25 МСК - за 5 мин до конца 3-й пары (14:30)
+    - cron: '5 13 * * *'    # 16:05 МСК - за 5 мин до конца 4-й пары (16:10)
+    - cron: '3 14 * * *'    # 17:03 МСК - доп. прогон
+    - cron: '35 14 * * *'   # 17:35 МСК - за 5 мин до конца 5-й пары (17:40)
   workflow_dispatch: # Ручной запуск кнопкой в GitHub
+
+# Не запускать новый прогон, пока предыдущий ещё идёт
+concurrency:
+  group: parse-schedule
+  cancel-in-progress: false
 
 permissions:
   contents: write
