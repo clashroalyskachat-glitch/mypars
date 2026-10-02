@@ -867,7 +867,7 @@ function renderSchedule() {
                         <span class="fs-badge day-count">${lessons.length} ${lessons.length === 1 ? 'пара' : lessons.length < 5 ? 'пары' : 'пар(ы)'}</span>
                         ${subCount ? `<span class="fs-badge sub-flag">${subCount} ${subCount === 1 ? 'замена' : 'замены'}</span>` : ''}
                         <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge day-copy">Копировать</button>
-                        <button onclick="shareDayImage('${dayName}', event)" title="Поделиться картинкой" class="fs-badge day-copy" style="padding:0.15rem 0.5rem;">📷</button>
+                        <button onclick="shareDayImage('${dayName}', event)" title="Поделиться картинкой" class="fs-badge day-copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 21h16"/></svg></button>
                     </div>
                 </div>
                 <div class="stack flex-grow">
