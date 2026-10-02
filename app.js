@@ -733,6 +733,46 @@ window.copyDay = function(dayName, event) {
     }
 };
 
+window.shareDayImage = function(dayName, event) {
+    if (event) event.stopPropagation();
+    const btn = event && event.currentTarget;
+    const card = document.querySelector('.day-card[data-day="' + dayName.replace(/"/g, '&quot;') + '"]');
+    if (!card) return;
+    const orig = btn ? btn.textContent : '';
+    if (btn) btn.textContent = '⏳';
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    html2canvas(card, {
+        backgroundColor: dark ? '#0B0F19' : '#ffffff',
+        useCORS: true,
+        logging: false,
+        scale: 2
+    }).then(function(canvas) {
+        return new Promise(function(resolve) {
+            canvas.toBlob(resolve, 'image/png');
+        });
+    }).then(function(blob) {
+        if (!blob) return;
+        const fileName = dayName + '_' + currentGroup + '.png';
+        const file = new File([blob], fileName, { type: 'image/png' });
+        const shareData = { files: [file], title: dayName, text: currentGroup + ' · ' + dayName };
+        if (navigator.canShare && navigator.canShare(shareData)) {
+            navigator.share(shareData).catch(function(){});
+        } else {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+        }
+    }).catch(function(err) {
+        alert('Не удалось создать картинку: ' + err.message);
+    }).finally(function() {
+        if (btn) btn.textContent = orig;
+    });
+};
+
 function fallbackCopy(text, done) {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -788,7 +828,7 @@ function renderSchedule() {
         const subCount = lessons.filter((l) => l.substituted).length;
 
         htmlContent += `
-            <div class="day-card bg-white dark:bg-cardbg border ${isToday && currentDayFilter === 'all' ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-200/90 dark:border-slate-800'} shadow-xs flex flex-col">
+            <div class="day-card bg-white dark:bg-cardbg border ${isToday && currentDayFilter === 'all' ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-200/90 dark:border-slate-800'} shadow-xs flex flex-col" data-day="${dayName}">
                 <div class="flex items-center justify-between gap-2 flex-wrap pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-800">
                     <h3 class="fs-day font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5 min-w-0">
                         <span class="w-3 h-3 rounded-full shrink-0 ${isToday ? 'bg-emerald-500 animate-pulse' : 'bg-blue-600 dark:bg-blue-500'}"></span>
@@ -799,6 +839,7 @@ function renderSchedule() {
                         <span class="fs-badge day-count">${lessons.length} ${lessons.length === 1 ? 'пара' : lessons.length < 5 ? 'пары' : 'пар(ы)'}</span>
                         ${subCount ? `<span class="fs-badge sub-flag">${subCount} ${subCount === 1 ? 'замена' : 'замены'}</span>` : ''}
                         <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge day-copy">Копировать</button>
+                        <button onclick="shareDayImage('${dayName}', event)" title="Поделиться картинкой" class="fs-badge day-copy" style="padding:0.15rem 0.5rem;">📷</button>
                     </div>
                 </div>
                 <div class="stack flex-grow">
