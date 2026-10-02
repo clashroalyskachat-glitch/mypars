@@ -741,11 +741,23 @@ window.shareDayImage = function(dayName, event) {
     const orig = btn ? btn.textContent : '';
     if (btn) btn.textContent = '⏳';
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    html2canvas(card, {
-        backgroundColor: dark ? '#0B0F19' : '#ffffff',
-        useCORS: true,
-        logging: false,
-        scale: 2
+    const bg = dark ? '#0B0F19' : '#ffffff';
+
+    // dom-to-image renders the actual node with the browser's own layout
+    // engine (SVG foreignObject), so font metrics, pill borders and rounded
+    // corners match what you see on screen. The live element is used, but
+    // wrapped off-screen exactly once to avoid any viewport scroll offset.
+    domtoimage.toCanvas(card, {
+        bgcolor: bg,
+        scale: 2,
+        style: {
+            margin: '0',
+            padding: '8px',
+            borderRadius: '0',
+            overflow: 'visible',
+            animation: 'none',
+            transition: 'none'
+        }
     }).then(function(canvas) {
         return new Promise(function(resolve) {
             canvas.toBlob(resolve, 'image/png');
