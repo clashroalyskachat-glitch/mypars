@@ -743,22 +743,36 @@ window.shareDayImage = function(dayName, event) {
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
     const bg = dark ? '#0B0F19' : '#ffffff';
 
-    // dom-to-image renders the actual node with the browser's own layout
-    // engine (SVG foreignObject), so font metrics, pill borders and rounded
-    // corners match what you see on screen. The live element is used, but
-    // wrapped off-screen exactly once to avoid any viewport scroll offset.
-    domtoimage.toCanvas(card, {
-        bgcolor: bg,
-        scale: 2,
-        style: {
-            margin: '0',
-            padding: '8px',
-            borderRadius: '0',
-            overflow: 'visible',
-            animation: 'none',
-            transition: 'none'
-        }
+    const clone = card.cloneNode(true);
+    clone.classList.add('exporting');
+    clone.style.width = card.offsetWidth + 'px';
+    clone.style.margin = '0';
+    clone.querySelectorAll('*').forEach(function(n) {
+        n.style.animation = 'none';
+        n.style.transition = 'none';
+        n.style.opacity = '1';
+        n.style.transform = 'none';
+        n.style.maxHeight = 'none';
+        n.style.height = 'auto';
+        n.style.overflow = 'visible';
+    });
+
+    const wrap = document.createElement('div');
+    wrap.style.position = 'fixed';
+    wrap.style.left = '-99999px';
+    wrap.style.top = '0';
+    wrap.style.padding = '16px';
+    wrap.style.background = bg;
+    wrap.appendChild(clone);
+    document.body.appendChild(wrap);
+
+    html2canvas(clone, {
+        backgroundColor: bg,
+        useCORS: true,
+        logging: false,
+        scale: 2
     }).then(function(canvas) {
+        if (wrap.parentNode) document.body.removeChild(wrap);
         return new Promise(function(resolve) {
             canvas.toBlob(resolve, 'image/png');
         });
@@ -779,8 +793,10 @@ window.shareDayImage = function(dayName, event) {
             setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
         }
     }).catch(function(err) {
+        if (wrap.parentNode) document.body.removeChild(wrap);
         alert('Не удалось создать картинку: ' + err.message);
     }).finally(function() {
+        if (wrap.parentNode) document.body.removeChild(wrap);
         if (btn) btn.textContent = orig;
     });
 };

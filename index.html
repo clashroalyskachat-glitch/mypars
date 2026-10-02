@@ -382,21 +382,23 @@
             opacity: .75;
             font-weight: 700;
             border-bottom: 1px dashed currentColor;
-            padding-bottom: 1px;
+            padding: 0.1rem 0.5rem;
             margin-left: auto;
+            line-height: 1.5;
         }
         .meta-item.is-room:hover { opacity: 1; }
 
         /* ---- day header: quiet, borderless ---- */
-        .day-count { opacity: .5; font-weight: 700; }
+        .day-count { opacity: .5; font-weight: 700; padding: 0.2rem 0.6rem; border: 1px solid transparent; line-height: 1.6; }
         .day-copy {
+            padding: 0.3rem 0.7rem;
             font-weight: 700;
             opacity: .45;
             background: transparent;
-            border: none;
+            border: 1px solid transparent;
             cursor: pointer;
             color: inherit;
-            padding: 0;
+            line-height: 1.6;
         }
         .day-copy:hover { opacity: .9; }
 
@@ -554,8 +556,8 @@
             gap: var(--gap-micro);
             flex: 1 0 100%;
         }
-        .chip       { padding: calc(var(--gap-micro) * 0.75) var(--gap-soft); border-radius: calc(var(--radius) - 0.35rem); }
-        .chip-sm    { padding: calc(var(--gap-micro) * 0.4) calc(var(--gap-micro) * 1.1); border-radius: calc(var(--radius) - 0.5rem); }
+        .chip       { padding: calc(var(--gap-micro) * 1.15) var(--gap-soft); border-radius: calc(var(--radius) - 0.35rem); line-height: 1.5; }
+        .chip-sm    { padding: calc(var(--gap-micro) * 0.85) calc(var(--gap-micro) * 1.4); border-radius: calc(var(--radius) - 0.5rem); line-height: 1.45; }
         .stack      { display: flex; flex-direction: column; gap: var(--gap-soft); }
         .row-wrap   { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-micro); }
 
@@ -634,6 +636,19 @@
         .lesson-card-passed  { border-left-color: #cbd5e1 !important; }
         [data-theme="dark"] .lesson-card-current { border-left-color: #ffffff !important; }
         [data-theme="dark"] .lesson-card-passed  { border-left-color: rgba(255,255,255,0.4) !important; }
+
+        /* forced state for exporting a day to image: no animation bleed, full size */
+        .exporting, .exporting * {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            min-height: 0 !important;
+            box-shadow: none !important;
+        }
 
         /* ---- print: strip chrome, keep the schedule readable on paper ---- */
         @media print {
@@ -764,7 +779,7 @@
     </footer>
 
     <!-- App Logic -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
