@@ -299,12 +299,29 @@ function initSearch() {
     const input = document.getElementById('search-input');
     const reset = document.getElementById('search-reset');
     if (!input) return;
+
+    // One scan touches 150 groups (~2700 lessons) and rebuilds up to 120 rows of
+    // markup, so running it per keystroke makes typing feel sticky. Coalesce to
+    // one run per frame-ish and never lag behind what is typed.
+    let pending = null;
+    const scheduleSearch = () => {
+        if (pending) return;
+        pending = setTimeout(() => {
+            pending = null;
+            runSearch(input.value);
+        }, 90);
+    };
+
     input.addEventListener('input', () => {
         reset.hidden = input.value.length === 0;
-        runSearch(input.value);
+        scheduleSearch();
     });
     if (reset) {
         reset.addEventListener('click', () => {
+            if (pending) {
+                clearTimeout(pending);
+                pending = null;
+            }
             clearSearch();
             input.focus();
         });
@@ -388,13 +405,12 @@ function initUI() {
         .catch(() => { lastModTime = 0; });
 
     const groupSelect = document.getElementById('group-select');
-    groupSelect.addEventListener('change', (e) => {
-        currentGroup = e.target.value;
-        localStorage.setItem('selected_group', currentGroup);
-        renderPinButton();
-        renderQuickGroups();
-        renderSchedule();
-    });
+    if (groupSelect) {
+        groupSelect.addEventListener('change', (e) => {
+            selectGroup(e.target.value);
+        });
+    }
+    initGroupPicker();
 
     const pinBtn = document.getElementById('pin-btn');
     if (pinBtn) pinBtn.addEventListener('click', togglePin);
@@ -531,7 +547,11 @@ renderTabs();
     `;
 
       try {
-          const res = await fetch(`schedule.json?_t=${forceRefresh ? Date.now() : Math.floor(Date.now() / (1000 * 60 * 15))}`);
+          // No cache-busting query on the normal path: it would make the URL unique per
+// load, which defeats both the HTTP cache and the <link rel=preload> in the
+// head (the download would start while the HTML is still parsing). The service
+// worker is network-first anyway, so freshness is unaffected.
+const res = await fetch(forceRefresh ? `schedule.json?_t=${Date.now()}` : 'schedule.json', { cache: forceRefresh ? 'reload' : 'default' });
           if (!res.ok) throw new Error('Не удалось загрузить schedule.json');
           
           allGroupsData = await res.json();
@@ -575,19 +595,196 @@ renderTabs();
      }
  }
 
+// Every group gets its own emoji. The assignment is derived from the group
+// name (FNV-1a) and then linearly probed for a free slot, so it stays stable
+// across schedule updates and is guaranteed unique across the whole list.
+const GROUP_EMOJI_POOL = [
+    '🔧', '🔨', '🪛', '⛏️', '🧰', '🔩', '⚙️', '🧲', '🔫', '💡',
+    '🔦', '🕯️', '🧪', '⚗️', '🔬', '🔭', '📡', '🛰️', '💻', '⌨️',
+    '🖥️', '🖨️', '🖱️', '💾', '💿', '📀', '📷', '📹', '🎥', '📽️',
+    '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '⏱️', '⏰', '🕰️',
+    '⌛', '⏳', '📊', '📈', '📉', '📐', '📏', '📋', '📌', '📎',
+    '🖇️', '✂️', '🖊️', '🖌️', '📝', '📔', '📕', '📗', '📘', '📙',
+    '📚', '📖', '🔖', '🗂️', '🗃️', '🗄️', '🏗️', '🧱', '⛓️', '🔗',
+    '🌵', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🍁', '🍂',
+    '🍃', '🌾', '🌺', '🌻', '🌹', '🌷', '🌸', '💐', '🌞', '🌝',
+    '🌟', '✨', '⚡', '☄️', '🌈', '🌤️', '⛅', '☁️', '🌧️', '⛈️',
+    '❄️', '☃️', '💧', '🌊', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉',
+    '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅',
+    '🍆', '🥑', '🥦', '🥬', '🥒', '🌽', '🌶️', '🫑', '🍄', '🥚',
+    '🍞', '🧀', '🥓', '🍔', '🍟', '🍕', '🐶', '🐱', '🐭', '🐹',
+    '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸',
+    '🐵', '🙈', '🙉', '🙊', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅',
+    '🦉', '🦇', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '⚽', '🏀',
+    '🏈', '🏐', '🎾', '🏓', '🏸', '🥊', '🥋', '🎽', '🛷', '⛷️',
+    '🏂', '🏋️', '🤼', '🤸', '🤺', '🏌️', '🏇', '🧘', '🏄', '🏊',
+    '🤽', '🚣', '🧗', '🚁', '🚂', '🚄', '🚅', '🚆', '🚇', '🚊',
+    '🚉', '✈️', '🛫', '🛬', '🚀', '🛸', '🚜', '🚲', '🛴', '🛵',
+    '🏍️', '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒',
+    '🚚', '🚛', '🎨', '🎭', '🎬', '🎤', '🎧', '🎸', '🎹', '🎺',
+    '🎷', '🥁', '🎻', '📯', '🎼', '🎵', '🎶', '🏆', '🥇', '🥈',
+    '🥉', '🎯', '🎲', '🎳', '🎮', '🎰', '🧩', '🎁', '🎈', '🎀',
+    '🎪', '🤹', '🎓', '👑', '💍', '💎', '🔔', '🎊', '🎉', '💰'
+];
+
+// The default group keeps the star it always had.
+const RESERVED_GROUP_EMOJI = { 'СЗ-13-26': '⭐' };
+
+let _groupEmojiMap = null;
+
+function buildGroupEmojiMap() {
+    const map = {};
+    const used = new Set();
+    Object.entries(RESERVED_GROUP_EMOJI).forEach(([g, e]) => {
+        map[g] = e;
+        used.add(e);
+    });
+
+    const groups = Object.keys(allGroupsData || {}).sort();
+    for (const g of groups) {
+        if (map[g]) continue;
+        let h = 2166136261;
+        for (let i = 0; i < g.length; i++) {
+            h ^= g.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        let idx = Math.abs(h) % GROUP_EMOJI_POOL.length;
+        for (let guard = 0; guard < GROUP_EMOJI_POOL.length && used.has(GROUP_EMOJI_POOL[idx]); guard++) {
+            idx = (idx + 1) % GROUP_EMOJI_POOL.length;
+        }
+        map[g] = GROUP_EMOJI_POOL[idx];
+        used.add(GROUP_EMOJI_POOL[idx]);
+    }
+
+    _groupEmojiMap = map;
+    return map;
+}
+
+function groupEmoji(group) {
+    if (!_groupEmojiMap) buildGroupEmojiMap();
+    return _groupEmojiMap[group] || '';
+}
+
+function groupLabel(group) {
+    return `${group} ${groupEmoji(group)}`.trim();
+}
+
+let allGroupList = [];
+let groupCursor = -1;
+
 function populateGroupSelect() {
-    const groupSelect = document.getElementById('group-select');
     const groups = Object.keys(allGroupsData).sort();
-    
     if (groups.length === 0) return;
+    allGroupList = groups;
+    buildGroupEmojiMap();
 
     if (!groups.includes(currentGroup)) {
         currentGroup = groups.includes('СЗ-13-26') ? 'СЗ-13-26' : groups[0];
     }
 
-    groupSelect.innerHTML = groups.map(g => `
-        <option value="${g}" ${g === currentGroup ? 'selected' : ''}>${g} ${g === 'СЗ-13-26' ? '⭐' : ''}</option>
-    `).join('');
+    const label = document.getElementById('group-trigger-label');
+    if (label) label.textContent = groupLabel(currentGroup);
+    renderGroupOptions('');
+}
+
+function renderGroupOptions(filter) {
+    const list = document.getElementById('group-list');
+    if (!list) return;
+    const q = String(filter || '').trim().toLowerCase();
+    const groups = q ? allGroupList.filter((g) => g.toLowerCase().includes(q)) : allGroupList;
+
+    groupCursor = groups.indexOf(currentGroup);
+
+    if (groups.length === 0) {
+        list.innerHTML = '<div class="group-opt" aria-disabled="true">Ничего не найдено</div>';
+        return;
+    }
+
+    list.innerHTML = groups
+        .map(
+            (g) => `<button type="button" class="group-opt" role="option" data-group="${escapeHtml(g)}" aria-selected="${g === currentGroup}">
+            <span class="g-emoji">${groupEmoji(g)}</span><span>${escapeHtml(g)}</span>
+        </button>`
+        )
+        .join('');
+}
+
+function selectGroup(group) {
+    if (!group || !allGroupList.includes(group)) return;
+    currentGroup = group;
+    localStorage.setItem('selected_group', currentGroup);
+    populateGroupSelect();
+    renderPinButton();
+    renderQuickGroups();
+    renderSchedule();
+}
+
+function setGroupPickerOpen(open) {
+    const picker = document.getElementById('group-picker');
+    if (!picker) return;
+    picker.classList.toggle('is-open', open);
+    const trigger = document.getElementById('group-trigger');
+    if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+        const filter = document.getElementById('group-filter');
+        if (filter) {
+            filter.value = '';
+            renderGroupOptions('');
+            filter.focus();
+        }
+        // jump to the selected group without a smooth scroll on open
+        requestAnimationFrame(() => {
+            const active = document.querySelector('#group-list .group-opt[aria-selected="true"]');
+            if (active) active.scrollIntoView({ block: 'center' });
+        });
+    }
+}
+
+function initGroupPicker() {
+    const picker = document.getElementById('group-picker');
+    const trigger = document.getElementById('group-trigger');
+    const filter = document.getElementById('group-filter');
+    const list = document.getElementById('group-list');
+    if (!picker || !trigger || !list) return;
+
+    trigger.addEventListener('click', () => setGroupPickerOpen(!picker.classList.contains('is-open')));
+
+    if (filter) {
+        filter.addEventListener('input', () => renderGroupOptions(filter.value));
+        filter.addEventListener('keydown', (e) => {
+            const opts = [...list.querySelectorAll('.group-opt[data-group]')];
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const delta = e.key === 'ArrowDown' ? 1 : -1;
+                groupCursor = Math.max(0, Math.min(opts.length - 1, groupCursor + delta));
+                opts.forEach((o, i) => o.classList.toggle('is-cursor', i === groupCursor));
+                opts[groupCursor] && opts[groupCursor].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const pick = opts[groupCursor] || opts.find((o) => o.dataset.group === currentGroup);
+                if (pick) {
+                    selectGroup(pick.dataset.group);
+                    setGroupPickerOpen(false);
+                    trigger.focus();
+                }
+            } else if (e.key === 'Escape') {
+                setGroupPickerOpen(false);
+                trigger.focus();
+            }
+        });
+    }
+
+    list.addEventListener('click', (e) => {
+        const btn = e.target.closest('.group-opt[data-group]');
+        if (!btn) return;
+        selectGroup(btn.dataset.group);
+        setGroupPickerOpen(false);
+        trigger.focus();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (picker.classList.contains('is-open') && !picker.contains(e.target)) setGroupPickerOpen(false);
+    });
 }
 
 function checkAndAutoSwitchDay() {
@@ -827,7 +1024,7 @@ window.copyDay = function(dayName, event) {
 // offline.
 const H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
 const H2C_KEY = 'nkse-h2c-source';
-const OFFLINE_DATA_CACHE = 'nkse-v7-data';
+const OFFLINE_DATA_CACHE = 'nkse-v8-data';
 
 function loadHtml2Canvas() {
     if (window.html2canvas) return Promise.resolve(window.html2canvas);

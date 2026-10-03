@@ -6,6 +6,8 @@
     <title>Расписание НКСЭ</title>
     <meta name="description" content="Расписание занятий НКСЭ — по группам и дням, с поиском по преподавателям и кабинетам.">
     <link rel="manifest" href="manifest.json">
+    <!-- start the 42 KB payload while the HTML is still parsing -->
+    <link rel="preload" as="fetch" href="schedule.json" crossorigin>
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
     <meta name="theme-color" content="#000000">
@@ -17,24 +19,11 @@
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS Config & CDN -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', "Segoe UI", Roboto, sans-serif']
-                    },
-                    colors: {
-                        darkbg: '#0B0F19',
-                        cardbg: '#121826',
-                    }
-                }
-            }
-        }
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+<!-- Tailwind is prebuilt into app.css. The Play CDN used to compile the
+         same rules in the browser on every load: ~110 KB of blocking JS plus
+         the JIT work, which is the most expensive thing on a weak phone.
+         Rebuild with: npm run build:css -->
+    <link rel="stylesheet" href="app.css">
     <style>
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -404,24 +393,42 @@
             color: currentColor;
         }
         .brand-word .accent { color: #a855f7; }
+        /* 3D: three hard steps up-right + one soft cast shadow. Static text-shadow is
+           painted once and cached, it causes no layout/paint per frame - the
+           cost is negligible, and 3 steps is enough to read as solid. */
+        [data-theme="light"] .brand-word {
+            text-shadow:
+                2px 2px 0 rgba(148, 163, 184, .95),
+                3px 3px 0 rgba(71, 85, 105, .9),
+                4px 6px 8px rgba(15, 23, 42, .3);
+        }
+        [data-theme="light"] .brand-word .accent {
+            text-shadow:
+                2px 2px 0 #c084fc,
+                3px 3px 0 #7c3aed,
+                4px 6px 8px rgba(124, 58, 237, .4);
+        }
+        [data-theme="dark"] .brand-word {
+            text-shadow:
+                2px 2px 0 rgba(0, 0, 0, .95),
+                3px 3px 0 rgba(0, 0, 0, .8),
+                4px 7px 9px rgba(0, 0, 0, .85);
+        }
+        [data-theme="dark"] .brand-word .accent {
+            text-shadow:
+                2px 2px 0 rgba(0, 0, 0, .9),
+                3px 3px 0 rgba(0, 0, 0, .7),
+                4px 7px 9px rgba(168, 85, 247, .5);
+        }
 
         /* ---- header: one consistent control language ---- */
         .header-controls { gap: 0.5rem; }
         .header-select {
-            padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+            padding: 0.5rem 0.9rem;
+            font-size: var(--fs-meta);
+            color: inherit;
             border: 1px solid rgb(148 163 184 / 0.35);
             border-radius: 999px;
-            appearance: none;
-            -webkit-appearance: none;
-            padding-right: 1.9rem;
-            background-image:
-                linear-gradient(45deg, transparent 50%, currentColor 50%),
-                linear-gradient(135deg, currentColor 50%, transparent 50%);
-            background-position:
-                calc(100% - 1.05rem) calc(50% - 1px),
-                calc(100% - 0.75rem) calc(50% - 1px);
-            background-size: 5px 5px, 5px 5px;
-            background-repeat: no-repeat;
         }
         .header-select:hover { border-color: rgb(148 163 184 / 0.6); }
         .header-select option { color: #0f172a; background: #fff; }
@@ -499,6 +506,114 @@
             content-visibility: auto;
             contain-intrinsic-size: auto 480px;
         }
+
+        /* ---- group picker: replaces the native select, which stutters with 150
+           options and cannot be animated at all ---- */
+        .group-picker { position: relative; flex-shrink: 0; }
+        .group-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            max-width: min(52vw, 16rem);
+            transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+        }
+        .group-trigger #group-trigger-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .group-chevron {
+            flex-shrink: 0;
+            transition: transform .22s cubic-bezier(.2, .7, .3, 1);
+        }
+        .group-picker.is-open .group-chevron { transform: rotate(180deg); }
+
+        .group-panel {
+            position: absolute;
+            top: calc(100% + 0.4rem);
+            right: 0;
+            z-index: 60;
+            width: max(15rem, 100%);
+            padding: 0.4rem;
+            border-radius: var(--radius-sm);
+            background: #ffffff;
+            border: 1px solid rgba(100, 116, 139, 0.28);
+            box-shadow: 0 18px 44px -16px rgba(15, 23, 42, 0.35);
+            /* closed state: no display:none, otherwise nothing can transition */
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-0.5rem) scale(.97);
+            transform-origin: top right;
+            transition:
+                opacity .16s ease,
+                transform .2s cubic-bezier(.2, .7, .3, 1),
+                visibility .16s;
+        }
+        .group-picker.is-open .group-panel {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+        [data-theme="dark"] .group-panel {
+            background: #0b0f19;
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 18px 44px -16px rgba(0, 0, 0, 0.9);
+        }
+        .group-filter {
+            width: 100%;
+            padding: 0.5rem 0.7rem;
+            font: inherit;
+            font-size: var(--fs-meta);
+            font-weight: 700;
+            color: inherit;
+            background: rgba(148, 163, 184, 0.14);
+            border: 1px solid transparent;
+            border-radius: calc(var(--radius-sm) - 0.2rem);
+            outline: none;
+            transition: border-color .16s ease, background-color .16s ease;
+        }
+        .group-filter:focus { border-color: rgba(100, 116, 139, 0.55); background: #ffffff; }
+        [data-theme="dark"] .group-filter:focus { background: #000000; }
+        .group-list {
+            margin-top: 0.35rem;
+            max-height: min(58vh, 26rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            /* momentum scrolling on touch, smooth for the programmatic jump */
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+        .group-opt {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            width: 100%;
+            padding: 0.45rem 0.6rem;
+            font-size: var(--fs-meta);
+            font-weight: 700;
+            text-align: left;
+            color: inherit;
+            background: transparent;
+            border: 0;
+            border-radius: calc(var(--radius-sm) - 0.25rem);
+            cursor: pointer;
+            transition: background-color .12s ease;
+        }
+        .group-opt:hover,
+        .group-opt.is-cursor { background: rgba(148, 163, 184, 0.18); }
+        .group-opt[aria-selected="true"] {
+            background: rgba(37, 99, 235, 0.12);
+            color: #2563eb;
+        }
+        [data-theme="dark"] .group-opt[aria-selected="true"] {
+            background: rgba(168, 85, 247, 0.18);
+            color: #c084fc;
+        }
+        .group-opt .g-emoji { flex-shrink: 0; }
 
         /* ---- day header: pill chips ---- */
         .day-count {
@@ -779,13 +894,27 @@
             }
             .now-bar .now-dot { animation: none !important; }
         }
-        /* ---- lesson card colours driven by data-theme (no JS re-render needed) ---- */
+        /* ---- lesson card colours driven by data-theme (no JS re-render needed) ----
+           The dark theme reads through bright borders on black, so it works
+           with flat fills. On a light page the same flat white cards on #f1f5f9
+           smear together - there the depth has to come from shadows and a
+           slightly stronger outline instead. */
+        [data-theme="light"] body { background: #eef1f6; }
         [data-theme="light"] .lesson-card {
-            background: #ffffff;
-            border-color: #e2e8f0;
-            color: #0f172a;
+            background: #fdfdfe;
+            border-color: #dbe3ee;
+            color: #1e293b;
+            box-shadow:
+                0 1px 1px rgba(15, 23, 42, 0.04),
+                0 2px 6px -2px rgba(15, 23, 42, 0.07);
         }
-        [data-theme="light"] .lesson-card:hover { background: rgba(248, 250, 252, 0.7); }
+        [data-theme="light"] .lesson-card:hover {
+            background: #ffffff;
+            border-color: #c7d2e2;
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.05),
+                0 6px 16px -6px rgba(15, 23, 42, 0.14);
+        }
         [data-theme="dark"] .lesson-card {
             background: #000000;
             border-color: rgba(255, 255, 255, 0.7);
@@ -796,6 +925,80 @@
         .lesson-card-passed  { border-left-color: #cbd5e1 !important; }
         [data-theme="dark"] .lesson-card-current { border-left-color: #ffffff !important; }
         [data-theme="dark"] .lesson-card-passed  { border-left-color: rgba(255,255,255,0.4) !important; }
+
+        /* the lesson in progress gets real emphasis, not just a blue stripe */
+        [data-theme="light"] .lesson-card.lesson-card-current {
+            border-color: #93c5fd;
+            border-left-color: #2563eb !important;
+            background: #ffffff;
+            box-shadow:
+                0 0 0 1px rgba(37, 99, 235, 0.18),
+                0 4px 14px -4px rgba(37, 99, 235, 0.22);
+        }
+        [data-theme="light"] .lesson-card.lesson-card-passed { opacity: .62; }
+        [data-theme="dark"] .lesson-card.lesson-card-current {
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+        }
+
+        /* ---- light theme depth for the day cards, header and controls ---- */
+        [data-theme="light"] .day-card {
+            background: #ffffff;
+            border-color: #d7e0ec;
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.04),
+                0 10px 28px -14px rgba(15, 23, 42, 0.18);
+        }
+        [data-theme="light"] header {
+            box-shadow: 0 1px 0 #e2e8f0, 0 6px 20px -12px rgba(15, 23, 42, 0.25);
+        }
+        /* pills need a fill as well as an outline to read on white.
+           :not([class*="bg-"]) keeps the coloured state pills
+           (Сегодня/Завтра/Послезавтра and замены) untouched. */
+        [data-theme="light"] :is(.chip, .chip-sm, .day-count, .day-icon-btn, .meta-item.is-room):not([class*="bg-"]) {
+            border-color: rgba(100, 116, 139, 0.42);
+            background: rgba(241, 245, 249, 0.9);
+        }
+        [data-theme="light"] .day-icon-btn:hover,
+        [data-theme="light"] .header-icon-btn:hover { background: rgba(226, 232, 240, 0.95); }
+        [data-theme="light"] .header-select {
+            background-color: #ffffff;
+            border-color: rgba(100, 116, 139, 0.42);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        [data-theme="light"] .search-hit {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme="light"] .quick-btn {
+            background: rgba(241, 245, 249, 0.9);
+            border-color: rgba(100, 116, 139, 0.35);
+        }
+        [data-theme="light"] .quick-btn:hover { background: #ffffff; border-color: rgba(100, 116, 139, 0.55); }
+        [data-theme="light"] .now-bar {
+            background: #ffffff;
+            border-color: #dbe3ee;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+        [data-theme="light"] #days-tabs {
+            background: #e8edf4;
+            border-color: #d7e0ec;
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        [data-theme="light"] .day-tab {
+            border-color: rgba(100, 116, 139, 0.3);
+            background: rgba(255, 255, 255, 0.6);
+        }
+        [data-theme="light"] .day-tab:not(.day-tab-active):hover { background: #ffffff; }
+        /* the active tab must keep its blue fill - the rule above is more
+           specific than Tailwind's .bg-blue-600 and used to win, leaving white
+           text on a white pill */
+        [data-theme="light"] .day-tab.day-tab-active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+            box-shadow: 0 2px 8px -2px rgba(37, 99, 235, 0.45);
+        }
 
         /* forced state for exporting a day to image: no animation bleed, full size */
         .exporting, .exporting * {
@@ -882,9 +1085,16 @@
 
                 <!-- Выпадающий список групп -->
                 <div class="relative shrink-0 flex items-center gap-2 header-controls">
-                    <select id="group-select" class="fs-meta header-select bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[38vw] sm:max-w-none">
-                        <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
-                    </select>
+                    <div class="group-picker" id="group-picker">
+                    <button type="button" id="group-trigger" class="header-select group-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Выбор группы">
+                        <span id="group-trigger-label">СЗ-13-26 ⭐</span>
+                        <svg class="group-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                    <div class="group-panel" id="group-panel">
+                        <input id="group-filter" class="group-filter" type="text" placeholder="Найти группу" autocomplete="off" spellcheck="false" aria-label="Фильтр групп">
+                        <div class="group-list" id="group-list" role="listbox" aria-label="Список групп"></div>
+                    </div>
+                </div>
                     <button id="pin-btn" class="pin-btn header-icon-btn" aria-pressed="false" aria-label="Закрепить группу" title="Закрепить группу в быстрый доступ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z"/></svg></button>
                 </div>
              </div>

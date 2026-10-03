@@ -147,8 +147,15 @@ def parse_page(html, day_name):
                     "subject": subject,
                     "teacher": ", ".join(teachers),
                     "room": ", ".join(rooms),
-                    "subgroups": subgroups,
                 }
+                # The UI only renders subgroups when there is more than one
+                # (a merged lesson), and the single-entry case just repeats
+                # teacher+room. Dropping it shrinks schedule.json from 976 KB to
+                # 402 KB raw / 41 KB to 26 KB gzipped, which is paid on every
+                # single page load, and search still matches because it already
+                # looks at the lesson's own teacher and room.
+                if len(subgroups) > 1:
+                    lesson["subgroups"] = subgroups
                 if substituted(s_idx, c_i):
                     lesson["substituted"] = True
                 lessons.append(lesson)

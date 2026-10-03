@@ -3,3 +3,8 @@ __pycache__/
 server.log
 _pagecache/
 .DS_Store
+
+# сборка CSS: node_modules не нужен в репозитории,
+# а готовый app.css коммитится (GitHub Pages отдаёт его как есть)
+node_modules/
+package-lock.json
