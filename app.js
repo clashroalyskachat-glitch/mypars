@@ -411,6 +411,7 @@ function initUI() {
         });
     }
     initGroupPicker();
+    initDayTabRipple();
 
     const pinBtn = document.getElementById('pin-btn');
     if (pinBtn) pinBtn.addEventListener('click', togglePin);
@@ -1079,6 +1080,46 @@ function injectSource(source) {
         } catch (e) {
             reject(e);
         }
+    });
+}
+
+// Ripple that starts under the pointer. Only transform/opacity are animated,
+// the node is removed as soon as the animation ends, and repeated clicks
+// restart it instead of stacking elements.
+function spawnDayRipple(btn, ev) {
+    if (!btn) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const rect = btn.getBoundingClientRect();
+    if (!rect.width) return;
+
+    const prev = btn.querySelector('.day-ripple');
+    if (prev) prev.remove();
+
+    const size = Math.max(rect.width, rect.height) * 2.2;
+    let x = rect.width / 2;
+    let y = rect.height / 2;
+    if (ev && typeof ev.clientX === 'number' && (ev.clientX || ev.clientY)) {
+        x = ev.clientX - rect.left;
+        y = ev.clientY - rect.top;
+    }
+
+    const span = document.createElement('span');
+    span.className = 'day-ripple';
+    span.style.width = size + 'px';
+    span.style.height = size + 'px';
+    span.style.left = x + 'px';
+    span.style.top = y + 'px';
+    span.addEventListener('animationend', () => span.remove());
+    btn.appendChild(span);
+}
+
+function initDayTabRipple() {
+    const tabs = document.getElementById('days-tabs');
+    if (!tabs) return;
+    tabs.addEventListener('click', (ev) => {
+        const btn = ev.target.closest ? ev.target.closest('.day-tab') : null;
+        if (btn) spawnDayRipple(btn, ev);
     });
 }
 

@@ -410,15 +410,15 @@
         }
         [data-theme="dark"] .brand-word {
             text-shadow:
-                2px 2px 0 rgba(0, 0, 0, .95),
-                3px 3px 0 rgba(0, 0, 0, .8),
-                4px 7px 9px rgba(0, 0, 0, .85);
+                2px 2px 0 #334155,
+                3px 3px 0 #1e293b,
+                4px 7px 9px rgba(0, 0, 0, .9);
         }
         [data-theme="dark"] .brand-word .accent {
             text-shadow:
-                2px 2px 0 rgba(0, 0, 0, .9),
-                3px 3px 0 rgba(0, 0, 0, .7),
-                4px 7px 9px rgba(168, 85, 247, .5);
+                2px 2px 0 #7c3aed,
+                3px 3px 0 #5b21b6,
+                4px 7px 9px rgba(168, 85, 247, .45);
         }
 
         /* ---- header: one consistent control language ---- */
@@ -614,6 +614,28 @@
             color: #c084fc;
         }
         .group-opt .g-emoji { flex-shrink: 0; }
+
+        /* ---- click ripple on the day tabs ----
+           origin is the pointer position, transform+opacity only, so it stays on
+           the compositor and never triggers layout */
+        .day-tab {
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .day-tab:focus-visible { outline-offset: -3px; }
+        .day-ripple {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            background: currentColor;
+            opacity: .28;
+            transform: translate(-50%, -50%) scale(0);
+            animation: ripple-out .58s cubic-bezier(.22, .61, .36, 1) forwards;
+        }
+        @keyframes ripple-out {
+            to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
 
         /* ---- day header: pill chips ---- */
         .day-count {
