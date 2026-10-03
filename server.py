@@ -6,12 +6,15 @@ import threading
 import time
 import sys
 import subprocess
+import gzip
 
 PORT = 8090
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 JSON_PATH = os.path.join(DIRECTORY, "schedule.json")
 LOG_PATH = os.path.join(DIRECTORY, "server.log")
 REPARSE_INTERVAL = 6 * 60 * 60  # same cadence as the cloud auto-update
+GZIP_MIN_BYTES = 1024  # below this the gzip header costs more than it saves
+COMPRESSIBLE = (".json", ".js", ".html", ".css", ".svg", ".webmanifest")
 
 def log(msg):
     line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
@@ -53,13 +56,61 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         pass  # keep the console readable; errors go to log()
 
     def end_headers(self):
+        # The service worker + ETag checks already decide what is fresh, so the
+        # browser HTTP cache only gets in the way.
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
         super().end_headers()
 
+    def _accepts_gzip(self):
+        return "gzip" in (self.headers.get("Accept-Encoding") or "").lower()
+
+    def send_compressed_file(self, path):
+        """Serve a static file gzipped.
+
+        schedule.json is ~1 MB of JSON and goes down to ~120 KB, which is the
+        single biggest win available without touching the UI.
+        """
+        ctype = self.guess_type(path)
+        with open(path, "rb") as f:
+            raw = f.read()
+
+        if len(raw) >= GZIP_MIN_BYTES and self._accepts_gzip():
+            # mtime=0 keeps the gzip bytes stable, so ETag/304 keep working.
+            body = gzip.compress(raw, compresslevel=6, mtime=0)
+            self.send_response(200)
+            self.send_header("Content-type", ctype)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Vary", "Accept-Encoding")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return
+
+        self.send_response(200)
+        self.send_header("Content-type", ctype)
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(raw)
+
+    def do_HEAD(self):
+        self.do_GET()
 
     def do_GET(self):
+        # Static files that benefit from compression.
+        clean = self.path.split("?", 1)[0].split("#", 1)[0]
+        if clean.lower().endswith(COMPRESSIBLE):
+            target = os.path.join(DIRECTORY, clean.lstrip("/").replace("/", os.sep))
+            if os.path.isfile(target):
+                try:
+                    self.send_compressed_file(target)
+                    return
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+
         if self.path.startswith('/api/refresh'):
             try:
                 run_parser()

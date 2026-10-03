@@ -7,12 +7,15 @@
     <meta name="description" content="Расписание занятий НКСЭ — по группам и дням, с поиском по преподавателям и кабинетам.">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="НКСЭ">
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS Config & CDN -->
     <script>
@@ -303,7 +306,8 @@
         .day-tab {
             padding-block: var(--pad-tab-y);
             padding-inline: var(--pad-tab-x);
-            border-radius: calc(var(--radius) - 0.25rem);
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.28);
             font-size: var(--fs-meta);
             display: inline-flex;
             align-items: center;
@@ -381,26 +385,163 @@
         .meta-item.is-room {
             opacity: .75;
             font-weight: 700;
-            border-bottom: 1px dashed currentColor;
-            padding: 0rem 0.5rem 0.15rem;
+            padding: 0.3em 0.6em 0.18em;
             margin-left: auto;
-            line-height: 1.5;
+            border: 1px solid rgb(148 163 184 / 0.35);
         }
         .meta-item.is-room:hover { opacity: 1; }
 
-        /* ---- day header: quiet, borderless ---- */
-        .day-count { opacity: .5; font-weight: 700; padding: 0.1rem 0.6rem 0.35rem; border: 1px solid transparent; line-height: 1.7; }
-        .day-copy {
-            padding: 0.3rem 0.7rem;
-            font-weight: 700;
-            opacity: .45;
+        /* ---- brand wordmark: НКСЭ, одна акцентная буква ---- */
+        .brand-word {
+            display: inline-flex;
+            align-items: baseline;
+            font-weight: 900;
+            letter-spacing: -.035em;
+            font-size: clamp(1.4rem, 1.1rem + .9vw, 2rem);
+            line-height: 1;
+            white-space: nowrap;
+            user-select: none;
+            color: currentColor;
+        }
+        .brand-word .accent { color: #a855f7; }
+
+        /* ---- header: one consistent control language ---- */
+        .header-controls { gap: 0.5rem; }
+        .header-select {
+            padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+            border: 1px solid rgb(148 163 184 / 0.35);
+            border-radius: 999px;
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 1.9rem;
+            background-image:
+                linear-gradient(45deg, transparent 50%, currentColor 50%),
+                linear-gradient(135deg, currentColor 50%, transparent 50%);
+            background-position:
+                calc(100% - 1.05rem) calc(50% - 1px),
+                calc(100% - 0.75rem) calc(50% - 1px);
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+        }
+        .header-select:hover { border-color: rgb(148 163 184 / 0.6); }
+        .header-select option { color: #0f172a; background: #fff; }
+        [data-theme="dark"] .header-select option { color: #e2e8f0; background: #0f172a; }
+        .header-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.35rem;
+            height: 2.35rem;
+            padding: 0;
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.35);
             background: transparent;
-            border: 1px solid transparent;
+            color: inherit;
+            opacity: .7;
+            cursor: pointer;
+            transition: opacity .2s ease, background-color .2s ease, border-color .2s ease;
+        }
+        .header-icon-btn:hover { opacity: 1; background: rgb(148 163 184 / 0.12); }
+        .header-icon-btn svg { display: block; }
+        /* pinned state reads instantly, no text label needed */
+        .header-icon-btn.is-on {
+            opacity: 1;
+            color: #a855f7;
+            border-color: rgb(168 85 247 / 0.55);
+            background: rgb(168 85 247 / 0.12);
+        }
+        /* keep the subtitle from shouting */
+        #last-updated { opacity: .65; font-weight: 500; }
+
+        /* Day header actions: always one row, always right-aligned - even when the
+           group wraps to its own line on narrow screens, so every day card
+           has the same structure. */
+        .day-actions { margin-left: auto; }
+        .day-actions > * { flex-shrink: 0; }
+        .day-actions .sub-flag { margin-left: 0; }
+        /* Icon-only buttons keep the row short enough to never wrap,
+           whatever the day name / substitution count. */
+        .day-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.15em;
+            height: 2.15em;
+            padding: 0;
+            border-radius: 999px;
+            border: 1px solid rgb(148 163 184 / 0.35);
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            opacity: .6;
+        }
+        .day-icon-btn:hover { opacity: 1; background: rgb(148 163 184 / 0.12); }
+        .day-icon-btn.day-share { border-color: rgb(168 85 247 / 0.5); background: rgb(168 85 247 / 0.10); color: #a855f7; }
+        .day-icon-btn.day-share:hover { background: rgb(168 85 247 / 0.18); }
+        /* feedback for the icon-only buttons (no label to swap) */
+        .day-icon-btn.is-busy { opacity: .35; pointer-events: none; }
+        .day-icon-btn.is-busy svg { animation: rotate360 1s linear infinite; }
+        .day-icon-btn.is-ok {
+            color: #10b981;
+            border-color: rgb(16 185 129 / 0.6);
+            background: rgb(16 185 129 / 0.14);
+            opacity: 1;
+        }
+        .day-icon-btn svg { display: block; }
+        .day-actions { gap: 0.4rem; }
+
+        .day-card.exporting { content-visibility: visible !important; }
+        /* Offscreen day cards skip layout/paint until scrolled near. With 6 day
+           cards x ~6 lessons this removes most of the initial rendering cost,
+           and `auto` makes the browser reuse the last real size so the scroll
+           position does not jump. */
+        .day-card {
+            content-visibility: auto;
+            contain-intrinsic-size: auto 480px;
+        }
+
+        /* ---- day header: pill chips ---- */
+        .day-count {
+            opacity: .55;
+            font-weight: 700;
+            padding: 0.32em 0.8em 0.2em;
+            border: 1px solid rgb(148 163 184 / 0.35);
+        }
+        .day-copy {
+            padding: 0.32em 0.85em 0.2em;
+            font-weight: 700;
+            opacity: .6;
+            background: transparent;
+            border: 1px solid rgb(148 163 184 / 0.35);
             cursor: pointer;
             color: inherit;
-            line-height: 1.6;
         }
-        .day-copy:hover { opacity: .9; }
+        .day-copy:hover { background: rgb(148 163 184 / 0.10); opacity: .95; }
+        .day-share {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            padding: 0.32em 0.8em 0.2em;
+            border: 1px solid rgb(168 85 247 / 0.5);
+            background: rgb(168 85 247 / 0.10);
+            color: #a855f7;
+            cursor: pointer;
+            font-size: var(--fs-badge, 12px);
+            font-weight: 800;
+        }
+        .day-share:hover { background: rgb(168 85 247 / 0.18); }
+
+        /* symmetric padding, truly centred ink (Chrome 133+ / Safari 18.4+) */
+        @supports (text-box: trim-both cap alphabetic) {
+            .chip, .chip-sm,
+            .day-count, .day-icon-btn, .day-share, .meta-item.is-room {
+                text-box: trim-both cap alphabetic;
+                padding-top: 0.3em;
+                padding-bottom: 0.3em;
+            }
+            .day-icon-btn { padding: 0; }
+        }
 
         /* ---- quick access to pinned groups ---- */
         .quick-bar{
@@ -556,8 +697,27 @@
             gap: var(--gap-micro);
             flex: 1 0 100%;
         }
-        .chip       { padding: calc(var(--gap-micro) * 0.30) var(--gap-soft) calc(var(--gap-micro) * 1.30); border-radius: calc(var(--radius) - 0.35rem); line-height: 1.6; }
-        .chip-sm    { padding: calc(var(--gap-micro) * 0.25) calc(var(--gap-micro) * 1.4) calc(var(--gap-micro) * 1.2); border-radius: calc(var(--radius) - 0.5rem); line-height: 1.5; }
+        /* ---- vertical centring inside pills ----
+           With line-height:1 the line box is 1em tall but the baseline sits at
+           ~0.8em and cap-height is only ~0.72em, so the ink lands ~0.06em
+           ABOVE the box centre -> equal padding looks like "more room below".
+           Modern fix: text-box trimming cuts the line box to cap-height /
+           alphabetic baseline, which makes symmetric padding truly symmetric.
+           Fallback for engines without text-box: shave 0.12em off the bottom. */
+        .chip, .chip-sm,
+        .day-count, .day-icon-btn, .day-share, .meta-item.is-room {
+            line-height: 1;
+            border-radius: 999px;
+            border-width: 1px;
+            box-sizing: border-box;
+        }
+        .chip, .chip-sm, .day-count, .day-icon-btn, .day-share {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chip       { padding: 0.32em 0.85em 0.2em; }
+        .chip-sm    { padding: 0.3em 0.8em 0.18em; }
         .stack      { display: flex; flex-direction: column; gap: var(--gap-soft); }
         .row-wrap   { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-micro); }
 
@@ -712,26 +872,26 @@
             <!-- Логотип и выбор группы -->
             <div class="flex items-center gap-3.5 w-full min-w-0 sm:w-auto sm:flex-1 justify-between sm:justify-start">
                 <div class="flex items-center gap-3 min-w-0">
-                    <span class="fs-day select-none shrink-0">📅</span>
+                    <span class="brand-word select-none shrink-0" aria-label="НКСЭ">НКС<span class="accent">Э</span></span>
                     <div class="min-w-0">
-                        <h1 class="fs-title font-extrabold tracking-tight text-slate-900 dark:text-white truncate">Расписание НКСЭ</h1>
+                        <h1 class="fs-title font-extrabold tracking-tight text-slate-900 dark:text-white truncate">Расписание</h1>
                         <p class="fs-meta text-slate-500 dark:text-slate-400 font-medium truncate" id="last-updated">Загрузка...</p>
                     </div>
                 </div>
                 <span id="stale-dot" class="stale-dot" hidden title="Данные могут быть неактуальны"></span>
 
                 <!-- Выпадающий список групп -->
-                <div class="relative shrink-0 flex items-center gap-2">
-                    <select id="group-select" class="fs-meta bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold px-3.5 py-2 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[38vw] sm:max-w-none" style="border-radius: var(--radius-sm);">
+                <div class="relative shrink-0 flex items-center gap-2 header-controls">
+                    <select id="group-select" class="fs-meta header-select bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer max-w-[38vw] sm:max-w-none">
                         <option value="СЗ-13-26">СЗ-13-26 ⭐</option>
                     </select>
-                    <button id="pin-btn" class="pin-btn" aria-pressed="false" title="Закрепить группу в быстрый доступ">Закрепить</button>
+                    <button id="pin-btn" class="pin-btn header-icon-btn" aria-pressed="false" aria-label="Закрепить группу" title="Закрепить группу в быстрый доступ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z"/></svg></button>
                 </div>
              </div>
              <!-- Переключатель темы (День / Ночь) -->
-             <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 p-2.5 transition cursor-pointer" title="Переключить тему" style="border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center;">
-                 <svg class="w-[1.15em] h-[1.15em] hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                 <svg class="w-[1.15em] h-[1.15em] block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+             <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 header-icon-btn" title="Переключить тему" aria-label="Переключить тему">
+                  <svg class="w-[1.15em] h-[1.15em] hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  <svg class="w-[1.15em] h-[1.15em] block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
              </button>
          </div>
      </header>
@@ -779,7 +939,6 @@
     </footer>
 
     <!-- App Logic -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

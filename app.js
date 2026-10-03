@@ -44,12 +44,30 @@ function togglePin() {
     setPinned(pinned);
 }
 
+// "Обновление на сервере: 02.10.2026 в 20:44" -> "Обновлено 02.10 · 20:44".
+// Accepts either ms or s; anything falsy means "we do not know yet".
+function formatUpdatedLabel(modTime) {
+    if (!modTime) return 'Обновляется каждые 6 часов';
+    const ms = modTime < 1e11 ? modTime * 1000 : modTime;
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return 'Обновляется каждые 6 часов';
+    const date = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return `Обновлено ${date} · ${time}`;
+}
+
+function setUpdatedLabel(modTime) {
+    const el = document.getElementById('last-updated');
+    if (el) el.textContent = formatUpdatedLabel(modTime);
+}
+
 function renderPinButton() {
     const btn = document.getElementById('pin-btn');
     if (!btn) return;
     const on = getPinned().includes(currentGroup);
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.textContent = on ? 'Открепить' : 'Закрепить';
+    btn.classList.toggle('is-on', on);
+    btn.title = on ? 'Открепить группу' : 'Закрепить группу';
 }
 
 function renderQuickGroups() {
@@ -145,6 +163,55 @@ function runSearch(query) {
             renderSchedule();
         });
     });
+}
+
+// Keep a copy of schedule.json inside Cache Storage even when the page was
+// painted from localStorage. Without this the service worker has no data to
+// fall back on, and the first offline load after the localStorage copy went
+// stale shows the "ошибка загрузки" screen.
+function warmOfflineCache() {
+    if (!('caches' in window)) return;
+    const url = 'schedule.json';
+    caches.open(OFFLINE_DATA_CACHE).then((cache) =>
+        cache.match(url).then((hit) => {
+            if (hit) return null;
+            return fetch(url, { cache: 'reload' }).then((res) => {
+                if (res && res.ok) return cache.put(url, res.clone());
+                return null;
+            });
+        })
+    ).catch(() => {});
+}
+
+// Any cached copy is better than an error screen: used when the network is
+// unreachable and the localStorage copy is older than CACHE_DURATION.
+function renderFromStaleCache(reason) {
+    try {
+        const cached = localStorage.getItem('nkse-schedule-cache');
+        if (!cached) return false;
+        allGroupsData = JSON.parse(cached);
+        if (!allGroupsData || Object.keys(allGroupsData).length === 0) return false;
+
+        const mtime = localStorage.getItem('nkse-file-mtime');
+        populateGroupSelect();
+        renderQuickGroups();
+        renderPinButton();
+        renderDataHealth();
+        checkAndAutoSwitchDay();
+        renderTabs();
+        renderSchedule();
+
+        const el = document.getElementById('last-updated');
+        if (el) {
+            el.textContent = mtime ? `${formatUpdatedLabel(parseInt(mtime))} · офлайн` : 'Офлайн · сохранённая копия';
+        }
+        const health = document.getElementById('data-health');
+        if (health) health.textContent += ' · нет сети, показана сохранённая копия';
+        console.warn('Offline fallback used:', reason);
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
 function renderDataHealth() {
@@ -392,23 +459,14 @@ window.filterDay = function(dayId) {
                 renderDataHealth();
                 checkAndAutoSwitchDay();
 
-                  const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
+const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
                   markStaleness(cachedFileMtime ? parseInt(cachedFileMtime) : null, true);
-                  if (cachedFileMtime) {
-                      const modDate = new Date(parseInt(cachedFileMtime));
-                      const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                      lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-                  } else if (serverModTime) {
-                      const modDate = new Date(serverModTime * 1000);
-                      const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                      lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-                  } else {
-                      lastUpdatedEl.textContent = 'Расписание обновляется каждые 6 часов';
-                  }
+                  setUpdatedLabel(cachedFileMtime ? parseInt(cachedFileMtime) : serverModTime);
                   
-                  renderTabs();
+renderTabs();
                  renderSchedule();
                  checkForUpdates();
+                 warmOfflineCache();
                  return;
              }
          } catch (e) {
@@ -449,30 +507,15 @@ window.filterDay = function(dayId) {
           checkAndAutoSwitchDay();
 
           markStaleness(fileModTime || null, false);
-          if (fileModTime) {
-              const modDate = new Date(fileModTime);
-              const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-              lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-          } else if (serverModTime) {
-              const modDate = new Date(serverModTime * 1000);
-              const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-              lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-          } else {
-              const cachedTime = localStorage.getItem('nkse-file-mtime');
-              if (cachedTime) {
-                  const modDate = new Date(parseInt(cachedTime));
-                  const modStr = modDate.toLocaleDateString('ru-RU') + ' в ' + modDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                  lastUpdatedEl.textContent = `Обновление на сервере: ${modStr}`;
-              } else {
-                  lastUpdatedEl.textContent = 'Расписание обновляется каждые 6 часов';
-              }
-          }
+          setUpdatedLabel(fileModTime || serverModTime);
           
-          renderTabs();
-          renderSchedule();
-          checkForUpdates();
-     } catch (err) {
+renderTabs();
+         renderSchedule();
+         checkForUpdates();
+         warmOfflineCache();
+} catch (err) {
          console.error(err);
+         if (renderFromStaleCache(err && err.message)) return;
          container.innerHTML = `
              <div class="col-span-full state-box bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-center max-w-lg mx-auto text-red-700 dark:text-red-400">
                  <p class="font-extrabold mb-1">Ошибка загрузки расписания</p>
@@ -720,11 +763,7 @@ window.copyDay = function(dayName, event) {
     if (event) event.stopPropagation();
     const text = dayToText(dayName);
     const done = () => {
-        const btn = event && event.currentTarget;
-        if (!btn) return;
-        const old = btn.textContent;
-        btn.textContent = 'Скопировано';
-        setTimeout(() => (btn.textContent = old), 1500);
+        flashButton(event && event.currentTarget, 'is-ok');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
@@ -733,13 +772,76 @@ window.copyDay = function(dayName, event) {
     }
 };
 
-window.shareDayImage = function(dayName, event) {
+// html2canvas is ~200 KB and is only needed when the user actually shares a
+// day, so it is no longer a blocking <script> in index.html. It is cached in
+// localStorage after the first fetch, which also keeps the share button working
+// offline.
+const H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+const H2C_KEY = 'nkse-h2c-source';
+const OFFLINE_DATA_CACHE = 'nkse-v7-data';
+
+function loadHtml2Canvas() {
+    if (window.html2canvas) return Promise.resolve(window.html2canvas);
+
+    let cached = null;
+    try { cached = localStorage.getItem(H2C_KEY); } catch (e) {}
+
+    if (cached) {
+        return new Promise(function(resolve, reject) {
+            try {
+                const el = document.createElement('script');
+                el.src = H2C_URL;
+                el.onload = function() { resolve(window.html2canvas); };
+                el.onerror = function() { injectSource(cached).then(resolve, reject); };
+                document.head.appendChild(el);
+            } catch (e) {
+                injectSource(cached).then(resolve, reject);
+            }
+        });
+    }
+
+    return new Promise(function(resolve, reject) {
+        const el = document.createElement('script');
+        el.src = H2C_URL;
+        el.onload = function() {
+            try { localStorage.setItem(H2C_KEY, window.html2canvas.toString()); } catch (e) {}
+            resolve(window.html2canvas);
+        };
+        el.onerror = function() { reject(new Error('нет сети и нет сохранённой копии')); };
+        document.head.appendChild(el);
+    });
+}
+
+// Evaluate the saved source when the CDN is unreachable.
+function injectSource(source) {
+    return new Promise(function(resolve, reject) {
+        try {
+            const blob = new Blob([source], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            const el = document.createElement('script');
+            el.src = url;
+            el.onload = function() {
+                URL.revokeObjectURL(url);
+                if (window.html2canvas) resolve(window.html2canvas);
+                else reject(new Error('html2canvas не загрузился'));
+            };
+            el.onerror = function() {
+                URL.revokeObjectURL(url);
+                reject(new Error('не удалось запустить сохранённую копию'));
+            };
+            document.head.appendChild(el);
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
+window.shareDayImage = async function(dayName, event) {
     if (event) event.stopPropagation();
     const btn = event && event.currentTarget;
     const card = document.querySelector('.day-card[data-day="' + dayName.replace(/"/g, '&quot;') + '"]');
     if (!card) return;
-    const orig = btn ? btn.textContent : '';
-    if (btn) btn.textContent = '⏳';
+    setBusy(btn, true);
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
     const bg = dark ? '#0B0F19' : '#ffffff';
 
@@ -766,7 +868,17 @@ window.shareDayImage = function(dayName, event) {
     wrap.appendChild(clone);
     document.body.appendChild(wrap);
 
-    html2canvas(clone, {
+    let h2c;
+    try {
+        h2c = await loadHtml2Canvas();
+    } catch (err) {
+        if (wrap.parentNode) document.body.removeChild(wrap);
+        setBusy(btn, false);
+        alert('Не удалось создать картинку: ' + err.message);
+        return;
+    }
+
+    h2c(clone, {
         backgroundColor: bg,
         useCORS: true,
         logging: false,
@@ -797,9 +909,23 @@ window.shareDayImage = function(dayName, event) {
         alert('Не удалось создать картинку: ' + err.message);
     }).finally(function() {
         if (wrap.parentNode) document.body.removeChild(wrap);
-        if (btn) btn.textContent = orig;
+        setBusy(btn, false);
+        flashButton(btn, 'is-ok');
     });
 };
+
+// Icon buttons have no text label to swap, so feedback is done with a class.
+// (Assigning btn.textContent here used to delete the button's SVG for good.)
+function flashButton(btn, cls, ms) {
+    if (!btn) return;
+    btn.classList.add(cls);
+    setTimeout(function() { btn.classList.remove(cls); }, ms || 1200);
+}
+
+function setBusy(btn, on) {
+    if (!btn) return;
+    btn.classList.toggle('is-busy', !!on);
+}
 
 function fallbackCopy(text, done) {
     const ta = document.createElement('textarea');
@@ -857,17 +983,17 @@ function renderSchedule() {
 
         htmlContent += `
             <div class="day-card bg-white dark:bg-cardbg border ${isToday && currentDayFilter === 'all' ? 'border-blue-500/80 shadow-md shadow-blue-500/5' : 'border-slate-200/90 dark:border-slate-800'} shadow-xs flex flex-col" data-day="${dayName}">
-                <div class="flex items-center justify-between gap-2 flex-wrap pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between gap-2 flex-nowrap pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-800">
                     <h3 class="fs-day font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5 min-w-0">
                         <span class="w-3 h-3 rounded-full shrink-0 ${isToday ? 'bg-emerald-500 animate-pulse' : 'bg-blue-600 dark:bg-blue-500'}"></span>
                         <span class="truncate">${dayName}</span>
                         ${dayLabelBadge}
                     </h3>
-                    <div class="flex items-center gap-3 shrink-0">
+                    <div class="day-actions flex items-center gap-2 flex-nowrap shrink-0 ml-auto">
                         <span class="fs-badge day-count">${lessons.length} ${lessons.length === 1 ? 'пара' : lessons.length < 5 ? 'пары' : 'пар(ы)'}</span>
                         ${subCount ? `<span class="fs-badge sub-flag">${subCount} ${subCount === 1 ? 'замена' : 'замены'}</span>` : ''}
-                        <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" class="fs-badge day-copy">Копировать</button>
-                        <button onclick="shareDayImage('${dayName}', event)" title="Поделиться картинкой" class="fs-badge day-copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 21h16"/></svg></button>
+                        <button onclick="copyDay('${dayName}', event)" title="Скопировать день текстом" aria-label="Скопировать день текстом" class="fs-badge day-icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                        <button onclick="shareDayImage('${dayName}', event)" title="Поделиться картинкой" aria-label="Поделиться картинкой" class="fs-badge day-icon-btn day-share"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 21h16"/></svg></button>
                     </div>
                 </div>
                 <div class="stack flex-grow">

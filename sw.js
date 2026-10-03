@@ -4,9 +4,9 @@
  * Caching strategy is deliberately NOT uniform, because stale data is far
  * worse than a slow page:
  *
- *   app shell (html/js/icons)  cache-first, versioned
- *     - changes only on deploy, and the version constant below is bumped then
- *     - old caches are deleted on activate
+ *   app shell (html/js/icons)  network-first, cache fallback
+ *     - a reload always shows the currently deployed UI
+ *     - cache is only used when the network is unreachable
  *
  *   /schedule.json             network-first, cache fallback
  *     - online  -> always the freshest file, straight from the server
@@ -17,7 +17,7 @@
  * from cache while the network is reachable.
  */
 
-const VERSION = 'nkse-v4';
+const VERSION = 'nkse-v7';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
@@ -28,6 +28,10 @@ const SHELL_ASSETS = [
     'manifest.json',
     'icon.svg',
 ];
+
+// schedule.json is precached too, otherwise the very first offline visit has
+// no data to show. Best-effort: a miss here must not block installation.
+const DATA_ASSETS = ['schedule.json'];
 
 // Third-party assets: without these the offline page renders unstyled.
 const VENDOR_ASSETS = [
@@ -40,6 +44,17 @@ self.addEventListener('install', (event) => {
         caches
             .open(SHELL_CACHE)
             .then((cache) => cache.addAll(SHELL_ASSETS).catch(() => {}))
+            // Vendor CSS/fonts: without these the offline page is unstyled.
+            .then(() =>
+                caches.open(SHELL_CACHE).then((cache) =>
+                    Promise.all(VENDOR_ASSETS.map((u) => cache.add(u).catch(() => {})))
+                )
+            )
+            .then(() =>
+                caches.open(DATA_CACHE).then((cache) =>
+                    Promise.all(DATA_ASSETS.map((u) => cache.add(u).catch(() => {})))
+                )
+            )
             .then(() => self.skipWaiting())
     );
 });
@@ -94,30 +109,30 @@ self.addEventListener('fetch', (event) => {
 
     if (!isShellRequest(url)) return;
 
-    // App shell: stale-while-revalidate.
-    // Cache-first-forever would pin returning users to the copy they got on
-    // their first visit, so a newly deployed index.html/app.js would never
-    // reach them. Serving the cached copy keeps the instant paint, while the
-    // background refetch means the next load shows the new version.
+    // App shell: network-first, cache only as offline fallback.
+    //
+    // This used to be stale-while-revalidate, which meant the FIRST reload
+    // after a deploy still served the previous index.html/app.js and only the
+    // second one showed the change - so UI fixes looked like "nothing
+    // happened". The files are tiny (a few KB), so paying one request to
+    // guarantee the user always sees the current UI is the right trade.
     const isLocal = url.origin === self.location.origin;
     event.respondWith(
-        caches.open(SHELL_CACHE).then(async (cache) => {
-            const hit = await cache.match(req, { ignoreSearch: true });
-            const fresh = fetch(req)
-                .then((res) => {
-                    if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
-                    return res;
-                })
-                .catch(() => null);
-
-            if (hit) {
-                // do not await fresh: respond now, let it update the cache
-                if (isLocal) event.waitUntil(fresh);
-                return hit;
+        (async () => {
+            try {
+                const res = await fetch(req);
+                if (res && (res.ok || res.type === 'opaque')) {
+                    const cache = await caches.open(SHELL_CACHE);
+                    cache.put(req, res.clone());
+                }
+                return res;
+            } catch (err) {
+                const cache = await caches.open(SHELL_CACHE);
+                const hit = await cache.match(req, { ignoreSearch: true });
+                if (hit) return hit;
+                return (await cache.match('index.html')) || Response.error();
             }
-            const res = await fresh;
-            return res || (await cache.match('index.html')) || Response.error();
-        })
+        })()
     );
 });
 
