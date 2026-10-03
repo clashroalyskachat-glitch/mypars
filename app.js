@@ -104,6 +104,13 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// "08:10-9:30", "8:10 – 9:30", "08.10-09.30" -> minutes from midnight.
+function parseStartMinutes(time) {
+    const m = String(time || '').match(/(\d{1,2})\s*[:.]\s*(\d{2})/);
+    if (!m) return 9999;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
 function runSearch(query) {
     const box = document.getElementById('search-results');
     if (!box) return;
@@ -113,20 +120,54 @@ function runSearch(query) {
         box.innerHTML = '';
         return;
     }
-    const hits = [];
+
+    // A merged lesson ("совмещёнка") is stored once per group, so a flat search
+    // showed it N times and listed only the groups that happened to match the
+    // query. Everything is therefore collected per physical lesson first
+    // (day + real start time + subject + room), then filtered.
+    const byLesson = new Map();
+
     for (const group of Object.keys(allGroupsData)) {
         const days = allGroupsData[group];
         for (const day of DAYS_SEARCH) {
             for (const l of days[day] || []) {
-                const subs = (l.subgroups || []).map((s) => `${s.teacher || ''} ${s.room || ''}`).join(' ');
-                const hay = `${l.subject || ''} ${l.teacher || ''} ${l.room || ''} ${subs}`.toLowerCase();
-                if (hay.includes(q)) {
-                    hits.push({ group, day, l });
+                const start = parseStartMinutes(l.time);
+                const key = [day, start, (l.subject || '').trim().toLowerCase(), (l.room || '').trim()].join('|');
+
+                let slot = byLesson.get(key);
+                if (!slot) {
+                    slot = { day, start, l, groups: [], teachers: [], matched: false };
+                    byLesson.set(key, slot);
                 }
+                if (!slot.groups.includes(group)) slot.groups.push(group);
+
+                // "&"-joined teacher lists belong to one physical lesson
+                String(l.teacher || '').split('&').forEach((t) => {
+                    const name = t.trim();
+                    if (name && !slot.teachers.includes(name)) slot.teachers.push(name);
+                });
+                (l.subgroups || []).forEach((s) => {
+                    const name = String((s && s.teacher) || '').trim();
+                    if (name && !slot.teachers.includes(name)) slot.teachers.push(name);
+                });
+
+                const subs = (l.subgroups || []).map((s) => `${s.teacher || ''} ${s.room || ''}`).join(' ');
+                const hay = `${l.subject || ''} ${l.teacher || ''} ${l.room || ''} ${subs} ${slot.teachers.join(' ')}`.toLowerCase();
+                if (hay.includes(q)) slot.matched = true;
             }
         }
     }
-    hits.sort((a, b) => DAYS_SEARCH.indexOf(a.day) - DAYS_SEARCH.indexOf(b.day) || a.group.localeCompare(b.group));
+
+    // Chronological: day, then actual start time, then subject. The official
+    // pair numbers are not chronological (a merged lesson can be "№2" and start
+    // after "№3"), which is exactly what used to look broken.
+    const hits = [...byLesson.values()]
+        .filter((s) => s.matched)
+        .sort((a, b) =>
+            DAYS_SEARCH.indexOf(a.day) - DAYS_SEARCH.indexOf(b.day) ||
+            a.start - b.start ||
+            String(a.l.subject || '').localeCompare(String(b.l.subject || ''))
+        );
 
     if (hits.length === 0) {
         box.hidden = false;
@@ -137,19 +178,22 @@ function runSearch(query) {
     const shown = hits.slice(0, 120);
     box.hidden = false;
     box.innerHTML =
-        `<div class="search-hit"><span class="muted">Найдено ${hits.length}${hits.length > shown.length ? `, показаны первые ${shown.length}` : ''}</span></div>` +
+        `<div class="search-hit"><span class="muted">Найдено уроков: ${hits.length}${hits.length > shown.length ? `, показаны первые ${shown.length}` : ''}</span></div>` +
         shown
-            .map(
-                (h) => `
+            .map((h) => {
+                const extra = h.teachers.length > 3 ? ` и ещё ${h.teachers.length - 3}` : '';
+                const teachers = h.teachers.slice(0, 3).join(' · ') + extra;
+                return `
         <div class="search-hit">
-            <button class="quick-btn" data-group="${escapeHtml(h.group)}"><b>${escapeHtml(h.group)}</b></button>
-            <span>${escapeHtml(h.day)}</span>
-            <span class="muted">№${escapeHtml(h.l.number || '')} &bull; ${escapeHtml(h.l.time || '')}</span>
+            <b>${escapeHtml(h.day)}</b>
+            <span class="muted">${escapeHtml(h.l.time || '')}</span>
             <b>${escapeHtml(h.l.subject || '')}</b>
-            ${h.l.teacher ? `<span class="muted">${escapeHtml(h.l.teacher)}</span>` : ''}
             ${h.l.room ? `<span class="muted">Каб: ${escapeHtml(h.l.room)}</span>` : ''}
-        </div>`
-            )
+            ${teachers ? `<span class="muted">${escapeHtml(teachers)}</span>` : ''}
+            ${h.groups.length > 1 ? `<span class="muted">совмещёнка · ${h.groups.length} групп</span>` : ''}
+            ${h.groups.map((g) => `<button class="quick-btn" data-group="${escapeHtml(g)}" data-day="${escapeHtml(h.day)}">${escapeHtml(g)}</button>`).join('')}
+        </div>`;
+            })
             .join('');
 
     box.querySelectorAll('[data-group]').forEach((b) => {
@@ -160,6 +204,11 @@ function runSearch(query) {
             renderPinButton();
             renderQuickGroups();
             clearSearch();
+            // jump straight to the matched day when the hit carries one
+            if (b.dataset.day && DAYS_ORDER.indexOf(b.dataset.day) !== -1) {
+                currentDayFilter = b.dataset.day;
+                renderTabs();
+            }
             renderSchedule();
         });
     });
