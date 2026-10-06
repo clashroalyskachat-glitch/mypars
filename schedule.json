@@ -302,8 +302,9 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Обществоз-е",
-        "teacher": "Брянцева М М",
-        "room": "А407"
+        "teacher": "Трикоз Е В",
+        "room": "А407",
+        "substituted": true
       },
       {
         "number": "3",
@@ -1335,8 +1336,9 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "История",
-        "teacher": "Брянцева М М",
-        "room": "А219"
+        "teacher": "Трикоз Е В",
+        "room": "А407",
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -2644,8 +2646,9 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "История",
-        "teacher": "Брянцева М М",
-        "room": "А423"
+        "teacher": "Трикоз Е В",
+        "room": "А407",
+        "substituted": true
       },
       {
         "number": "2",
@@ -9907,8 +9910,9 @@
         "number": "2",
         "time": "13:10-14:30",
         "subject": "Пр. обеспеч. проф.д-и",
-        "teacher": "Брянцева М М",
-        "room": "А219"
+        "teacher": "Масловская Е Ю",
+        "room": "А403",
+        "substituted": true
       },
       {
         "number": "3",
