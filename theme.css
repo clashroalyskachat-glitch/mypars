@@ -1,0 +1,878 @@
+/*
+ * Theme token layer + settings drawer.
+ *
+ * Loaded after app.css and the inline component styles, so these rules win.
+ * Values come from theme.js as inline CSS variables on <html>.
+ */
+
+:root {
+    /* fallbacks in case theme.js is unavailable */
+    --t-bg: #000000;
+    --t-surface: #000000;
+    --t-surface-2: #0b0f19;
+    --t-text: #ffffff;
+    --t-muted: #9ca3af;
+    --t-accent: #a855f7;
+    --t-accent-contrast: #ffffff;
+    --t-border: rgba(255, 255, 255, 0.7);
+    --t-border-strong: rgba(255, 255, 255, 0.9);
+    --t-soft-border: rgba(148, 163, 184, 0.45);
+    --t-panel-border: rgba(255, 255, 255, 0.16);
+    --t-warning: #f59e0b;
+    --t-success: #10b981;
+    --t-danger: #ef4444;
+    --t-lesson-bg: #000000;
+    --t-lesson-bg-hover: #000000;
+    --t-lesson-border: rgba(255, 255, 255, 0.7);
+    --t-room-border: rgba(255, 255, 255, 0.55);
+    --t-tab-bg: #000000;
+    --t-tab-pill-bg: #000000;
+    --t-tab-pill-border: rgba(255, 255, 255, 0.85);
+    --t-tab-active-bg: transparent;
+    --t-tab-active-text: #a855f7;
+    --t-tab-active-border: #a855f7;
+    --t-header-bg: #000000;
+    --t-footer-bg: #000000;
+    --t-input-bg: transparent;
+    --t-chip-bg: rgba(148, 163, 184, 0.14);
+    --t-now-bg: transparent;
+    --t-accent-soft: rgba(168, 85, 247, 0.14);
+    --t-accent-border: rgba(168, 85, 247, 0.55);
+    --t-warning-soft: rgba(245, 158, 11, 0.16);
+    --t-danger-soft: rgba(239, 68, 68, 0.14);
+    --t-card-bg: #000000;
+    --t-lesson-card-bg: #000000;
+    --t-lesson-card-bg-hover: #000000;
+    --t-radius: 18;
+    --t-space-scale: 1;
+    --t-text-scale: 1;
+    --t-border-w: 1;
+    --t-line-height: 1.42;
+}
+
+/* ---- typography / spacing / shape, based on the original responsive ramp ---- */
+
+:root {
+    --fs-badge: calc(clamp(0.750rem, 0.42rem + 0.22vw, 1.000rem) * var(--t-text-scale, 1));
+    --fs-meta: calc(clamp(0.8125rem, 0.46rem + 0.24vw, 1.0625rem) * var(--t-text-scale, 1));
+    --fs-subj: calc(clamp(1.000rem, 0.55rem + 0.30vw, 1.375rem) * var(--t-text-scale, 1));
+    --fs-day: calc(clamp(1.0625rem, 0.60rem + 0.32vw, 1.500rem) * var(--t-text-scale, 1));
+    --fs-title: calc(clamp(1.000rem, 0.55rem + 0.30vw, 1.375rem) * var(--t-text-scale, 1));
+
+    --pad-x: calc(clamp(1rem, 0.35rem + 0.55vw, 3rem) * var(--t-space-scale, 1));
+    --pad-y: calc(clamp(1.5rem, 1.20rem + 0.20vw, 3rem) * var(--t-space-scale, 1));
+    --pad-card: calc(clamp(1rem, 0.82rem + 0.12vw, 1.375rem) * var(--t-space-scale, 1));
+    --pad-day: calc(var(--pad-card) * 1.15);
+    --pad-tab-y: calc(clamp(0.625rem, 0.52rem + 0.06vw, 0.875rem) * var(--t-space-scale, 1));
+    --pad-tab-x: calc(clamp(1rem, 0.85rem + 0.10vw, 1.5rem) * var(--t-space-scale, 1));
+    --gap-grid: calc(clamp(1rem, 0.80rem + 0.13vw, 2rem) * var(--t-space-scale, 1));
+    --gap-soft: calc(clamp(0.625rem, 0.52rem + 0.07vw, 1.125rem) * var(--t-space-scale, 1));
+    --gap-micro: calc(clamp(0.375rem, 0.31rem + 0.04vw, 0.625rem) * var(--t-space-scale, 1));
+
+    --radius: calc(var(--t-radius, 18) * 1px);
+    --radius-sm: calc(var(--radius) * 0.73);
+    --radius-xs: calc(var(--radius) * 0.5);
+    --border-w: calc(var(--t-border-w, 1) * 1px);
+}
+
+/* ---- main surfaces ---- */
+
+html[data-theme] body.app-body {
+    background-color: var(--t-bg) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] header {
+    background: var(--t-header-bg) !important;
+    border-color: var(--t-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] footer {
+    background: var(--t-footer-bg) !important;
+    border-color: var(--t-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] #schedule-container > .day-card,
+html[data-theme] .day-card {
+    background: var(--t-card-bg, var(--t-surface)) !important;
+    border-color: var(--t-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .lesson-card {
+    background: var(--t-lesson-card-bg, var(--t-lesson-bg)) !important;
+    border-color: var(--t-lesson-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .lesson-card:hover {
+    background: var(--t-lesson-card-bg-hover, var(--t-lesson-bg-hover)) !important;
+    border-color: var(--t-border-strong) !important;
+}
+
+html[data-theme] .lesson-card h4 {
+    font-size: calc(clamp(1.05rem, 0.90rem + 0.55vw, 1.70rem) * var(--t-text-scale, 1)) !important;
+    line-height: var(--t-line-height, 1.42) !important;
+}
+
+/* display font: serif is used by the Akashi preset */
+html[data-theme] .brand-word,
+html[data-theme] h1,
+html[data-theme] .day-name,
+html[data-theme] .lesson-card h4,
+html[data-theme] .settings-head h2 {
+    font-family: var(--t-display-font, inherit);
+}
+
+/* optional glow around cards and the active day */
+html[data-glow="on"] #schedule-container > .day-card,
+html[data-glow="on"] .lesson-card {
+    box-shadow: 0 0 calc(var(--t-glow, 0) * 1px) var(--t-accent-border) !important;
+}
+html[data-glow="on"] #days-tabs .day-tab-active {
+    box-shadow: 0 0 calc(var(--t-glow, 0) * 1px) var(--t-accent-border) !important;
+}
+
+/* theme-specific decoration for the Akashi preset (and copies of it) */
+html[data-fx="akashi"] header {
+    border-bottom: 2px solid var(--t-accent) !important;
+}
+html[data-fx="akashi"] footer {
+    border-top: 1px solid var(--t-accent) !important;
+}
+html[data-fx="akashi"] .brand-word::before {
+    content: '♛';
+    color: var(--t-warning);
+    font-size: 0.74em;
+    margin-right: 0.16em;
+    transform: translateY(-0.12em);
+    text-shadow: 0 0 10px var(--t-accent-border);
+}
+html[data-fx="akashi"] .meta-item.is-room::after {
+    content: '♛';
+    color: var(--t-warning);
+    font-size: 0.86em;
+    margin-left: 0.35em;
+}
+html[data-fx="akashi"] footer::after {
+    content: 'DISCIPLINE / CONTROL / POWER';
+    display: block;
+    margin-top: 0.6rem;
+    font-size: var(--fs-badge);
+    letter-spacing: 0.22em;
+    font-weight: 700;
+    color: var(--t-warning);
+    opacity: .55;
+}
+
+/* ---- day tabs ---- */
+
+html[data-theme] #days-tabs {
+    background-color: var(--t-tab-bg) !important;
+    border-color: var(--t-border) !important;
+}
+
+html[data-theme] #days-tabs .day-tab {
+    background-color: var(--t-tab-pill-bg) !important;
+    border-color: var(--t-tab-pill-border) !important;
+    color: var(--t-muted) !important;
+}
+
+html[data-theme] #days-tabs .day-tab.day-tab-active {
+    background-color: var(--t-tab-active-bg) !important;
+    border-color: var(--t-tab-active-border) !important;
+    color: var(--t-tab-active-text) !important;
+}
+
+html[data-theme] .tab-today-dot { background: currentColor; }
+
+/* ---- search, inputs, small controls ---- */
+
+html[data-theme] .search-input {
+    background: transparent !important;
+    border-color: var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .header-select {
+    background: var(--t-input-bg) !important;
+    border-color: var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .group-filter {
+    background: var(--t-chip-bg) !important;
+    border-color: var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .search-input::placeholder,
+html[data-theme] .group-filter::placeholder {
+    color: var(--t-muted) !important;
+    opacity: .85;
+}
+
+html[data-theme] .search-hit {
+    background: var(--t-surface) !important;
+    border-color: var(--t-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .quick-btn,
+html[data-theme] .quick-back {
+    background: var(--t-chip-bg) !important;
+    border-color: var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .quick-back,
+html[data-theme] .header-icon-btn.is-on,
+html[data-theme] .day-icon-btn.day-share {
+    color: var(--t-accent) !important;
+    border-color: var(--t-accent-border) !important;
+    background: var(--t-accent-soft) !important;
+}
+
+html[data-theme] .pin-btn,
+html[data-theme] .header-icon-btn,
+html[data-theme] .day-icon-btn,
+html[data-theme] .day-count,
+html[data-theme] .meta-item.is-room {
+    border-color: var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .pin-btn,
+html[data-theme] .header-icon-btn {
+    background: transparent !important;
+}
+
+html[data-theme] .day-icon-btn {
+    background: var(--t-chip-bg) !important;
+}
+
+html[data-theme] .meta-item.is-room {
+    border-color: var(--t-room-border) !important;
+    background: var(--t-chip-bg) !important;
+}
+
+html[data-theme] .now-bar {
+    background: var(--t-now-bg) !important;
+    border-color: var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .now-bar.is-live {
+    border-color: var(--t-accent) !important;
+}
+
+html[data-theme] .now-bar .now-dot {
+    background: var(--t-accent);
+}
+
+html[data-theme] .now-bar.is-free .now-dot {
+    background: var(--t-muted);
+}
+
+/* ---- group / teacher picker ---- */
+
+html[data-theme] .group-panel {
+    background: var(--t-surface-2) !important;
+    border-color: var(--t-panel-border) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-theme] .group-opt[aria-selected="true"] {
+    background: var(--t-accent-soft) !important;
+    color: var(--t-accent) !important;
+}
+
+html[data-theme] .group-opt:hover,
+html[data-theme] .group-opt.is-cursor {
+    background: var(--t-chip-bg) !important;
+}
+
+/* ---- accents and statuses ---- */
+
+html[data-theme] .brand-word .accent,
+html[data-theme] .lesson-num.is-active,
+html[data-theme] .live-tag {
+    color: var(--t-accent) !important;
+}
+
+html[data-theme] .brand-word .accent {
+    text-shadow:
+        2px 2px 0 color-mix(in srgb, var(--t-accent) 90%, transparent),
+        3px 3px 0 color-mix(in srgb, var(--t-accent) 65%, #000),
+        4px 6px 8px color-mix(in srgb, var(--t-accent) 40%, transparent) !important;
+}
+
+html[data-theme] .sub-flag,
+html[data-theme] .group-sub {
+    color: var(--t-warning) !important;
+}
+
+html[data-theme] .stale-dot {
+    background: var(--t-warning);
+}
+
+html[data-theme] .room-btn,
+html[data-theme] .teacher-link,
+html[data-theme] .teacher-group-link {
+    color: inherit;
+}
+
+html[data-theme] .teacher-link,
+html[data-theme] .teacher-group-link {
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+html[data-theme] .group-room {
+    color: var(--t-muted) !important;
+}
+
+html[data-theme] .lesson-card-current {
+    border-left-color: var(--t-accent) !important;
+}
+
+html[data-theme] .lesson-card-passed {
+    border-left-color: var(--t-soft-border) !important;
+}
+
+html[data-theme] :focus-visible {
+    outline-color: var(--t-accent);
+}
+
+/* ---- state boxes ---- */
+
+html[data-theme] .state-box {
+    background: var(--t-surface) !important;
+    border-color: var(--t-border) !important;
+    color: var(--t-text) !important;
+}
+
+/* ---- background image / gradient ---- */
+
+html[data-bg="image"] body.app-body,
+html[data-bg="gradient"] body.app-body {
+    background-image: var(--t-bg-image) !important;
+    background-size: var(--t-bg-size, cover) !important;
+    background-position: var(--t-bg-position, center) !important;
+    background-repeat: var(--t-bg-repeat, no-repeat) !important;
+    background-attachment: scroll !important;
+}
+
+/* ---- motion preference ---- */
+
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* ---- theme toggle icon (the old dark: utilities never applied) ---- */
+
+#theme-toggle .theme-icon-sun { display: none; }
+#theme-toggle .theme-icon-moon { display: block; }
+html[data-theme="dark"] #theme-toggle .theme-icon-sun { display: block; }
+html[data-theme="dark"] #theme-toggle .theme-icon-moon { display: none; }
+
+/* ============================================================
+   settings drawer
+   ============================================================ */
+
+#settings-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    justify-content: flex-end;
+}
+
+#settings-panel[hidden] { display: none; }
+
+.settings-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.14);
+}
+
+.settings-drawer {
+    position: relative;
+    width: min(32rem, 100%);
+    height: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--t-surface);
+    color: var(--t-text);
+    border-left: 1px solid var(--t-border);
+    box-shadow: -22px 0 60px -30px rgba(0, 0, 0, 0.55);
+}
+
+.settings-head,
+.settings-foot {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem clamp(0.9rem, 0.7rem + 0.5vw, 1.25rem);
+    border-color: var(--t-border);
+    background: var(--t-surface);
+}
+
+.settings-head {
+    border-bottom: 1px solid var(--t-border);
+}
+
+.settings-foot {
+    border-top: 1px solid var(--t-border);
+}
+
+.settings-head h2 {
+    font-size: var(--fs-title);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.settings-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.9rem clamp(0.9rem, 0.7rem + 0.5vw, 1.25rem) 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    scrollbar-width: thin;
+}
+
+.settings-group {
+    border: 1px solid var(--t-border);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    background: color-mix(in srgb, var(--t-surface) 92%, var(--t-text) 8%);
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+    .settings-group { background: transparent; }
+}
+
+.settings-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.settings-group h3 {
+    font-size: var(--fs-meta);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    opacity: .85;
+}
+
+.settings-hint {
+    font-size: var(--fs-badge);
+    opacity: .6;
+    line-height: 1.4;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+}
+
+.settings-row > span { flex: 1 1 auto; min-width: 0; }
+
+.settings-value {
+    flex: 0 0 auto;
+    min-width: 3.3em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    opacity: .8;
+    font-size: var(--fs-badge);
+}
+
+.settings-reset {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: var(--t-muted);
+    font: inherit;
+    font-size: var(--fs-badge);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0.2rem 0.35rem;
+    border-radius: 999px;
+}
+
+.settings-reset:hover { color: var(--t-text); background: var(--t-chip-bg); }
+
+.settings-drawer input[type="range"] {
+    width: 100%;
+    height: 26px;
+    accent-color: var(--t-accent);
+    cursor: pointer;
+}
+
+.settings-drawer select,
+.settings-drawer input[type="text"],
+.settings-drawer input[type="url"],
+.settings-drawer input[type="number"] {
+    font: inherit;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    color: var(--t-text);
+    background: var(--t-surface-2);
+    border: 1px solid var(--t-soft-border);
+    border-radius: calc(var(--radius-sm) * 0.6);
+    padding: 0.5rem 0.6rem;
+    min-width: 0;
+    outline: none;
+}
+
+.settings-drawer select:focus,
+.settings-drawer input:focus {
+    border-color: var(--t-accent);
+    box-shadow: 0 0 0 2px var(--t-accent-soft);
+}
+
+.settings-drawer input[type="color"] {
+    width: 2.6rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--t-soft-border);
+    border-radius: calc(var(--radius-sm) * 0.5);
+    background: transparent;
+    cursor: pointer;
+}
+
+html[data-theme] #settings-panel select,
+html[data-theme] #settings-panel input[type="text"],
+html[data-theme] #settings-panel input[type="url"],
+html[data-theme] #settings-panel input[type="number"] {
+    background: var(--t-surface-2) !important;
+    border: 1px solid var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+
+.settings-color-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.settings-color {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+}
+
+.settings-color span { flex: 1 1 auto; }
+.settings-color input[type="text"] { width: 7.2em; text-transform: uppercase; }
+
+.settings-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: var(--fs-meta);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.settings-toggle input[type="checkbox"] {
+    appearance: none;
+    width: 46px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--t-chip-bg);
+    border: 1px solid var(--t-soft-border);
+    position: relative;
+    cursor: pointer;
+    transition: background-color .16s ease, border-color .16s ease;
+    flex: 0 0 auto;
+}
+
+.settings-toggle input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--t-text);
+    opacity: .55;
+    transition: transform .16s ease, background-color .16s ease, opacity .16s ease;
+}
+
+.settings-toggle input[type="checkbox"]:checked {
+    background: var(--t-accent);
+    border-color: var(--t-accent);
+}
+
+.settings-toggle input[type="checkbox"]:checked::after {
+    transform: translateX(20px);
+    background: var(--t-accent-contrast);
+    opacity: 1;
+}
+
+.settings-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.settings-btn {
+    font: inherit;
+    font-size: var(--fs-badge);
+    font-weight: 800;
+    color: var(--t-text);
+    background: var(--t-chip-bg);
+    border: 1px solid var(--t-soft-border);
+    border-radius: 999px;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.settings-btn:hover {
+    border-color: var(--t-accent-border);
+    color: var(--t-accent);
+}
+
+.settings-btn.is-danger:hover {
+    border-color: var(--t-danger);
+    color: var(--t-danger);
+}
+
+.settings-btn.is-primary {
+    background: var(--t-accent);
+    border-color: var(--t-accent);
+    color: var(--t-accent-contrast);
+}
+
+/* The old dark-theme rule paints every button white-on-black with
+   !important. Settings controls need their own specific overrides. */
+html[data-theme] #settings-panel .settings-btn {
+    background: var(--t-chip-bg) !important;
+    border: 1px solid var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+html[data-theme] #settings-panel .settings-btn:hover {
+    border-color: var(--t-accent-border) !important;
+    color: var(--t-accent) !important;
+}
+html[data-theme] #settings-panel .settings-btn.is-primary {
+    background: var(--t-accent) !important;
+    border-color: var(--t-accent) !important;
+    color: var(--t-accent-contrast) !important;
+}
+html[data-theme] #settings-panel .settings-btn.is-danger:hover {
+    border-color: var(--t-danger) !important;
+    color: var(--t-danger) !important;
+}
+html[data-theme] #settings-panel .settings-reset {
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--t-muted) !important;
+}
+html[data-theme] #settings-panel .settings-reset:hover {
+    color: var(--t-text) !important;
+    background: var(--t-chip-bg) !important;
+}
+html[data-theme] #settings-panel .preset-card {
+    background: transparent !important;
+    border: 1px solid var(--t-soft-border) !important;
+    color: var(--t-text) !important;
+}
+html[data-theme] #settings-panel .preset-card:hover,
+html[data-theme] #settings-panel .preset-card.is-active {
+    border-color: var(--t-accent) !important;
+}
+
+.preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.preset-card {
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid var(--t-soft-border);
+    border-radius: var(--radius-xs);
+    padding: 0.5rem 0.55rem;
+    background: transparent;
+    color: var(--t-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.preset-card:hover,
+.preset-card.is-active {
+    border-color: var(--t-accent);
+}
+
+.preset-card.is-active {
+    box-shadow: 0 0 0 1px var(--t-accent) inset;
+}
+
+.preset-swatch {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    border: 1px solid var(--t-soft-border);
+    background: linear-gradient(135deg, var(--sw-bg, #000) 0 50%, var(--sw-surface, #111) 50% 100%);
+}
+
+.preset-name {
+    font-size: var(--fs-badge);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.preset-card .preset-share,
+.preset-card .preset-del {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: var(--t-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.1rem 0.2rem;
+}
+
+.preset-card .preset-share:hover { color: var(--t-accent); }
+.preset-card .preset-del:hover { color: var(--t-danger); }
+
+.preset-card .preset-del {
+    margin-left: 0;
+}
+
+#preset-code-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.1rem;
+}
+
+#preset-code-wrap[hidden] { display: none; }
+
+.settings-code {
+    width: 100%;
+    min-height: 4.2rem;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--fs-badge);
+    line-height: 1.4;
+    padding: 0.55rem 0.65rem;
+    color: var(--t-text);
+    background: var(--t-surface-2);
+    border: 1px solid var(--t-soft-border);
+    border-radius: calc(var(--radius-sm) * 0.6);
+    outline: none;
+    word-break: break-all;
+}
+
+.settings-code:focus {
+    border-color: var(--t-accent);
+    box-shadow: 0 0 0 2px var(--t-accent-soft);
+}
+
+.settings-inline {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.settings-inline input { flex: 1 1 auto; }
+
+.settings-preview {
+    border: 1px solid var(--t-border);
+    border-radius: var(--radius-sm);
+    background: var(--t-surface-2);
+    padding: 0.7rem;
+}
+
+.settings-preview .lesson-card {
+    pointer-events: none;
+    animation: none !important;
+    min-height: 0;
+}
+
+.settings-preview .lesson-card h4 { margin-block: 0.1em 0.25em; }
+
+.settings-bg-preview {
+    width: 100%;
+    height: 4.5rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--t-soft-border);
+    background-color: var(--t-bg);
+    background-image: var(--t-bg-image);
+    background-size: var(--t-bg-size, cover);
+    background-position: var(--t-bg-position, center);
+    background-repeat: var(--t-bg-repeat, no-repeat);
+    margin-top: 0.2rem;
+}
+
+.settings-divider {
+    height: 1px;
+    background: var(--t-border);
+    margin: 0.1rem 0;
+}
+
+.settings-saved {
+    font-size: var(--fs-badge);
+    opacity: .55;
+    font-weight: 600;
+}
+
+@media (max-width: 639px) {
+    .settings-drawer {
+        width: 100%;
+        border-left: 0;
+    }
+    .settings-scrim { display: none; }
+    .settings-head { padding-top: max(0.9rem, env(safe-area-inset-top)); }
+    .settings-foot { padding-bottom: max(0.9rem, env(safe-area-inset-bottom)); }
+    .settings-body { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
+}
+
+@media print {
+    html[data-bg] body {
+        background-image: none !important;
+        background-color: #ffffff !important;
+    }
+}

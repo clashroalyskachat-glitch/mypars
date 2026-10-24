@@ -26,6 +26,11 @@ const SHELL_ASSETS = [
     'index.html',
     'app.js',
     'app.css',
+    'theme.css',
+    'theme.js',
+    'settings.js',
+    'assets/akashi-desktop.jpg',
+    'assets/akashi-phone.jpg',
     'manifest.json',
     'icon.svg',
 ];
@@ -35,8 +40,9 @@ const SHELL_ASSETS = [
 const DATA_ASSETS = ['schedule.json'];
 
 // Third-party assets: without these the offline page renders unstyled.
+// (The old Tailwind Play CDN entry was removed: app.css is prebuilt and that
+// script was downloaded on install without ever being used.)
 const VENDOR_ASSETS = [
-    'https://cdn.tailwindcss.com',
     'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap',
 ];
 
@@ -73,7 +79,8 @@ self.addEventListener('activate', (event) => {
 
 function isShellRequest(url) {
     if (url.origin === self.location.origin) {
-        return /\/(index\.html|app\.js|manifest\.json|icon\.svg)?$/.test(url.pathname);
+        if (url.pathname.indexOf('/assets/') !== -1) return true;
+        return /\/(index\.html|app\.js|app\.css|theme\.css|theme\.js|settings\.js|manifest\.json|icon\.svg)?$/.test(url.pathname);
     }
     return VENDOR_ASSETS.some((u) => url.href.startsWith(u.split('?')[0]));
 }

@@ -6,8 +6,10 @@
     <title>Расписание НКСЭ</title>
     <meta name="description" content="Расписание занятий НКСЭ — по группам и дням, с поиском по преподавателям и кабинетам.">
     <link rel="manifest" href="manifest.json">
-    <!-- start the 42 KB payload while the HTML is still parsing -->
-    <link rel="preload" as="fetch" href="schedule.json" crossorigin>
+    <!-- No preload for schedule.json: the service worker answers that fetch in
+         a separate world, so the preloaded response is never reused. It used to
+         download the whole payload twice on a cold visit and waste it on every
+         cached one. The plain fetch below is faster in practice. -->
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
     <meta name="theme-color" content="#000000">
@@ -282,15 +284,43 @@
         html, body { min-height: 100%; }
         body { min-height: 100dvh; overflow-x: hidden; }
 
-        /* ---- day tabs ---- */
+        /* ---- day tabs ----
+           The tabs stick right under the header so switching days never
+           requires scrolling back to the top of a long week. The wrapper
+           carries a solid page-coloured band, so cards scroll underneath it
+           instead of showing through the gap below the pills. */
+        :root { --page-bg: #eef1f6; }
+        [data-theme="light"] { --page-bg: #eef1f6; }
+        [data-theme="dark"]  { --page-bg: #000000; }
+
+        .days-tabs-sticky {
+            position: sticky;
+            top: var(--header-h, 0px);
+            z-index: 40;
+            background: var(--page-bg);
+            padding-top: 0.25rem;
+            padding-bottom: 0.55rem;
+            margin-bottom: calc(var(--gap-grid) - 0.55rem);
+        }
         #days-tabs {
             padding: var(--gap-micro);
             padding-bottom: calc(var(--gap-micro) + 0.25rem);
             gap: var(--gap-micro);
-            margin-bottom: var(--gap-grid);
+            margin-bottom: 0;
             border-radius: var(--radius);
             scroll-padding-inline: var(--pad-x);
             -webkit-overflow-scrolling: touch;
+        }
+        /* a dot on the tab that means "today", so the day is findable
+           even after the user has switched to another one */
+        .tab-today-dot {
+            width: 0.42em;
+            height: 0.42em;
+            border-radius: 999px;
+            background: currentColor;
+            flex: 0 0 auto;
+            margin-right: 0.5em;
+            opacity: .9;
         }
         .day-tab {
             padding-block: var(--pad-tab-y);
@@ -308,6 +338,9 @@
             display: grid;
             gap: var(--gap-grid);
             grid-template-columns: 1fr;
+            /* cards keep their natural height instead of being stretched to the
+               tallest day in the same row */
+            align-items: start;
         }
         #schedule-container > div { min-width: 0; }
         /* 6 day cards, so only balanced column counts: 1 / 2 / 3 / 6.
@@ -349,7 +382,7 @@
             align-items: baseline;
             gap: 0.5em;
             font-weight: 800;
-            opacity: .55;
+            opacity: .62;
         }
         .lesson-num .num-time { font-weight: 700; opacity: .85; }
         .lesson-num.is-active { opacity: 1; color: #a855f7; }
@@ -368,7 +401,7 @@
         }
         /* number+time anchor left, any flag hugs the right edge */
         .lesson-head > .lesson-num { margin-right: auto; }
-        .meta-item { opacity: .6; font-weight: 600; }
+        .meta-item { opacity: .68; font-weight: 600; }
         /* room sits at the far right so the row spans the card instead of
            leaving a dead gap - same job the old bordered chips did */
         .meta-item.is-room {
@@ -423,6 +456,23 @@
 
         /* ---- header: one consistent control language ---- */
         .header-controls { gap: 0.5rem; }
+        /* On a phone the group picker gets its own row, so the title never has
+           to shrink to "Расп…" and the theme button is not left alone on a
+           third row. */
+        @media (max-width: 639px) {
+            .header-main {
+                flex-wrap: wrap;
+                gap: 0.7rem 0.75rem;
+            }
+            .header-brand { flex: 1 1 auto; }
+            .header-controls { flex: 1 1 100%; }
+            .header-controls .group-picker { flex: 1 1 auto; min-width: 0; }
+            .header-controls .group-trigger {
+                width: 100%;
+                max-width: none;
+                justify-content: space-between;
+            }
+        }
         .header-select {
             padding: 0.5rem 0.9rem;
             font-size: var(--fs-meta);
@@ -460,9 +510,28 @@
         /* keep the subtitle from shouting */
         #last-updated { opacity: .65; font-weight: 500; }
 
-        /* Day header actions: always one row, always right-aligned - even when the
-           group wraps to its own line on narrow screens, so every day card
-           has the same structure. */
+        /* Day header: the title always gets a full line, the meta line below
+           holds the count and the actions. Same height on every card, and the
+           day name is never truncated - even with a "Послезавтра" badge. */
+        .day-head {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .day-head h3 { min-width: 0; flex-wrap: wrap; }
+        .day-name { overflow-wrap: anywhere; }
+        .day-owner {
+            font-size: 0.78em;
+            font-weight: 700;
+            opacity: .55;
+            overflow-wrap: anywhere;
+        }
+        .day-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
         .day-actions { margin-left: auto; }
         .day-actions > * { flex-shrink: 0; }
         .day-actions .sub-flag { margin-left: 0; }
@@ -614,6 +683,124 @@
             color: #c084fc;
         }
         .group-opt .g-emoji { flex-shrink: 0; }
+        .group-opt .opt-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .group-opt .opt-count {
+            margin-left: auto;
+            opacity: .45;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ---- picker: groups / teachers ---- */
+        .picker-modes {
+            display: flex;
+            gap: 0.2rem;
+            padding: 0.2rem;
+            margin-bottom: 0.3rem;
+            border-radius: calc(var(--radius-sm) - 0.25rem);
+            background: rgba(148, 163, 184, 0.16);
+        }
+        .picker-mode {
+            flex: 1 1 auto;
+            padding: 0.45rem 0.4rem;
+            font: inherit;
+            font-size: var(--fs-badge);
+            font-weight: 800;
+            color: inherit;
+            background: transparent;
+            border: 0;
+            border-radius: calc(var(--radius-sm) - 0.4rem);
+            cursor: pointer;
+            opacity: .58;
+            transition: background-color .16s ease, opacity .16s ease, color .16s ease;
+        }
+        .picker-mode:hover { opacity: 1; }
+        .picker-mode.is-active {
+            opacity: 1;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+        }
+        [data-theme="dark"] #group-panel .picker-mode {
+            background: transparent !important;
+            border: 0 !important;
+            color: #ffffff !important;
+            opacity: .55;
+        }
+        [data-theme="dark"] #group-panel .picker-mode.is-active {
+            background: rgba(168, 85, 247, 0.20) !important;
+            border: 1px solid rgba(168, 85, 247, 0.55) !important;
+            color: #c084fc !important;
+            opacity: 1;
+        }
+
+        /* group chips on a teacher's lesson card */
+        .teacher-group-link {
+            font: inherit;
+            font-size: var(--fs-meta);
+            font-weight: 700;
+            color: inherit;
+            opacity: .72;
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            white-space: nowrap;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: .22em;
+        }
+        .teacher-group-link:hover { opacity: 1; text-decoration-style: solid; }
+        .teacher-group {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.25em;
+            white-space: nowrap;
+        }
+        .group-sub {
+            color: #f59e0b;
+            font-weight: 800;
+            font-size: 0.9em;
+        }
+        .group-room {
+            opacity: .55;
+            font-weight: 600;
+            font-size: 0.92em;
+            white-space: nowrap;
+        }
+        [data-theme="dark"] #schedule-container .teacher-group-link {
+            background: transparent !important;
+            border: 0 !important;
+            color: #ffffff !important;
+        }
+
+        /* teacher names on a group's lesson card are links to that teacher */
+        .teacher-links { display: inline; }
+        .teacher-link {
+            font: inherit;
+            font-weight: inherit;
+            color: inherit;
+            opacity: .75;
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            text-align: left;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: .22em;
+        }
+        .teacher-link:hover { opacity: 1; text-decoration-style: solid; }
+        [data-theme="dark"] #schedule-container .teacher-link {
+            background: transparent !important;
+            border: 0 !important;
+            color: #ffffff !important;
+        }
 
         /* ---- click ripple on the day tabs ----
            origin is the pointer position, transform+opacity only, so it stays on
@@ -750,6 +937,16 @@
             transition: background-color .2s ease, border-color .2s ease, color .2s ease;
         }
         .quick-btn:hover { background: rgb(148 163 184 / 0.12); }
+        .quick-btn.quick-back {
+            border-color: rgb(168 85 247 / 0.55);
+            color: #a855f7;
+        }
+        .quick-btn.quick-back:hover { background: rgb(168 85 247 / 0.12); }
+        [data-theme="dark"] #quick-groups .quick-btn.quick-back {
+            color: #c084fc !important;
+            border-color: rgb(168 85 247 / 0.6) !important;
+            background: rgb(168 85 247 / 0.12) !important;
+        }
         .quick-btn[aria-current="true"] {
             border-color: #a855f7;
             color: #a855f7;
@@ -808,6 +1005,16 @@
             gap: var(--gap-micro);
             margin-bottom: var(--gap-soft);
         }
+        /* A broad query ("Химия") matches hundreds of lessons. Left to grow,
+           the list pushed the day tabs and the schedule thousands of pixels
+           down; cap it and let the results scroll on their own. */
+        #search-results:not([hidden]) {
+            max-height: min(58vh, 30rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding-right: 0.15rem;
+            scrollbar-width: thin;
+        }
         .search-hit{
             display: flex;
             flex-wrap: wrap;
@@ -833,6 +1040,13 @@
             align-items: center;
             gap: var(--gap-micro);
             flex: 1 0 100%;
+        }
+        /* every group with its own room gets its own line, even when both
+           would fit side by side on a wide card */
+        .lesson-meta-row.is-multi-group {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.3rem;
         }
         /* ---- vertical centring inside pills ----
            With line-height:1 the line box is 1em tall but the baseline sits at
@@ -860,7 +1074,7 @@
 
         /* lessons inside one day share a row so cards line up evenly */
         #schedule-container .stack { flex: 1 1 auto; }
-        #schedule-container .stack > .lesson-card { flex: 1 1 0; }
+        #schedule-container .stack > .lesson-card { flex: 0 0 auto; }
 
         /* room button needs a real touch target even though padding is tight */
         .room-btn   { display: inline-flex; align-items: center; justify-content: center; }
@@ -1026,7 +1240,6 @@
         .exporting, .exporting * {
             animation: none !important;
             transition: none !important;
-            opacity: 1 !important;
             transform: none !important;
             overflow: visible !important;
             max-height: none !important;
@@ -1034,6 +1247,7 @@
             min-height: 0 !important;
             box-shadow: none !important;
         }
+        .exporting { opacity: 1 !important; }
 
         /* ---- print: strip chrome, keep the schedule readable on paper ---- */
         @media print {
@@ -1055,48 +1269,25 @@
             #search-wrap, #search-results, .no-scrollbar { display: none !important; }
             main.shell { padding: 0 !important; max-width: none !important; }
             #days-tabs { display: none !important; }
+            .days-tabs-sticky { display: none !important; }
             #schedule-container { grid-template-columns: repeat(2, 1fr) !important; gap: 8mm !important; }
             .day-card, .lesson-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
             .schedule-card, .day-card { animation: none !important; opacity: 1 !important; }
             .chip, .room-btn, .quick-btn { border-color: #999 !important; }
         }
     </style>
-    <script>
-        (function () {
-            var key = 'nkse-theme-v2';
-            var saved = localStorage.getItem(key);
-            var theme = saved ? saved : 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
-         function toggleTheme() {
-             var key = 'nkse-theme-v2';
-             var current = document.documentElement.getAttribute('data-theme');
-             var next = current === 'dark' ? 'light' : 'dark';
-             localStorage.setItem(key, next);
-             document.documentElement.setAttribute('data-theme', next);
-             // Lesson-card colours are baked into class names at render time,
-             // so the schedule has to be re-rendered or it keeps the old theme
-             // until something else happens to trigger a redraw.
-             try {
-                 if (typeof renderSchedule === 'function') renderSchedule();
-                 if (typeof renderTabs === 'function') renderTabs();
-             } catch (e) {}
-         }
-        function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('nkse-theme-v2', theme);
-        }
-    </script>
+    <link rel="stylesheet" href="theme.css">
+    <script src="theme.js"></script>
 </head>
-<body class="bg-slate-100 dark:bg-darkbg text-slate-900 dark:text-slate-100 min-h-full flex flex-col transition-colors duration-200">
+<body class="app-body bg-slate-100 dark:bg-darkbg text-slate-900 dark:text-slate-100 min-h-full flex flex-col transition-colors duration-200">
     
     <!-- Header -->
     <header class="bg-white/90 dark:bg-cardbg/90 backdrop-blur-md border-b border-slate-200/85 dark:border-slate-800 sticky top-0 z-50 shadow-xs">
-        <div class="shell flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div class="shell flex items-center gap-3">
 
-            <!-- Логотип и выбор группы -->
-            <div class="flex items-center gap-3.5 w-full min-w-0 sm:w-auto sm:flex-1 justify-between sm:justify-start">
-                <div class="flex items-center gap-3 min-w-0">
+            <!-- Логотип, выбор группы и переключатель темы -->
+            <div class="header-main flex items-center gap-3.5 w-full min-w-0 sm:flex-1">
+                <div class="header-brand flex items-center gap-3 min-w-0">
                     <span class="brand-word select-none shrink-0" aria-label="НКСЭ">НКС<span class="accent">Э</span></span>
                     <div class="min-w-0">
                         <h1 class="fs-title font-extrabold tracking-tight text-slate-900 dark:text-white truncate">Расписание</h1>
@@ -1105,28 +1296,36 @@
                 </div>
                 <span id="stale-dot" class="stale-dot" hidden title="Данные могут быть неактуальны"></span>
 
-                <!-- Выпадающий список групп -->
-                <div class="relative shrink-0 flex items-center gap-2 header-controls">
+                <!-- Группа, закрепление и тема -->
+                <div class="relative flex items-center gap-2 header-controls ml-auto">
                     <div class="group-picker" id="group-picker">
-                    <button type="button" id="group-trigger" class="header-select group-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Выбор группы">
-                        <span id="group-trigger-label">СЗ-13-26 ⭐</span>
-                        <svg class="group-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-                    </button>
-                    <div class="group-panel" id="group-panel">
-                        <input id="group-filter" class="group-filter" type="text" placeholder="Найти группу" autocomplete="off" spellcheck="false" aria-label="Фильтр групп">
-                        <div class="group-list" id="group-list" role="listbox" aria-label="Список групп"></div>
+                        <button type="button" id="group-trigger" class="header-select group-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Выбор группы или преподавателя">
+                            <span id="group-trigger-label">СЗ-13-26 ⭐</span>
+                            <svg class="group-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <div class="group-panel" id="group-panel">
+                            <div class="picker-modes" role="tablist" aria-label="Что искать">
+                                <button type="button" class="picker-mode is-active" data-mode="group" role="tab" aria-selected="true">Группы</button>
+                                <button type="button" class="picker-mode" data-mode="teacher" role="tab" aria-selected="false">Преподаватели</button>
+                            </div>
+                            <input id="group-filter" class="group-filter" type="text" placeholder="Найти группу" autocomplete="off" spellcheck="false" aria-label="Фильтр групп">
+                            <div class="group-list" id="group-list" role="listbox" aria-label="Список групп"></div>
+                        </div>
                     </div>
-                </div>
                     <button id="pin-btn" class="pin-btn header-icon-btn" aria-pressed="false" aria-label="Закрепить группу" title="Закрепить группу в быстрый доступ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z"/></svg></button>
+                    <!-- Переключатель темы (День / Ночь) -->
+                    <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 header-icon-btn" title="Переключить тему" aria-label="Переключить тему">
+                        <svg class="theme-icon theme-icon-sun w-[1.15em] h-[1.15em]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-icon theme-icon-moon w-[1.15em] h-[1.15em]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                    <!-- Настройки -->
+                    <button id="settings-btn" type="button" class="shrink-0 header-icon-btn" title="Настройки" aria-label="Настройки" aria-haspopup="dialog" aria-controls="settings-panel" aria-expanded="false">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
                 </div>
-             </div>
-             <!-- Переключатель темы (День / Ночь) -->
-             <button id="theme-toggle" onclick="toggleTheme()" class="shrink-0 header-icon-btn" title="Переключить тему" aria-label="Переключить тему">
-                  <svg class="w-[1.15em] h-[1.15em] hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                  <svg class="w-[1.15em] h-[1.15em] block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-             </button>
-         </div>
-     </header>
+            </div>
+        </div>
+    </header>
 
     <!-- Main Content -->
     <main class="shell flex-grow">
@@ -1148,8 +1347,10 @@
         <div id="search-results" hidden></div>
 
         <!-- Segmented Control Tabs -->
-        <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
-            <!-- Dynamically populated -->
+        <div class="days-tabs-sticky">
+            <div class="bg-slate-200/80 dark:bg-slate-900 flex overflow-x-auto no-scrollbar border border-slate-300/60 dark:border-slate-800 shadow-inner" id="days-tabs">
+                <!-- Dynamically populated -->
+            </div>
         </div>
 
         <!-- Schedule Grid -->
@@ -1170,7 +1371,11 @@
         <p class="mt-1 opacity-40"><button type="button" onclick="clearOfflineCache()" class="underline decoration-dotted hover:opacity-100" title="Сбросить офлайн-кэш и перезагрузить">Сбросить кэш</button></p>
     </footer>
 
+    <!-- Настройки: содержимое собирает settings.js -->
+    <div id="settings-panel" hidden></div>
+
     <!-- App Logic -->
 <script src="app.js"></script>
+<script src="settings.js"></script>
 </body>
 </html>
