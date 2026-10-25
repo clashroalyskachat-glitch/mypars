@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Библиотека">
+    <rect width="64" height="64" rx="15" fill="#0e6f5f"/>
+    <g fill="none" stroke="#f4fffb" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 16.5A3.5 3.5 0 0 1 21.5 13H46v32H21.5A3.5 3.5 0 0 0 18 48.5z"/>
+        <path d="M18 16.5v32"/>
+        <path d="M46 45v6H21.5"/>
+    </g>
+</svg>
