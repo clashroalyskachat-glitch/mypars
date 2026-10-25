@@ -270,9 +270,9 @@
     ];
 
     var SOUND_PACKS = {
-        soft: { type: 'sine', base: 660, gain: 0.035, dur: 0.07, gap: 0.035 },
-        click: { type: 'triangle', base: 1100, gain: 0.04, dur: 0.035, gap: 0.02 },
-        retro: { type: 'square', base: 520, gain: 0.025, dur: 0.06, gap: 0.03 }
+        soft: { type: 'sine', base: 660, gain: 0.12, dur: 0.07, gap: 0.035 },
+        click: { type: 'triangle', base: 1100, gain: 0.15, dur: 0.035, gap: 0.02 },
+        retro: { type: 'square', base: 520, gain: 0.08, dur: 0.06, gap: 0.03 }
     };
 
     var audioCtx = null;
@@ -921,21 +921,29 @@
         var gainValue = pack.gain * volume;
         if (gainValue <= 0) return;
         var notes = soundNotes(kind, pack);
-        var t = a.currentTime;
-        notes.forEach(function (freq) {
-            var osc = a.createOscillator();
-            var gain = a.createGain();
-            osc.type = pack.type;
-            osc.frequency.setValueAtTime(freq, t);
-            gain.gain.setValueAtTime(0.0001, t);
-            gain.gain.exponentialRampToValueAtTime(gainValue, t + 0.008);
-            gain.gain.exponentialRampToValueAtTime(0.0001, t + pack.dur);
-            osc.connect(gain);
-            gain.connect(a.destination);
-            osc.start(t);
-            osc.stop(t + pack.dur + 0.01);
-            t += pack.dur + pack.gap;
-        });
+        var schedule = function () {
+            var t = a.currentTime + 0.02;
+            notes.forEach(function (freq) {
+                var osc = a.createOscillator();
+                var gain = a.createGain();
+                osc.type = pack.type;
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(0.0001, t);
+                gain.gain.exponentialRampToValueAtTime(gainValue, t + 0.008);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + pack.dur);
+                osc.connect(gain);
+                gain.connect(a.destination);
+                osc.start(t);
+                osc.stop(t + pack.dur + 0.02);
+                t += pack.dur + pack.gap;
+            });
+        };
+
+        if (a.state === 'suspended' || a.state === 'interrupted') {
+            a.resume().then(schedule).catch(function () {});
+        } else {
+            schedule();
+        }
     }
 
     function play(kind) {
@@ -944,6 +952,17 @@
 
     function previewSound(kind, pack) {
         playWith(kind || 'tap', pack || state.sound.pack, true);
+    }
+
+    function audioState() {
+        var a = audioCtx;
+        return {
+            available: !!(window.AudioContext || window.webkitAudioContext),
+            state: a ? a.state : 'not-created',
+            enabled: state.sound.enabled,
+            volume: state.sound.volume,
+            pack: state.sound.pack
+        };
     }
 
     /* ---------------- public API ---------------- */
@@ -1121,6 +1140,7 @@
         setSound: setSound,
         play: play,
         previewSound: previewSound,
+        audioState: audioState,
         resetColors: resetColors,
         resetMetrics: resetMetrics,
         resetBackground: resetBackground,
