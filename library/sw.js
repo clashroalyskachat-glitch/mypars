@@ -5,7 +5,7 @@
  * здесь только сам сайт. Поэтому запросы к drive.google.com не трогаем.
  */
 
-var VERSION = 'library-v1';
+var VERSION = 'library-v3';
 
 var SHELL = [
     './',
@@ -14,6 +14,10 @@ var SHELL = [
     './app.js',
     './books.js',
     './icon.svg',
+    './icon-180.png',
+    './icon-192.png',
+    './icon-512.png',
+    './icon-maskable-512.png',
     './manifest.webmanifest'
 ];
 
