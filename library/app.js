@@ -13,6 +13,7 @@
         theme: 'library.theme',
         favorites: 'library.favorites',
         local: 'library.local',
+        remote: 'library.remote',
         last: 'library.last',
         sort: 'library.sort'
     };
@@ -64,13 +65,21 @@
         addSubject: document.getElementById('add-subject'),
         addCourse: document.getElementById('add-course'),
         addExport: document.getElementById('add-export'),
+        addSubmit: document.getElementById('add-submit'),
+        addNoteLocal: document.getElementById('add-note-local'),
+        addNoteShared: document.getElementById('add-note-shared'),
 
         toast: document.getElementById('toast'),
         year: document.getElementById('year')
     };
 
+    var remoteCache = readJSON(KEYS.remote, null);
+    var remoteBooks = remoteCache && Array.isArray(remoteCache.books) ? remoteCache.books : [];
+
     var state = {
         books: [],
+        remote: remoteBooks,
+        remoteModerated: !!(remoteCache && remoteCache.moderated),
         favorites: readJSON(KEYS.favorites, []),
         query: '',
         subject: 'all',
@@ -88,11 +97,13 @@
     var loadTimer = null;
     var closeTimer = null;
     var renderFrame = null;
+    var renderFallback = null;
     var toastTimer = null;
     var fitTimer = null;
     var lastFocused = null;
     var chipsKey = null;
     var gridRendered = false;
+    var hashTimer = null;
 
     /* ------------------------------------------------------------- утилиты */
 
@@ -163,6 +174,153 @@
         return 'https://drive.google.com/file/d/' + id + '/view';
     }
 
+    /* ------------------------------------------------------------- общая библиотека */
+
+    function apiUrl() {
+        return String(window.LIBRARY_API || '').trim();
+    }
+
+    function isShared() {
+        return !!apiUrl();
+    }
+
+    function apiGetUrl(action) {
+        var api = apiUrl();
+        return api + (api.indexOf('?') === -1 ? '?' : '&') + 'action=' + encodeURIComponent(action);
+    }
+
+    function fetchWithTimeout(url, options, ms) {
+        if (typeof AbortController === 'undefined') return fetch(url, options);
+
+        var controller = new AbortController();
+        var timer = setTimeout(function () {
+            controller.abort();
+        }, ms || 15000);
+
+        return fetch(url, Object.assign({}, options || {}, { signal: controller.signal }))
+            .then(function (response) {
+                clearTimeout(timer);
+                return response;
+            }, function (error) {
+                clearTimeout(timer);
+                throw error;
+            });
+    }
+
+    /* JSONP работает даже там, где Google не отдаёт CORS-заголовки. */
+    function jsonp(url, ms) {
+        return new Promise(function (resolve, reject) {
+            var name = 'libCb' + Math.random().toString(36).slice(2);
+            var script = document.createElement('script');
+            var timer = setTimeout(function () {
+                cleanup();
+                reject(new Error('timeout'));
+            }, ms || 15000);
+
+            function cleanup() {
+                clearTimeout(timer);
+                try {
+                    delete window[name];
+                } catch (e) {
+                    window[name] = undefined;
+                }
+                if (script.parentNode) script.parentNode.removeChild(script);
+            }
+
+            window[name] = function (data) {
+                cleanup();
+                resolve(data);
+            };
+
+            script.onerror = function () {
+                cleanup();
+                reject(new Error('jsonp'));
+            };
+
+            script.src = url + (url.indexOf('?') === -1 ? '?' : '&') +
+                'callback=' + encodeURIComponent(name) + '&_=' + Date.now();
+            document.head.appendChild(script);
+        });
+    }
+
+    function getRemoteBooks() {
+        if (!isShared()) return Promise.resolve(null);
+
+        var url = apiGetUrl('list');
+
+        return jsonp(url, 15000).catch(function () {
+            return fetchWithTimeout(url, { method: 'GET', redirect: 'follow' }, 15000)
+                .then(function (response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                });
+        });
+    }
+
+    function writeRemoteCache() {
+        writeJSON(KEYS.remote, {
+            books: state.remote,
+            moderated: state.remoteModerated
+        });
+    }
+
+    function refreshRemote() {
+        if (!isShared()) return Promise.resolve();
+
+        return getRemoteBooks().then(function (data) {
+            if (!data || data.ok !== true || !Array.isArray(data.books)) return;
+            state.remote = data.books;
+            state.remoteModerated = data.moderated === true;
+            writeRemoteCache();
+            loadBooks();
+            render();
+        }).catch(function () {
+            /* Нет сети - остаются книги из последнего удачного ответа. */
+        });
+    }
+
+    function postRemote(book) {
+        var api = apiUrl();
+        var body = JSON.stringify({
+            title: book.title,
+            author: book.author,
+            subject: book.subject,
+            course: book.course,
+            driveId: book.driveId,
+            website: ''
+        });
+
+        var options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: body,
+            redirect: 'follow'
+        };
+
+        return fetchWithTimeout(api, options, 20000).then(function (response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        }).then(function (data) {
+            if (!data || data.ok !== true) {
+                var error = new Error(data && data.error ? data.error : 'server');
+                error.fatal = true;
+                throw error;
+            }
+            return data;
+        }).catch(function (error) {
+            if (error && error.fatal) throw error;
+
+            /*
+             * Браузер не дал прочитать ответ (CORS) - отправляем ещё раз
+             * «слепым» запросом. Дубля не будет: сервер проверяет driveId
+             * и возвращает уже существующую книгу.
+             */
+            return fetch(api, Object.assign({ mode: 'no-cors' }, options)).then(function () {
+                return { ok: true, unknown: true };
+            });
+        });
+    }
+
     function formatDay(timestamp) {
         var date = new Date(timestamp);
         if (isNaN(date.getTime())) return '';
@@ -209,21 +367,25 @@
             added: added,
             addedTime: Date.parse(added) || 0,
             local: !!book.local,
+            remote: !!book.remote,
             order: index
         };
     }
 
     function loadBooks() {
         var source = Array.isArray(window.BOOKS) ? window.BOOKS : [];
+        var remote = Array.isArray(state.remote) ? state.remote : [];
         var locals = readJSON(KEYS.local, []);
         if (!Array.isArray(locals)) locals = [];
 
         var seen = Object.create(null);
         var list = [];
         var combined = source.map(function (book) {
-            return Object.assign({ local: false }, book);
-        }).concat(locals.map(function (book) {
-            return Object.assign({ local: true }, book);
+            return Object.assign({ local: false, remote: false }, book);
+        }).concat(remote.map(function (book) {
+            return Object.assign({ local: false, remote: true }, book);
+        })).concat(locals.map(function (book) {
+            return Object.assign({ local: true, remote: false }, book);
         }));
 
         combined.forEach(function (book, index) {
@@ -292,8 +454,20 @@
         if (renderFrame) return;
         renderFrame = requestAnimationFrame(function () {
             renderFrame = null;
+            clearTimeout(renderFallback);
+            renderFallback = null;
             render();
         });
+
+        /* В фоновой или перекрытой вкладке requestAnimationFrame может
+           не сработать вовсе. Без страховки интерфейс замирает навсегда. */
+        renderFallback = setTimeout(function () {
+            if (!renderFrame) return;
+            cancelAnimationFrame(renderFrame);
+            renderFrame = null;
+            renderFallback = null;
+            render();
+        }, 200);
     }
 
     function render() {
@@ -469,13 +643,15 @@
         gridRendered = true;
 
         var cards = el.grid.querySelectorAll('.book');
+        var reveal = function () {
+            for (var i = 0; i < cards.length; i++) {
+                cards[i].classList.add('is-in');
+            }
+        };
         requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                for (var i = 0; i < cards.length; i++) {
-                    cards[i].classList.add('is-in');
-                }
-            });
+            requestAnimationFrame(reveal);
         });
+        setTimeout(reveal, 600);
     }
 
     function bookCard(book, index, instant) {
@@ -758,6 +934,26 @@
 
     /* ------------------------------------------------------------- добавление */
 
+    function syncAddUi() {
+        var shared = isShared();
+        el.addNoteLocal.hidden = shared;
+        el.addNoteShared.hidden = !shared;
+        el.addSubmit.textContent = shared ? 'Опубликовать' : 'Добавить';
+
+        if (shared) {
+            el.addNoteShared.textContent = state.remoteModerated
+                ? 'Ссылка должна быть открыта по принципу «Все, у кого есть ссылка». Книга появится после проверки.'
+                : 'Ссылка должна быть открыта по принципу «Все, у кого есть ссылка». Книга сразу появится у всех, кто откроет библиотеку.';
+        }
+    }
+
+    function setSubmitting(busy) {
+        el.addSubmit.disabled = busy;
+        el.addSubmit.textContent = busy
+            ? 'Публикуем…'
+            : (isShared() ? 'Опубликовать' : 'Добавить');
+    }
+
     function openDialog() {
         if (typeof el.dialog.showModal === 'function') {
             el.dialog.showModal();
@@ -767,6 +963,8 @@
         el.addLinkError.hidden = true;
         el.addLink.classList.remove('is-invalid');
         el.addExport.hidden = !hasLocalBooks();
+        setSubmitting(false);
+        syncAddUi();
         setTimeout(function () {
             el.addLink.focus();
         }, 50);
@@ -798,6 +996,88 @@
         el.addLink.classList.remove('is-invalid');
     });
 
+    el.addTitle.addEventListener('input', function () {
+        el.addTitle.classList.remove('is-invalid');
+    });
+
+    function finishRemote(data) {
+        setSubmitting(false);
+
+        if (!data || data.ignored) {
+            closeDialog();
+            el.form.reset();
+            toast('Не удалось добавить книгу — попробуй ещё раз');
+            return;
+        }
+
+        if (data.duplicate) {
+            closeDialog();
+            el.form.reset();
+            toast('Эта книга уже есть в библиотеке');
+            refreshRemote();
+            return;
+        }
+
+        if (data.pending) {
+            closeDialog();
+            el.form.reset();
+            toast('Книга отправлена — появится после проверки');
+            return;
+        }
+
+        if (data.book) {
+            var exists = state.remote.some(function (item) {
+                return item.driveId === data.book.driveId;
+            });
+            if (!exists) state.remote.push(data.book);
+            state.remoteModerated = data.moderated === true;
+            writeRemoteCache();
+            loadBooks();
+            render();
+        }
+
+        closeDialog();
+        el.form.reset();
+
+        if (data.unknown) {
+            toast(state.remoteModerated
+                ? 'Книга отправлена — появится после проверки'
+                : 'Книга отправлена — проверь через пару секунд');
+            setTimeout(refreshRemote, 2500);
+            return;
+        }
+
+        toast('Книга опубликована для всех');
+    }
+
+    function submitRemote(book) {
+        setSubmitting(true);
+        postRemote(book).then(finishRemote).catch(function () {
+            setSubmitting(false);
+            toast('Не удалось отправить. Проверь интернет и попробуй ещё раз');
+        });
+    }
+
+    function submitLocal(book) {
+        book.id = 'local-' + Date.now().toString(36);
+        book.local = true;
+
+        var locals = readJSON(KEYS.local, []);
+        if (!Array.isArray(locals)) locals = [];
+        locals.push(book);
+        if (!writeJSON(KEYS.local, locals)) {
+            toast('Браузер не дал сохранить книгу');
+            return;
+        }
+
+        loadBooks();
+        render();
+        closeDialog();
+        el.form.reset();
+        el.addExport.hidden = false;
+        toast('Книга добавлена');
+    }
+
     el.form.addEventListener('submit', function (event) {
         event.preventDefault();
 
@@ -823,30 +1103,19 @@
         }
 
         var book = {
-            id: 'local-' + Date.now().toString(36),
             title: title,
             author: el.addAuthor.value.trim(),
             subject: el.addSubject.value.trim() || 'Без предмета',
             course: el.addCourse.value.trim(),
             driveId: driveId,
-            added: new Date().toISOString().slice(0, 10),
-            local: true
+            added: new Date().toISOString().slice(0, 10)
         };
 
-        var locals = readJSON(KEYS.local, []);
-        if (!Array.isArray(locals)) locals = [];
-        locals.push(book);
-        if (!writeJSON(KEYS.local, locals)) {
-            toast('Браузер не дал сохранить книгу');
-            return;
+        if (isShared()) {
+            submitRemote(book);
+        } else {
+            submitLocal(book);
         }
-
-        loadBooks();
-        render();
-        closeDialog();
-        el.form.reset();
-        el.addExport.hidden = false;
-        toast('Книга добавлена');
     });
 
     el.addExport.addEventListener('click', function () {
@@ -986,7 +1255,9 @@
         if (!match) return;
         var id = decodeURIComponent(match[1]);
         if (!findBook(id)) return;
-        setTimeout(function () {
+        clearTimeout(hashTimer);
+        hashTimer = setTimeout(function () {
+            if (state.activeId) return;
             openReader(id, el.search);
         }, 220);
     }
@@ -1004,8 +1275,15 @@
         restoreSort();
         loadBooks();
         render();
+        syncAddUi();
         openFromHash();
         registerServiceWorker();
+
+        /* Общие книги подтягиваются после первого кадра: сайт не ждёт сеть. */
+        refreshRemote().then(function () {
+            syncAddUi();
+            if (!state.activeId) openFromHash();
+        });
     }
 
     init();

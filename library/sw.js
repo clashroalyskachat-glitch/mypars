@@ -5,7 +5,7 @@
  * здесь только сам сайт. Поэтому запросы к drive.google.com не трогаем.
  */
 
-var VERSION = 'library-v4';
+var VERSION = 'library-v5';
 
 var SHELL = [
     './',
@@ -88,3 +88,4 @@ self.addEventListener('fetch', function (event) {
         })
     );
 });
+

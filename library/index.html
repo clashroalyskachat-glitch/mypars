@@ -212,9 +212,13 @@
             </button>
         </header>
 
-        <p class="add-note">
+        <p class="add-note" id="add-note-local">
             Ссылка должна быть открыта по принципу «Все, у кого есть ссылка». Книга сохранится
             в этом браузере — для всех устройств её нужно добавить в <code>books.js</code>.
+        </p>
+        <p class="add-note" id="add-note-shared" hidden>
+            Ссылка должна быть открыта по принципу «Все, у кого есть ссылка». Книга сразу
+            появится у всех, кто откроет библиотеку.
         </p>
 
         <label class="field">
@@ -247,7 +251,7 @@
 
         <footer class="add-actions">
             <button class="btn btn-quiet" type="button" id="add-export" hidden>Скопировать код</button>
-            <button class="btn btn-solid" type="submit">Добавить</button>
+            <button class="btn btn-solid" type="submit" id="add-submit">Добавить</button>
         </footer>
     </form>
 </dialog>
