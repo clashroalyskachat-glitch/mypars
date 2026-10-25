@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Библиотека</title>
     <meta name="description" content="Личная электронная библиотека: книги хранятся в Google Drive и читаются прямо на сайте.">
     <meta name="robots" content="noindex, nofollow">
-    <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#f7f4ed">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#08080a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24,20 +24,28 @@
          * Тема применяется до первой отрисовки. Иначе при загрузке виден
          * светлый кадр, а потом всё прыгает в тёмный - это читается как
          * "сайт дёргается", хотя анимаций ещё нет.
+         *
+         * Основная тема - тёмная. Светлая включается только если её
+         * выбрали кнопкой раньше: системную настройку не слушаем.
          */
         (function () {
             try {
                 var saved = localStorage.getItem('library.theme');
                 if (saved === 'dark' || saved === 'light') {
                     document.documentElement.setAttribute('data-theme', saved);
-                } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
                 }
-            } catch (e) { /* приватный режим - остаёмся на светлой */ }
+            } catch (e) { /* приватный режим - остаёмся на тёмной */ }
         })();
     </script>
 </head>
 <body>
+
+<div class="bg" aria-hidden="true">
+    <span class="glow glow-warm"></span>
+    <span class="glow glow-cold"></span>
+    <span class="shade"></span>
+</div>
+<div class="grain" aria-hidden="true"></div>
 
 <header class="topbar" id="topbar">
     <div class="wrap topbar-inner">

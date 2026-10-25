@@ -747,7 +747,7 @@
     function applyTheme(theme, remember) {
         document.documentElement.setAttribute('data-theme', theme);
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', theme === 'dark' ? '#100f0d' : '#f7f4ed');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#08080a' : '#e9e5dd');
         if (remember) store(KEYS.theme, theme);
     }
 

@@ -5,7 +5,7 @@
  * здесь только сам сайт. Поэтому запросы к drive.google.com не трогаем.
  */
 
-var VERSION = 'library-v3';
+var VERSION = 'library-v4';
 
 var SHELL = [
     './',
