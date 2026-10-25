@@ -270,6 +270,53 @@ main,
     gap: 16px;
 }
 
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+/* Возврат в меню: стрелка + короткая подпись. */
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 13px 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--card) 70%, transparent);
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease),
+                background-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+
+.back-btn svg {
+    width: 17px;
+    height: 17px;
+    color: var(--accent);
+    transition: transform var(--fast) var(--ease);
+}
+
+.back-btn:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+    background: var(--card);
+}
+
+.back-btn:hover svg { transform: translateX(-2px); }
+
+.back-btn:active { transform: scale(.98); transition-duration: var(--press); }
+
+.back-label { letter-spacing: .01em; }
+
 .brand {
     display: inline-flex;
     align-items: center;
@@ -319,6 +366,9 @@ main,
     font-size: 1.12rem;
     font-weight: 600;
     letter-spacing: -.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .brand-note {
@@ -1283,6 +1333,15 @@ main,
     .wrap { width: calc(100% - 1.6rem); }
 
     .brand-note { display: none; }
+
+    .topbar-left { gap: 8px; }
+
+    .back-btn {
+        width: 40px;
+        padding: 0;
+    }
+
+    .back-label { display: none; }
 
     .btn-quiet span { display: none; }
     .btn-quiet { padding: 0 12px; }
