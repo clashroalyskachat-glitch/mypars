@@ -392,6 +392,27 @@ function clearSearch() {
     if (reset) reset.hidden = true;
 }
 
+// Hidden easter egg: triple-click the DISCIPLINE word in the footer.
+function initSecretLink() {
+    const word = document.getElementById('discipline-word');
+    if (!word) return;
+    const url = 'https://drive.google.com/file/d/1OJAnA0VFLw5S6ToGuAXCOll7UgQ0yvtY/view?usp=sharing';
+    let clicks = 0;
+    let resetTimer = 0;
+    word.addEventListener('click', (e) => {
+        e.preventDefault();
+        clicks += 1;
+        clearTimeout(resetTimer);
+        if (clicks >= 3) {
+            clicks = 0;
+            const win = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!win) window.location.href = url;
+            return;
+        }
+        resetTimer = setTimeout(() => { clicks = 0; }, 700);
+    });
+}
+
 function initSearch() {
     const input = document.getElementById('search-input');
     const reset = document.getElementById('search-reset');
@@ -536,6 +557,7 @@ function initUI() {
     initNowBar();
 
     initSearch();
+    initSecretLink();
     initOffline();
 
     document.addEventListener('keydown', (e) => {

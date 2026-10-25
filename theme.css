@@ -156,16 +156,17 @@ html[data-fx="akashi"] .meta-item.is-room::after {
     font-size: 0.86em;
     margin-left: 0.35em;
 }
-html[data-fx="akashi"] footer::after {
-    content: 'DISCIPLINE / CONTROL / POWER';
-    display: block;
+.footer-tagline {
+    display: none;
     margin-top: 0.6rem;
     font-size: var(--fs-badge);
     letter-spacing: 0.22em;
     font-weight: 700;
     color: var(--t-warning);
     opacity: .55;
+    user-select: none;
 }
+html[data-fx="akashi"] .footer-tagline { display: block; }
 
 /* ---- day tabs ---- */
 

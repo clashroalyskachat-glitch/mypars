@@ -683,6 +683,29 @@
             color: #c084fc;
         }
         .group-opt .g-emoji { flex-shrink: 0; }
+        /* On phones the picker is narrow (three header icons sit next to it),
+           so a right-aligned 15rem panel used to hang off the left edge.
+           Anchor it to the picker's left and cap it to the viewport. */
+        @media (max-width: 639px) {
+            .group-panel {
+                left: 0;
+                right: auto;
+                width: min(20rem, calc(100vw - 2 * var(--pad-x)));
+                max-width: calc(100vw - 2 * var(--pad-x));
+                max-height: calc(100dvh - var(--header-h, 70px) - 1rem);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                transform-origin: top left;
+            }
+            .group-panel .picker-modes,
+            .group-panel .group-filter { flex: 0 0 auto; }
+            .group-panel .group-list {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+            }
+        }
         .group-opt .opt-name {
             flex: 1 1 auto;
             min-width: 0;
@@ -1369,6 +1392,7 @@
         <p class="font-bold tracking-wide">НКСЭ &bull; СИСТЕМА РАСПИСАНИЯ ЗАНЯТИЙ</p>
         <p id="data-health" class="mt-1 opacity-60"></p>
         <p class="mt-1 opacity-40"><button type="button" onclick="clearOfflineCache()" class="underline decoration-dotted hover:opacity-100" title="Сбросить офлайн-кэш и перезагрузить">Сбросить кэш</button></p>
+        <p id="akashi-tagline" class="footer-tagline" aria-hidden="true"><span id="discipline-word">DISCIPLINE</span> / CONTROL / POWER</p>
     </footer>
 
     <!-- Настройки: содержимое собирает settings.js -->
