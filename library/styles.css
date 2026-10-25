@@ -1075,14 +1075,10 @@ img, svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
 
-    *,
-    *::before,
-    *::after {
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: .01ms !important;
-    }
-
-    .book { opacity: 1; transform: none; }
-    .reader-panel { opacity: 1; transform: none; }
+    /*
+     * Убираем только крупное появление героя. Мягкие переходы книг,
+     * кнопок и панели читалки оставляем: если гасить их полностью,
+     * интерфейс начинает «щёлкать» вместо плавной реакции.
+     */
+    .hero > * { animation: none; }
 }
