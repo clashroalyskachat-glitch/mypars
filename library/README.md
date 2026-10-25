@@ -48,6 +48,23 @@
 
 ## Публикация на GitHub Pages
 
+Сайт выложен как подпапка основного проекта расписания:
+
+**https://clashroalyskachat-glitch.github.io/mypars/library/**
+
+Обновление: скопировать изменённые файлы из этой папки в
+`sz-schedule/library`, затем
+
+```bash
+git add library
+git commit -m "Библиотека: обновление"
+git push origin main
+```
+
+GitHub Pages пересоберёт сайт за минуту.
+
+Если когда-нибудь понадобится отдельный репозиторий:
+
 ```bash
 git init
 git add .
