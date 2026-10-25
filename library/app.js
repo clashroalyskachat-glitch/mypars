@@ -80,6 +80,11 @@
         activeId: null
     };
 
+    /* localStorage мог остаться от старой версии или быть испорчен -
+       приводим данные к ожидаемому виду, чтобы интерфейс не падал. */
+    if (!Array.isArray(state.favorites)) state.favorites = [];
+    if (!state.last || typeof state.last !== 'object' || !state.last.id) state.last = null;
+
     var loadTimer = null;
     var closeTimer = null;
     var renderFrame = null;
@@ -476,7 +481,7 @@
     function bookCard(book, index, instant) {
         var card = document.createElement('article');
         card.className = 'book';
-        card.style.setProperty('--i', String(Math.min(index, 14)));
+        card.style.setProperty('--i', String(Math.min(index, 10)));
         card.dataset.id = book.id;
         if (instant) card.classList.add('is-in');
 
@@ -536,7 +541,7 @@
         fav.type = 'button';
         fav.className = 'fav';
         fav.setAttribute('aria-pressed', isFavorite(book.id) ? 'true' : 'false');
-        fav.setAttribute('aria-label', 'В избранное: ' + book.title);
+        fav.setAttribute('aria-label', (isFavorite(book.id) ? 'Убрать из избранного: ' : 'В избранное: ') + book.title);
         fav.title = 'В избранное';
         fav.appendChild(heartIcon());
         fav.addEventListener('click', function () {
@@ -611,6 +616,11 @@
         var book = findBook(id);
         if (!book) return;
 
+        /* Если читалка ещё закрывается - отменяем таймер, иначе он
+           спрячет панель уже после повторного открытия. */
+        clearTimeout(closeTimer);
+        closeTimer = null;
+
         state.activeId = book.id;
         lastFocused = trigger || document.activeElement;
 
@@ -655,12 +665,13 @@
         clearTimeout(loadTimer);
         loadTimer = null;
 
-        setTimeout(function () {
+        closeTimer = setTimeout(function () {
             el.reader.hidden = true;
             el.frame.classList.remove('is-ready');
             el.frame.removeAttribute('src');
             el.readerLoading.classList.remove('is-hidden');
-        }, 420);
+            closeTimer = null;
+        }, 520);
 
         if (lastFocused && document.contains(lastFocused)) {
             lastFocused.focus();
@@ -672,7 +683,7 @@
     }
 
     el.frame.addEventListener('load', function () {
-        if (el.reader.hidden) return;
+        if (el.reader.hidden || !state.activeId) return;
         setTimeout(finishLoading, 350);
     });
 
@@ -794,6 +805,12 @@
         if (!driveId) {
             el.addLinkError.hidden = false;
             el.addLink.classList.add('is-invalid');
+            el.addLink.focus();
+            return;
+        }
+
+        if (state.books.some(function (item) { return item.driveId === driveId; })) {
+            toast('Эта книга уже есть в библиотеке');
             el.addLink.focus();
             return;
         }
@@ -946,6 +963,11 @@
             el.topbar.classList.toggle('is-scrolled', window.scrollY > 8);
         });
     }, { passive: true });
+
+    window.addEventListener('resize', function () {
+        clearTimeout(fitTimer);
+        fitTimer = setTimeout(fitCoverTitles, 160);
+    });
 
     /* ------------------------------------------------------------- старт */
 
