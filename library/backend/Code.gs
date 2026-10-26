@@ -25,11 +25,23 @@
  *   Если включишь модерацию, поменяй значение и разверни новую версию
  *   («Развернуть» → «Управление развёртываниями» → изменить → новая версия).
  *
+ * Защита от вандалов (работает всегда, даже при AUTO_APPROVE = true):
+ *   BURST_PER_HOUR — сколько книг за час публикуется сразу. Если кто-то
+ *   присылает больше, лишние попадают в таблицу с approved = FALSE,
+ *   то есть на сайт не выводятся, пока ты их не одобришь.
+ *   MAX_PER_DAY — сколько книг в сутки принимается вообще; дальше сервер
+ *   отвечает отказом, чтобы не завалили таблицу.
+ *   Ссылка проверяется через Drive: если файла не существует (или скрипт
+ *   его не видит), книга тоже уходит на проверку, а не публикуется.
+ *
  * Строки, добавленные в таблицу вручную, видны, если в approved пусто или TRUE.
  */
 
 var SHEET_NAME = 'Книги';
 var AUTO_APPROVE = true;
+
+var BURST_PER_HOUR = 6;
+var MAX_PER_DAY = 40;
 
 /* Порядок колонок. Не меняй названия, если уже есть данные. */
 var HEADERS = [
@@ -151,6 +163,20 @@ function doPost(e) {
             }, e);
         }
 
+        var recent = countRecent_(sheet);
+        if (recent.day >= MAX_PER_DAY) {
+            return respond_({ ok: false, error: 'too_many' }, e);
+        }
+
+        /*
+         * Публикуем сразу, только если это не похоже на флуд и ссылка ведёт
+         * на существующий файл Диска. Остальное сохраняем «на проверку»,
+         * чтобы мусор не попал на сайт.
+         */
+        var instant = AUTO_APPROVE
+            && recent.hour < BURST_PER_HOUR
+            && fileExists_(driveId);
+
         var today = Utilities.formatDate(new Date(), timezone_(), 'yyyy-MM-dd');
         var book = {
             id: 'drive-' + driveId,
@@ -172,11 +198,11 @@ function doPost(e) {
             safe_(book.course),
             driveId,
             today,
-            AUTO_APPROVE,
+            instant,
             new Date()
         ]);
 
-        if (!AUTO_APPROVE) {
+        if (!instant) {
             return respond_({ ok: true, pending: true, moderated: true }, e);
         }
 
@@ -228,6 +254,42 @@ function readBooks_() {
     });
 
     return books;
+}
+
+/* Сколько книг добавили за последний час и за сегодня (по колонке created). */
+function countRecent_(sheet) {
+    var values = sheet.getDataRange().getValues();
+    var result = { hour: 0, day: 0 };
+    if (values.length < 2) return result;
+
+    var index = headerIndex_(values[0]);
+    var now = new Date();
+    var hourAgo = now.getTime() - 60 * 60 * 1000;
+    var today = Utilities.formatDate(now, timezone_(), 'yyyy-MM-dd');
+
+    for (var row = 1; row < values.length; row++) {
+        var created = values[row][index.created];
+        if (Object.prototype.toString.call(created) !== '[object Date]') continue;
+        if (isNaN(created.getTime())) continue;
+
+        if (created.getTime() >= hourAgo) result.hour += 1;
+        if (Utilities.formatDate(created, timezone_(), 'yyyy-MM-dd') === today) result.day += 1;
+    }
+
+    return result;
+}
+
+/*
+ * Существует ли файл с таким id и видит ли его скрипт.
+ * Случайный набор букв так не пройдёт — книга уйдёт на проверку.
+ */
+function fileExists_(driveId) {
+    try {
+        DriveApp.getFileById(driveId);
+        return true;
+    } catch (error) {
+        return false;
+    }
 }
 
 function findBook_(sheet, driveId) {

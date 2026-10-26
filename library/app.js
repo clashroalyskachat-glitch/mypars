@@ -303,6 +303,7 @@
         }).then(function (data) {
             if (!data || data.ok !== true) {
                 var error = new Error(data && data.error ? data.error : 'server');
+                error.reason = data && data.error ? data.error : 'server';
                 error.fatal = true;
                 throw error;
             }
@@ -1052,8 +1053,12 @@
 
     function submitRemote(book) {
         setSubmitting(true);
-        postRemote(book).then(finishRemote).catch(function () {
+        postRemote(book).then(finishRemote).catch(function (error) {
             setSubmitting(false);
+            if (error && error.reason === 'too_many') {
+                toast('Сегодня лимит добавлений исчерпан — попробуй завтра');
+                return;
+            }
             toast('Не удалось отправить. Проверь интернет и попробуй ещё раз');
         });
     }
