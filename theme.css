@@ -879,39 +879,143 @@ html[data-theme] #settings-panel .preset-card.is-active {
 }
 
 /* ============================================================
-   Основная тема «НКСЭ» — тот же материал, что в меню и библиотеке:
-   чёрная кожа, латунь, тёплый свет, плёночное зерно.
-   Включается только для пресетов dark/light (data-style="hub"),
-   поэтому остальные темы выглядят как раньше.
+   Основная тема «НКСЭ» — тот же материал, что в главном меню и
+   библиотеке: чёрная ткань, кожа, тёплая латунь, плёночное зерно.
+   Работает только при data-style="hub" (пресеты «НКСЭ Тёмная» и
+   «НКСЭ Светлая»), поэтому остальные темы выглядят как раньше.
+
+   Каждый селектор начинается с html[data-style="hub"][data-theme],
+   чтобы гарантированно перебивать прежние правила темы (они идут
+   с !important и почти такой же специфичностью).
    ============================================================ */
 
-html[data-style="hub"][data-bg="none"] body.app-body {
+/* ------------------------------------------- 1. материал и токены */
+
+html[data-style="hub"][data-theme] {
+    --hub-ease: cubic-bezier(.42, .04, .24, 1);
+    --hub-ease-soft: cubic-bezier(.33, .05, .2, 1);
+
+    --hub-brass-lite: color-mix(in srgb, var(--t-accent) 44%, #ffffff);
+    --hub-brass-deep: color-mix(in srgb, var(--t-accent) 74%, #43280f);
+    --hub-line: color-mix(in srgb, var(--t-accent) 16%, transparent);
+    --hub-line-strong: color-mix(in srgb, var(--t-accent) 36%, transparent);
+
+    --hub-glass: color-mix(in srgb, var(--t-surface) 78%, transparent);
+    --hub-glass-soft: color-mix(in srgb, var(--t-surface) 46%, transparent);
+    --hub-rail: color-mix(in srgb, #000000 42%, transparent);
+    --hub-card-line: color-mix(in srgb, var(--t-accent) 13%, transparent);
+
+    --hub-radius: 22px;
+    --hub-radius-sm: 14px;
+
+    --hub-inset: inset 0 1px 0 rgba(255, 255, 255, .045);
+    --hub-shadow-card:
+        var(--hub-inset),
+        0 28px 54px -38px rgba(0, 0, 0, .95),
+        0 3px 6px -4px rgba(0, 0, 0, .6);
+    --hub-shadow-card-hover:
+        inset 0 1px 0 rgba(255, 255, 255, .07),
+        0 38px 66px -38px rgba(0, 0, 0, 1),
+        0 0 0 1px color-mix(in srgb, var(--t-accent) 16%, transparent);
+    --hub-shadow-soft:
+        var(--hub-inset),
+        0 18px 34px -28px rgba(0, 0, 0, .9);
+
+    /* палитра левого края пар: латунь, сталь, кожа, шалфей, медь, золото */
+    --hub-a1: #c99a63;
+    --hub-a2: #8fa8cf;
+    --hub-a3: #b07a45;
+    --hub-a4: #7fae8a;
+    --hub-a5: #c98f86;
+    --hub-a6: #d7b06a;
+
+    scrollbar-color: color-mix(in srgb, var(--t-accent) 34%, transparent) transparent;
+}
+
+html[data-style="hub"][data-theme="light"] {
+    --hub-brass-deep: color-mix(in srgb, var(--t-accent) 82%, #5d3a1e);
+    --hub-glass: color-mix(in srgb, #ffffff 80%, transparent);
+    --hub-glass-soft: color-mix(in srgb, #ffffff 56%, transparent);
+    --hub-rail: color-mix(in srgb, #6d4a2c 10%, transparent);
+    --hub-card-line: color-mix(in srgb, var(--t-accent) 16%, transparent);
+    --hub-inset: inset 0 1px 0 #ffffff;
+    --hub-shadow-card:
+        var(--hub-inset),
+        0 24px 46px -34px rgba(74, 51, 28, .40),
+        0 3px 8px -5px rgba(74, 51, 28, .26);
+    --hub-shadow-card-hover:
+        inset 0 1px 0 #ffffff,
+        0 32px 56px -34px rgba(74, 51, 28, .48),
+        0 0 0 1px color-mix(in srgb, var(--t-accent) 20%, transparent);
+    --hub-shadow-soft:
+        var(--hub-inset),
+        0 16px 30px -26px rgba(74, 51, 28, .36);
+
+    --hub-a1: #a8793f;
+    --hub-a2: #5c7396;
+    --hub-a3: #96602f;
+    --hub-a4: #4f7d61;
+    --hub-a5: #a8635a;
+    --hub-a6: #9d7434;
+}
+
+/* ------------------------------------------------ 2. полотно света */
+
+html[data-style="hub"][data-theme][data-bg="none"] body.app-body {
     background-color: var(--t-bg) !important;
     background-image:
-        radial-gradient(118% 96% at 50% 36%, transparent 42%, rgba(0, 0, 0, 0.58) 100%),
-        radial-gradient(120% 92% at 84% -10%, rgba(126, 68, 34, 0.42), transparent 58%),
-        radial-gradient(110% 90% at 4% 106%, rgba(50, 68, 102, 0.26), transparent 62%),
-        linear-gradient(180deg, #08080a 0%, #0a0a0d 52%, #070709 100%) !important;
+        radial-gradient(138% 108% at 50% 32%, transparent 40%, rgba(0, 0, 0, .66) 100%),
+        radial-gradient(118% 92% at 88% -12%, rgba(158, 88, 40, .38), transparent 56%),
+        radial-gradient(102% 84% at 5% 108%, rgba(50, 72, 110, .26), transparent 62%),
+        linear-gradient(178deg, #0a0a0d 0%, #08080a 48%, #060608 100%) !important;
     background-size: cover !important;
     background-attachment: fixed !important;
 }
 
 html[data-style="hub"][data-theme="light"][data-bg="none"] body.app-body {
     background-image:
-        radial-gradient(118% 96% at 50% 36%, transparent 46%, rgba(74, 54, 32, 0.18) 100%),
-        radial-gradient(120% 92% at 84% -10%, rgba(178, 126, 74, 0.32), transparent 58%),
-        radial-gradient(110% 90% at 4% 106%, rgba(96, 116, 150, 0.18), transparent 62%),
-        linear-gradient(180deg, #efebe3 0%, #e7e2d9 100%) !important;
+        radial-gradient(138% 108% at 50% 32%, transparent 44%, rgba(70, 50, 28, .18) 100%),
+        radial-gradient(118% 92% at 88% -12%, rgba(198, 148, 94, .34), transparent 56%),
+        radial-gradient(102% 84% at 5% 108%, rgba(108, 128, 164, .22), transparent 62%),
+        linear-gradient(178deg, #f3efe8 0%, #ece7de 48%, #e5dfd5 100%) !important;
 }
 
-/* плёночное зерно поверх полотна, но под шапкой и настройками */
-html[data-style="hub"]::after {
+/* медленный тёплый отсвет поверх полотна — как на стартовой странице */
+html[data-style="hub"][data-theme][data-bg="none"] body.app-body::before {
+    content: "";
+    position: fixed;
+    inset: -25vmax;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(34% 30% at 78% 6%, color-mix(in srgb, var(--t-accent) 17%, transparent), transparent 72%),
+        radial-gradient(30% 26% at 10% 92%, rgba(96, 132, 182, .12), transparent 72%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html[data-style="hub"][data-theme][data-bg="none"] body.app-body::before {
+        animation: hub-drift 46s var(--hub-ease-soft) infinite alternate;
+    }
+    @keyframes hub-drift {
+        to { transform: translate3d(2.4vw, 1.8vh, 0) scale(1.05); }
+    }
+}
+
+/* контент над отсветом */
+html[data-style="hub"][data-theme] main.shell,
+html[data-style="hub"][data-theme] footer.shell {
+    position: relative;
+    z-index: 1;
+}
+
+/* плёночное зерно поверх всего полотна */
+html[data-style="hub"][data-theme]::after {
     content: "";
     position: fixed;
     inset: 0;
-    z-index: 5;
+    z-index: 6;
     pointer-events: none;
-    opacity: 0.05;
+    opacity: .055;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 180px 180px;
@@ -919,146 +1023,724 @@ html[data-style="hub"]::after {
 
 html[data-style="hub"][data-theme="light"]::after {
     mix-blend-mode: multiply;
-    opacity: 0.04;
+    opacity: .04;
 }
 
-/* шапка: полупрозрачная кожа с мягкой тенью */
-html[data-style="hub"] header {
+/* ---------------------------------------------------- 3. шапка */
+
+html[data-style="hub"][data-theme] header {
     background: var(--t-header-bg) !important;
-    border-bottom-color: var(--t-border) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(130%);
-    backdrop-filter: blur(16px) saturate(130%);
+    border-bottom: 1px solid var(--hub-line) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.04),
-        0 18px 40px -34px #000;
+        var(--hub-inset),
+        0 22px 46px -40px rgba(0, 0, 0, .95);
 }
 
 html[data-style="hub"][data-theme="light"] header {
     box-shadow:
-        inset 0 1px 0 #fff,
-        0 14px 30px -26px rgba(48, 34, 20, 0.45);
+        var(--hub-inset),
+        0 18px 38px -34px rgba(74, 51, 28, .5);
 }
 
 /* НКСЭ — латунный градиент, как в главном меню */
-html[data-style="hub"] .brand-word,
-html[data-style="hub"] .brand-word .accent {
+html[data-style="hub"][data-theme] .brand-word,
+html[data-style="hub"][data-theme] .brand-word .accent {
     color: transparent !important;
     -webkit-text-fill-color: transparent;
     text-shadow: none !important;
     font-weight: 600;
-    letter-spacing: .03em;
+    letter-spacing: .035em;
 }
 
-html[data-style="hub"] .brand-word {
+html[data-style="hub"][data-theme] .brand-word {
     display: inline;
-    background-image: linear-gradient(102deg, #f2dcbe 6%, #d7a873 42%, #b47c48 78%, #9a6436 100%);
+    background-image: linear-gradient(102deg, #f6e3ca 4%, #ddb27f 36%, #b8803f 72%, #9a6436 100%);
     -webkit-background-clip: text;
     background-clip: text;
 }
 
-html[data-style="hub"] .brand-word .accent {
-    background-image: inherit;
-    -webkit-background-clip: text;
-    background-clip: text;
+html[data-style="hub"][data-theme] .brand-word .accent {
+    background-image: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
 }
 
 html[data-style="hub"][data-theme="light"] .brand-word {
-    background-image: linear-gradient(102deg, #9a6a3b 6%, #7c4f2a 50%, #5d3a1e 100%);
+    background-image: linear-gradient(102deg, #a1703f 4%, #7f5228 48%, #5d3a1e 100%);
 }
 
-/* заголовки — антиква, как на остальных страницах */
-html[data-style="hub"] h1 {
+html[data-style="hub"][data-theme] .header-brand h1,
+html[data-style="hub"][data-theme] h1 {
     font-weight: 600;
-    letter-spacing: .01em;
+    letter-spacing: .012em;
 }
 
-/* карточки: тёплый градиент и прошитая тень */
-html[data-style="hub"] .day-card,
-html[data-style="hub"] .lesson-card {
-    background-image: linear-gradient(166deg, var(--t-surface-2), var(--t-surface) 62%) !important;
+html[data-style="hub"][data-theme] #last-updated {
+    color: var(--t-muted) !important;
+    opacity: 1;
+    font-weight: 500;
+}
+
+/* -------------------------------------------------- 4. таб-полоса */
+
+html[data-style="hub"][data-theme] .days-tabs-sticky {
+    background: color-mix(in srgb, var(--t-bg) 74%, transparent);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    backdrop-filter: blur(12px) saturate(120%);
+}
+
+html[data-style="hub"][data-theme] #days-tabs {
+    background: var(--hub-rail) !important;
+    border: 1px solid var(--hub-line) !important;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.04),
-        0 12px 26px -20px rgba(0, 0, 0, 0.85) !important;
+        inset 0 1px 0 rgba(255, 255, 255, .035),
+        0 20px 40px -36px rgba(0, 0, 0, .95) !important;
+}
+
+html[data-style="hub"][data-theme] #days-tabs .day-tab {
+    background: var(--hub-glass-soft) !important;
+    border: 1px solid transparent !important;
+    color: var(--t-muted) !important;
+    font-weight: 700;
+    letter-spacing: .012em;
+    transition:
+        color .35s var(--hub-ease),
+        background-color .35s var(--hub-ease),
+        border-color .35s var(--hub-ease),
+        box-shadow .45s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] #days-tabs .day-tab:hover:not(.day-tab-active) {
+    color: var(--t-text) !important;
+    background: var(--hub-glass) !important;
+    border-color: var(--hub-line) !important;
+}
+
+html[data-style="hub"][data-theme] #days-tabs .day-tab.day-tab-active {
+    background: linear-gradient(168deg, var(--hub-brass-lite) 0%, var(--t-accent) 52%, var(--hub-brass-deep) 100%) !important;
+    border-color: var(--hub-line-strong) !important;
+    color: var(--t-accent-contrast) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .45),
+        0 12px 24px -14px rgba(0, 0, 0, .95),
+        0 0 0 1px color-mix(in srgb, var(--t-accent) 20%, transparent) !important;
+}
+
+html[data-style="hub"][data-theme] #days-tabs .tab-today-dot {
+    background: var(--t-accent) !important;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--t-accent) 60%, transparent);
+}
+
+html[data-style="hub"][data-theme] #days-tabs .day-tab-active .tab-today-dot {
+    background: currentColor !important;
+    box-shadow: none;
+}
+
+/* ------------------------------------------------- 5. карточки дней */
+
+@media screen and (min-width: 700px) {
+    html[data-style="hub"][data-theme] #schedule-container:has(> .day-card:only-of-type) {
+        grid-template-columns: minmax(0, 1fr) !important;
+        max-width: 47rem;
+        margin-inline: auto;
+    }
+}
+
+html[data-style="hub"][data-theme] .day-card {
+    position: relative;
+    border-radius: var(--hub-radius) !important;
+    border: 1px solid var(--t-border) !important;
+    background-color: var(--t-surface) !important;
+    background-image:
+        radial-gradient(118% 96% at 100% 0%, color-mix(in srgb, var(--t-accent) 11%, transparent), transparent 54%),
+        linear-gradient(166deg, var(--t-surface-2) 0%, var(--t-surface) 62%) !important;
+    box-shadow: var(--hub-shadow-card) !important;
+    transition:
+        border-color .5s var(--hub-ease),
+        box-shadow .55s var(--hub-ease),
+        transform .55s var(--hub-ease) !important;
+}
+
+@media (hover: hover) {
+    html[data-style="hub"][data-theme] .day-card:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--t-accent) 30%, var(--t-border)) !important;
+        box-shadow: var(--hub-shadow-card-hover) !important;
+    }
 }
 
 /* прошитая кожаная рамка, как на карточках главного меню */
-html[data-style="hub"] .day-card {
-    position: relative;
-}
-
-html[data-style="hub"] .day-card::after {
+html[data-style="hub"][data-theme] .day-card::after {
     content: "";
     position: absolute;
-    inset: 7px;
-    border: 1px dashed color-mix(in srgb, var(--t-accent) 45%, transparent);
-    border-radius: calc(var(--radius) - 6px);
-    opacity: 0.6;
+    inset: 6px;
+    border: 1px dashed color-mix(in srgb, var(--t-accent) 30%, transparent);
+    border-radius: calc(var(--hub-radius) - 8px);
+    opacity: .7;
+    pointer-events: none;
+    transition: opacity .5s var(--hub-ease);
+}
+
+html[data-style="hub"][data-theme] .day-card:hover::after { opacity: 1; }
+
+/* «сегодня» — карточка дня с тёплым латунным ореолом */
+html[data-style="hub"][data-theme] .day-card:has(h3 .animate-pulse) {
+    border-color: var(--hub-line-strong) !important;
+    background-image:
+        radial-gradient(124% 104% at 50% -12%,
+            color-mix(in srgb, var(--t-accent) 15%, transparent),
+            transparent 60%),
+        linear-gradient(166deg, var(--t-surface-2) 0%, var(--t-surface) 62%) !important;
+    box-shadow:
+        var(--hub-inset),
+        0 0 0 1px color-mix(in srgb, var(--t-accent) 22%, transparent),
+        0 30px 58px -40px rgba(0, 0, 0, 1) !important;
+}
+
+html[data-style="hub"][data-theme] .day-card:has(h3 .animate-pulse)::after { opacity: 1; }
+
+html[data-style="hub"][data-theme="light"] .day-card:has(h3 .animate-pulse) {
+    background-image:
+        radial-gradient(124% 104% at 50% -12%,
+            color-mix(in srgb, var(--t-accent) 13%, transparent),
+            transparent 60%),
+        linear-gradient(166deg, #ffffff 0%, var(--t-surface) 66%) !important;
+    box-shadow:
+        var(--hub-inset),
+        0 0 0 1px color-mix(in srgb, var(--t-accent) 26%, transparent),
+        0 26px 50px -34px rgba(74, 51, 28, .46) !important;
+}
+
+/* заголовок дня: латунная нить вместо серой линии */
+html[data-style="hub"][data-theme] .day-head {
+    border-bottom-color: transparent !important;
+    background-image: linear-gradient(90deg, var(--hub-line-strong), transparent 82%);
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    background-position: 0 100%;
+}
+
+html[data-style="hub"][data-theme] .day-name {
+    font-weight: 600;
+    letter-spacing: .015em;
+}
+
+html[data-style="hub"][data-theme] .day-card h3 > .rounded-full {
+    background-color: color-mix(in srgb, var(--t-accent) 58%, var(--t-muted)) !important;
+    box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--t-accent) 11%, transparent),
+        0 0 14px color-mix(in srgb, var(--t-accent) 38%, transparent);
+}
+
+html[data-style="hub"][data-theme] .day-card h3 > .rounded-full.animate-pulse {
+    background-color: var(--t-accent) !important;
+    box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--t-accent) 16%, transparent),
+        0 0 18px color-mix(in srgb, var(--t-accent) 62%, transparent);
+}
+
+html[data-style="hub"][data-theme] .day-count {
+    background: var(--t-accent-soft) !important;
+    border-color: var(--hub-line-strong) !important;
+    color: var(--t-accent) !important;
+    font-weight: 800;
+    letter-spacing: .05em;
+}
+
+html[data-style="hub"][data-theme] .chip-sm {
+    background: var(--t-accent-soft) !important;
+    border-color: var(--hub-line-strong) !important;
+    color: var(--t-accent) !important;
+    letter-spacing: .04em;
+}
+
+html[data-style="hub"][data-theme] .day-icon-btn {
+    background: var(--hub-glass-soft) !important;
+    border-color: var(--hub-line) !important;
+    color: var(--t-muted) !important;
+    opacity: .9;
+    transition:
+        color .35s var(--hub-ease),
+        border-color .35s var(--hub-ease),
+        background-color .35s var(--hub-ease),
+        transform .4s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .day-icon-btn:hover {
+    color: var(--t-accent) !important;
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+    transform: translateY(-1px);
+}
+
+html[data-style="hub"][data-theme] .day-icon-btn.day-share {
+    color: var(--t-accent) !important;
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+}
+
+html[data-style="hub"][data-theme] .day-icon-btn.is-ok {
+    color: var(--t-success) !important;
+    border-color: color-mix(in srgb, var(--t-success) 55%, transparent) !important;
+    background: color-mix(in srgb, var(--t-success) 14%, transparent) !important;
+}
+
+/* ------------------------------------------------- 6. карточки пар */
+
+html[data-style="hub"][data-theme] .lesson-card {
+    position: relative;
+    background-color: var(--t-lesson-bg) !important;
+    background-image:
+        radial-gradient(146% 132% at 0% 0%,
+            color-mix(in srgb, var(--hub-accent, var(--t-accent)) 16%, transparent),
+            transparent 56%),
+        linear-gradient(118deg, rgba(255, 255, 255, .04) 0%, transparent 26%),
+        linear-gradient(162deg,
+            color-mix(in srgb, var(--t-surface-2) 96%, transparent),
+            color-mix(in srgb, var(--t-surface) 98%, transparent)) !important;
+    border: 1px solid var(--hub-card-line) !important;
+    border-left: 3px solid color-mix(in srgb, var(--hub-accent, var(--t-accent)) 88%, transparent) !important;
+    border-radius: var(--hub-radius-sm) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .05),
+        -9px 0 20px -17px color-mix(in srgb, var(--hub-accent, var(--t-accent)) 90%, transparent),
+        0 20px 36px -30px rgba(0, 0, 0, .92) !important;
+    transition:
+        border-color .45s var(--hub-ease),
+        box-shadow .5s var(--hub-ease),
+        transform .5s var(--hub-ease),
+        background-color .45s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .stack > .lesson-card:nth-child(6n+1) { --hub-accent: var(--hub-a1); }
+html[data-style="hub"][data-theme] .stack > .lesson-card:nth-child(6n+2) { --hub-accent: var(--hub-a2); }
+html[data-style="hub"][data-theme] .stack > .lesson-card:nth-child(6n+3) { --hub-accent: var(--hub-a3); }
+html[data-style="hub"][data-theme] .stack > .lesson-card:nth-child(6n+4) { --hub-accent: var(--hub-a4); }
+html[data-style="hub"][data-theme] .stack > .lesson-card:nth-child(6n+5) { --hub-accent: var(--hub-a5); }
+html[data-style="hub"][data-theme] .stack > .lesson-card:nth-child(6n)   { --hub-accent: var(--hub-a6); }
+
+@media (hover: hover) {
+    html[data-style="hub"][data-theme] .lesson-card:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--t-accent) 26%, var(--hub-card-line)) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, .06),
+            -10px 0 24px -16px color-mix(in srgb, var(--hub-accent, var(--t-accent)) 95%, transparent),
+            0 28px 48px -30px rgba(0, 0, 0, 1),
+            0 0 0 1px color-mix(in srgb, var(--t-accent) 12%, transparent) !important;
+    }
+}
+
+/* латунная нить по верхнему краю карточки — «отблеск» материала */
+html[data-style="hub"][data-theme] .lesson-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    border-radius: inherit;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--hub-accent, var(--t-accent)) 60%, transparent),
+        transparent 68%);
+    opacity: .75;
     pointer-events: none;
 }
 
-html[data-style="hub"] .day-card:hover::after {
-    opacity: 0.75;
-}
-
-html[data-style="hub"][data-theme="light"] .day-card,
 html[data-style="hub"][data-theme="light"] .lesson-card {
+    background-image:
+        radial-gradient(146% 132% at 0% 0%,
+            color-mix(in srgb, var(--hub-accent, var(--t-accent)) 12%, transparent),
+            transparent 56%),
+        linear-gradient(162deg, #ffffff 0%, var(--t-surface) 94%) !important;
     box-shadow:
-        inset 0 1px 0 #fff,
-        0 12px 26px -22px rgba(48, 34, 20, 0.45) !important;
+        inset 0 1px 0 #ffffff,
+        -8px 0 18px -16px color-mix(in srgb, var(--hub-accent, var(--t-accent)) 70%, transparent),
+        0 18px 34px -28px rgba(74, 51, 28, .42) !important;
 }
 
-html[data-style="hub"] .lesson-card:hover {
-    border-color: var(--t-border-strong) !important;
-}
-
-/* текущая пара: латунная полоса вместо синей */
-html[data-style="hub"] .lesson-card.lesson-card-current {
-    background-image: linear-gradient(166deg, var(--t-surface-2), var(--t-surface) 62%) !important;
-    background-color: var(--t-lesson-bg) !important;
-    border-color: var(--t-accent-border) !important;
+html[data-style="hub"][data-theme] .lesson-card.lesson-card-current {
     border-left-color: var(--t-accent) !important;
+    background-image:
+        radial-gradient(120% 150% at 0% 50%, color-mix(in srgb, var(--t-accent) 15%, transparent), transparent 62%),
+        linear-gradient(162deg, var(--t-surface-2), var(--t-surface) 62%) !important;
     box-shadow:
         inset 3px 0 0 var(--t-accent),
-        0 12px 26px -20px rgba(0, 0, 0, 0.85) !important;
+        var(--hub-shadow-card-hover) !important;
 }
 
-html[data-style="hub"] .lesson-card.lesson-card-passed {
-    border-left-color: var(--t-soft-border) !important;
+html[data-style="hub"][data-theme] .lesson-card.lesson-card-passed {
+    opacity: .68;
+    border-left-color: color-mix(in srgb, var(--t-muted) 45%, transparent) !important;
 }
 
-/* активный день — латунная пилюля с мягким светом */
-html[data-style="hub"] #days-tabs {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+html[data-style="hub"][data-theme] .lesson-card h4 {
+    font-weight: 600;
+    letter-spacing: .004em;
+    line-height: 1.24;
+    text-wrap: balance;
 }
 
-html[data-style="hub"] #days-tabs .day-tab.day-tab-active {
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.35),
-        0 8px 18px -12px rgba(0, 0, 0, 0.9) !important;
+html[data-style="hub"][data-theme] .lesson-num {
+    color: var(--t-muted) !important;
+    opacity: 1;
+    letter-spacing: .04em;
 }
 
-html[data-style="hub"][data-theme="light"] #days-tabs .day-tab.day-tab-active {
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.55),
-        0 8px 18px -12px rgba(48, 34, 20, 0.5) !important;
+html[data-style="hub"][data-theme] .lesson-num .num { font-weight: 700; }
+
+html[data-style="hub"][data-theme] .lesson-num .num-time {
+    color: var(--t-text) !important;
+    opacity: .92;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
-/* мелкие кнопки тянутся к латуни при наведении */
-html[data-style="hub"] .header-icon-btn:hover,
-html[data-style="hub"] .day-icon-btn:hover,
-html[data-style="hub"] .pin-btn:hover {
-    border-color: var(--t-accent-border) !important;
+html[data-style="hub"][data-theme] .lesson-num.is-active,
+html[data-style="hub"][data-theme] .lesson-num.is-active .num-time {
     color: var(--t-accent) !important;
+    opacity: 1;
 }
 
-/* статусные пилюли и точки — в латунной гамме вместо синего/зелёного */
-html[data-style="hub"] .chip-sm {
+html[data-style="hub"][data-theme] .live-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .45em;
+    background: var(--t-accent-soft) !important;
+    border: 1px solid var(--hub-line-strong) !important;
+    color: var(--t-accent) !important;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+
+html[data-style="hub"][data-theme] .live-tag::before {
+    content: "";
+    width: .42em;
+    height: .42em;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 16%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html[data-style="hub"][data-theme] .live-tag::before {
+        animation: hub-pulse 2.2s var(--hub-ease) infinite;
+    }
+    @keyframes hub-pulse {
+        0%, 100% { opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 16%, transparent); }
+        50%      { opacity: .4; box-shadow: 0 0 0 7px transparent; }
+    }
+}
+
+html[data-style="hub"][data-theme] .sub-flag {
+    color: var(--t-warning) !important;
+    letter-spacing: .06em;
+}
+
+html[data-style="hub"][data-theme] #schedule-container .meta-item {
+    color: var(--t-muted) !important;
+    opacity: 1;
+    font-weight: 600;
+}
+
+html[data-style="hub"][data-theme] #schedule-container .teacher-link,
+html[data-style="hub"][data-theme] #schedule-container .teacher-group-link {
+    color: var(--t-muted) !important;
+    opacity: 1;
+    text-decoration-color: color-mix(in srgb, var(--t-accent) 45%, transparent);
+    text-underline-offset: .26em;
+    transition:
+        color .3s var(--hub-ease),
+        text-decoration-color .3s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] #schedule-container .teacher-link:hover,
+html[data-style="hub"][data-theme] #schedule-container .teacher-group-link:hover {
+    color: var(--t-accent) !important;
+    text-decoration-color: var(--t-accent);
+}
+
+html[data-style="hub"][data-theme] #schedule-container .group-room {
+    color: var(--t-muted) !important;
+    opacity: .9;
+}
+
+html[data-style="hub"][data-theme] .meta-item.is-room,
+html[data-style="hub"][data-theme] .room-btn {
+    background: var(--t-accent-soft) !important;
+    border: 1px solid var(--hub-line-strong) !important;
+    color: var(--t-accent) !important;
+    font-weight: 800;
+    letter-spacing: .05em;
+    transition:
+        background-color .3s var(--hub-ease),
+        color .3s var(--hub-ease),
+        transform .35s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .meta-item.is-room:hover {
+    background: color-mix(in srgb, var(--t-accent) 24%, transparent) !important;
+    transform: translateY(-1px);
+}
+
+/* ------------------------------------ 7. управление и поиск */
+
+html[data-style="hub"][data-theme] .header-select,
+html[data-style="hub"][data-theme] .group-trigger {
+    background: var(--hub-glass-soft) !important;
+    border-color: var(--hub-line) !important;
+    color: var(--t-text) !important;
+    font-weight: 700;
+    letter-spacing: .01em;
+    transition:
+        border-color .35s var(--hub-ease),
+        background-color .35s var(--hub-ease),
+        box-shadow .4s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .header-select:hover,
+html[data-style="hub"][data-theme] .group-picker.is-open .group-trigger {
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--t-accent) 12%, transparent) !important;
+}
+
+html[data-style="hub"][data-theme] .header-icon-btn {
+    background: var(--hub-glass-soft) !important;
+    border-color: var(--hub-line) !important;
+    color: var(--t-text) !important;
+    opacity: .85;
+    transition:
+        opacity .3s var(--hub-ease),
+        color .3s var(--hub-ease),
+        border-color .3s var(--hub-ease),
+        background-color .3s var(--hub-ease),
+        transform .35s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .header-icon-btn:hover {
+    opacity: 1;
+    color: var(--t-accent) !important;
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+    transform: translateY(-1px);
+}
+
+html[data-style="hub"][data-theme] .header-icon-btn.is-on,
+html[data-style="hub"][data-theme] .pin-btn[aria-pressed="true"] {
+    color: var(--t-accent) !important;
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+    opacity: 1;
+}
+
+html[data-style="hub"][data-theme] .search-input {
+    background: var(--hub-glass-soft) !important;
+    border: 1px solid var(--hub-line) !important;
+    color: var(--t-text) !important;
+    transition:
+        border-color .35s var(--hub-ease),
+        box-shadow .4s var(--hub-ease),
+        background-color .35s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .search-input::placeholder {
+    color: var(--t-muted) !important;
+    opacity: .85;
+}
+
+html[data-style="hub"][data-theme] .search-input:focus {
+    border-color: var(--hub-line-strong) !important;
+    background: var(--hub-glass) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--t-accent) 14%, transparent) !important;
+}
+
+html[data-style="hub"][data-theme] .search-reset { color: var(--t-muted) !important; }
+html[data-style="hub"][data-theme] .search-reset:hover { color: var(--t-accent) !important; opacity: 1; }
+
+html[data-style="hub"][data-theme] .quick-btn,
+html[data-style="hub"][data-theme] .pin-btn {
+    background: var(--hub-glass-soft) !important;
+    border-color: var(--hub-line) !important;
+    color: var(--t-muted) !important;
+    transition:
+        color .3s var(--hub-ease),
+        border-color .3s var(--hub-ease),
+        background-color .3s var(--hub-ease),
+        transform .35s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .quick-btn:hover,
+html[data-style="hub"][data-theme] .pin-btn:not(:disabled):hover {
+    color: var(--t-accent) !important;
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+    transform: translateY(-1px);
+}
+
+html[data-style="hub"][data-theme] .quick-btn[aria-current="true"],
+html[data-style="hub"][data-theme] .quick-btn.quick-back {
+    color: var(--t-accent) !important;
+    border-color: var(--hub-line-strong) !important;
+    background: var(--t-accent-soft) !important;
+}
+
+/* «идёт сейчас» — тонкая латунная строка с пульсом */
+html[data-style="hub"][data-theme] .now-bar {
+    background: var(--hub-glass) !important;
+    border: 1px solid var(--hub-line) !important;
+    color: var(--t-text) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        var(--hub-inset),
+        0 20px 40px -36px rgba(0, 0, 0, .95) !important;
+}
+
+html[data-style="hub"][data-theme] .now-bar.is-live { border-color: var(--hub-line-strong) !important; }
+
+html[data-style="hub"][data-theme] .now-bar .now-dot {
+    background: var(--t-accent) !important;
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--t-accent) 16%, transparent),
+        0 0 14px color-mix(in srgb, var(--t-accent) 55%, transparent);
+}
+
+html[data-style="hub"][data-theme] .now-bar.is-free .now-dot {
+    background: var(--t-muted) !important;
+    box-shadow: none;
+}
+
+html[data-style="hub"][data-theme] .now-bar .now-left { opacity: .85; color: var(--t-muted); }
+html[data-style="hub"][data-theme] .now-bar b { color: var(--t-accent); }
+
+html[data-style="hub"][data-theme] .stale-dot {
+    background: var(--t-warning) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--t-warning) 14%, transparent);
+}
+
+/* ------------------------------------------------- 8. выпадашки */
+
+html[data-style="hub"][data-theme] .group-panel {
+    background: color-mix(in srgb, var(--t-surface) 94%, transparent) !important;
+    border: 1px solid var(--hub-line) !important;
+    box-shadow:
+        var(--hub-inset),
+        0 34px 60px -30px rgba(0, 0, 0, .95) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    backdrop-filter: blur(16px) saturate(130%);
+}
+
+html[data-style="hub"][data-theme] .group-filter {
+    background: var(--hub-glass-soft) !important;
+    border: 1px solid var(--hub-line) !important;
+    color: var(--t-text) !important;
+}
+
+html[data-style="hub"][data-theme] .group-filter:focus {
+    background: var(--hub-glass) !important;
+    border-color: var(--hub-line-strong) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--t-accent) 12%, transparent);
+}
+
+html[data-style="hub"][data-theme] .group-opt { color: var(--t-text) !important; }
+
+html[data-style="hub"][data-theme] .group-opt:hover,
+html[data-style="hub"][data-theme] .group-opt.is-cursor {
+    background: color-mix(in srgb, var(--t-accent) 14%, transparent) !important;
+}
+
+html[data-style="hub"][data-theme] .group-opt[aria-selected="true"] {
     background: var(--t-accent-soft) !important;
     color: var(--t-accent) !important;
-    border-color: var(--t-accent-border) !important;
 }
 
-html[data-style="hub"] .bg-emerald-500,
-html[data-style="hub"] .bg-blue-600 {
-    background-color: var(--t-accent) !important;
+html[data-style="hub"][data-theme] .picker-modes {
+    background: var(--hub-glass-soft) !important;
+    border: 1px solid var(--hub-line);
+}
+
+html[data-style="hub"][data-theme] #group-panel .picker-mode {
+    color: var(--t-muted) !important;
+    opacity: 1;
+}
+
+html[data-style="hub"][data-theme] #group-panel .picker-mode.is-active {
+    background: var(--t-accent-soft) !important;
+    border: 1px solid var(--hub-line-strong) !important;
+    color: var(--t-accent) !important;
+    opacity: 1;
+}
+
+html[data-style="hub"][data-theme] .group-opt .opt-count { opacity: .6; color: var(--t-muted); }
+
+/* ---------------------------------------------- 9. состояния */
+
+html[data-style="hub"][data-theme] .state-box {
+    background: var(--hub-glass-soft) !important;
+    border: 1px solid var(--hub-line) !important;
+    color: var(--t-muted) !important;
+    border-radius: var(--hub-radius) !important;
+    box-shadow: var(--hub-shadow-soft) !important;
+}
+
+html[data-style="hub"][data-theme] .state-box .border-blue-600 {
+    border-color: var(--t-accent) transparent transparent transparent !important;
+}
+
+html[data-style="hub"][data-theme] .state-box .text-slate-600,
+html[data-style="hub"][data-theme] .state-box p {
+    color: var(--t-text) !important;
+}
+
+html[data-style="hub"][data-theme] .search-hit {
+    background: var(--hub-glass-soft) !important;
+    border: 1px solid var(--hub-line) !important;
+    color: var(--t-text) !important;
+    transition:
+        border-color .3s var(--hub-ease),
+        background-color .3s var(--hub-ease),
+        transform .35s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] .search-hit:hover {
+    border-color: var(--hub-line-strong) !important;
+    background: var(--hub-glass) !important;
+    transform: translateY(-1px);
+}
+
+html[data-style="hub"][data-theme] .search-hit .muted { color: var(--t-muted); opacity: 1; }
+
+/* -------------------------------------------------- 10. подвал */
+
+html[data-style="hub"][data-theme] footer.shell {
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--t-bg) 72%, transparent) 70%) !important;
+    border-top: 1px solid var(--hub-line) !important;
+    color: var(--t-muted) !important;
+}
+
+html[data-style="hub"][data-theme] footer .font-bold {
+    color: var(--t-text) !important;
+    font-weight: 700;
+    letter-spacing: .14em;
+}
+
+html[data-style="hub"][data-theme] footer button {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    color: var(--t-muted) !important;
+    cursor: pointer;
+    transition: color .3s var(--hub-ease) !important;
+}
+
+html[data-style="hub"][data-theme] footer button:hover { color: var(--t-accent) !important; }
+
+/* -------------------------------------------------- 11. фокус */
+
+html[data-style="hub"][data-theme] :focus-visible {
+    outline: 2px solid var(--t-accent) !important;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--t-accent) 14%);
 }
