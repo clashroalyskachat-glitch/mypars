@@ -7,47 +7,47 @@
 
 :root {
     /* fallbacks in case theme.js is unavailable */
-    --t-bg: #000000;
-    --t-surface: #000000;
-    --t-surface-2: #0b0f19;
-    --t-text: #ffffff;
-    --t-muted: #9ca3af;
-    --t-accent: #a855f7;
-    --t-accent-contrast: #ffffff;
-    --t-border: rgba(255, 255, 255, 0.7);
-    --t-border-strong: rgba(255, 255, 255, 0.9);
-    --t-soft-border: rgba(148, 163, 184, 0.45);
-    --t-panel-border: rgba(255, 255, 255, 0.16);
-    --t-warning: #f59e0b;
-    --t-success: #10b981;
-    --t-danger: #ef4444;
-    --t-lesson-bg: #000000;
-    --t-lesson-bg-hover: #000000;
-    --t-lesson-border: rgba(255, 255, 255, 0.7);
-    --t-room-border: rgba(255, 255, 255, 0.55);
-    --t-tab-bg: #000000;
-    --t-tab-pill-bg: #000000;
-    --t-tab-pill-border: rgba(255, 255, 255, 0.85);
-    --t-tab-active-bg: transparent;
-    --t-tab-active-text: #a855f7;
-    --t-tab-active-border: #a855f7;
-    --t-header-bg: #000000;
-    --t-footer-bg: #000000;
-    --t-input-bg: transparent;
-    --t-chip-bg: rgba(148, 163, 184, 0.14);
-    --t-now-bg: transparent;
-    --t-accent-soft: rgba(168, 85, 247, 0.14);
-    --t-accent-border: rgba(168, 85, 247, 0.55);
-    --t-warning-soft: rgba(245, 158, 11, 0.16);
-    --t-danger-soft: rgba(239, 68, 68, 0.14);
-    --t-card-bg: #000000;
-    --t-lesson-card-bg: #000000;
-    --t-lesson-card-bg-hover: #000000;
-    --t-radius: 18;
+    --t-bg: #08080a;
+    --t-surface: #0f1014;
+    --t-surface-2: #16171d;
+    --t-text: #ece7df;
+    --t-muted: #8f8982;
+    --t-accent: #c99a63;
+    --t-accent-contrast: #1a1208;
+    --t-border: #26242a;
+    --t-border-strong: #3a352f;
+    --t-soft-border: rgba(201, 154, 99, 0.24);
+    --t-panel-border: rgba(201, 154, 99, 0.20);
+    --t-warning: #e0a84e;
+    --t-success: #6fae8a;
+    --t-danger: #d4624f;
+    --t-lesson-bg: #0f1014;
+    --t-lesson-bg-hover: #16171d;
+    --t-lesson-border: #26242a;
+    --t-room-border: rgba(201, 154, 99, 0.34);
+    --t-tab-bg: #0b0b0e;
+    --t-tab-pill-bg: #0f1014;
+    --t-tab-pill-border: #26242a;
+    --t-tab-active-bg: #c99a63;
+    --t-tab-active-text: #1a1208;
+    --t-tab-active-border: #e3bd8c;
+    --t-header-bg: rgba(8, 8, 10, 0.86);
+    --t-footer-bg: #08080a;
+    --t-input-bg: rgba(255, 255, 255, 0.035);
+    --t-chip-bg: rgba(201, 154, 99, 0.09);
+    --t-now-bg: rgba(15, 16, 20, 0.90);
+    --t-accent-soft: rgba(201, 154, 99, 0.14);
+    --t-accent-border: rgba(201, 154, 99, 0.55);
+    --t-warning-soft: rgba(224, 168, 78, 0.16);
+    --t-danger-soft: rgba(212, 98, 79, 0.14);
+    --t-card-bg: #0f1014;
+    --t-lesson-card-bg: #0f1014;
+    --t-lesson-card-bg-hover: #16171d;
+    --t-radius: 16;
     --t-space-scale: 1;
     --t-text-scale: 1;
     --t-border-w: 1;
-    --t-line-height: 1.42;
+    --t-line-height: 1.45;
 }
 
 /* ---- typography / spacing / shape, based on the original responsive ramp ---- */
@@ -876,4 +876,189 @@ html[data-theme] #settings-panel .preset-card.is-active {
         background-image: none !important;
         background-color: #ffffff !important;
     }
+}
+
+/* ============================================================
+   Основная тема «НКСЭ» — тот же материал, что в меню и библиотеке:
+   чёрная кожа, латунь, тёплый свет, плёночное зерно.
+   Включается только для пресетов dark/light (data-style="hub"),
+   поэтому остальные темы выглядят как раньше.
+   ============================================================ */
+
+html[data-style="hub"][data-bg="none"] body.app-body {
+    background-color: var(--t-bg) !important;
+    background-image:
+        radial-gradient(118% 96% at 50% 36%, transparent 42%, rgba(0, 0, 0, 0.58) 100%),
+        radial-gradient(120% 92% at 84% -10%, rgba(126, 68, 34, 0.42), transparent 58%),
+        radial-gradient(110% 90% at 4% 106%, rgba(50, 68, 102, 0.26), transparent 62%),
+        linear-gradient(180deg, #08080a 0%, #0a0a0d 52%, #070709 100%) !important;
+    background-size: cover !important;
+    background-attachment: fixed !important;
+}
+
+html[data-style="hub"][data-theme="light"][data-bg="none"] body.app-body {
+    background-image:
+        radial-gradient(118% 96% at 50% 36%, transparent 46%, rgba(74, 54, 32, 0.18) 100%),
+        radial-gradient(120% 92% at 84% -10%, rgba(178, 126, 74, 0.32), transparent 58%),
+        radial-gradient(110% 90% at 4% 106%, rgba(96, 116, 150, 0.18), transparent 62%),
+        linear-gradient(180deg, #efebe3 0%, #e7e2d9 100%) !important;
+}
+
+/* плёночное зерно поверх полотна, но под шапкой и настройками */
+html[data-style="hub"]::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+}
+
+html[data-style="hub"][data-theme="light"]::after {
+    mix-blend-mode: multiply;
+    opacity: 0.04;
+}
+
+/* шапка: полупрозрачная кожа с мягкой тенью */
+html[data-style="hub"] header {
+    background: var(--t-header-bg) !important;
+    border-bottom-color: var(--t-border) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    backdrop-filter: blur(16px) saturate(130%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 18px 40px -34px #000;
+}
+
+html[data-style="hub"][data-theme="light"] header {
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 14px 30px -26px rgba(48, 34, 20, 0.45);
+}
+
+/* НКСЭ — латунный градиент, как в главном меню */
+html[data-style="hub"] .brand-word,
+html[data-style="hub"] .brand-word .accent {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    font-weight: 600;
+    letter-spacing: .03em;
+}
+
+html[data-style="hub"] .brand-word {
+    display: inline;
+    background-image: linear-gradient(102deg, #f2dcbe 6%, #d7a873 42%, #b47c48 78%, #9a6436 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-style="hub"] .brand-word .accent {
+    background-image: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html[data-style="hub"][data-theme="light"] .brand-word {
+    background-image: linear-gradient(102deg, #9a6a3b 6%, #7c4f2a 50%, #5d3a1e 100%);
+}
+
+/* заголовки — антиква, как на остальных страницах */
+html[data-style="hub"] h1 {
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
+/* карточки: тёплый градиент и прошитая тень */
+html[data-style="hub"] .day-card,
+html[data-style="hub"] .lesson-card {
+    background-image: linear-gradient(166deg, var(--t-surface-2), var(--t-surface) 62%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 12px 26px -20px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* прошитая кожаная рамка, как на карточках главного меню */
+html[data-style="hub"] .day-card {
+    position: relative;
+}
+
+html[data-style="hub"] .day-card::after {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    border: 1px dashed color-mix(in srgb, var(--t-accent) 45%, transparent);
+    border-radius: calc(var(--radius) - 6px);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+html[data-style="hub"] .day-card:hover::after {
+    opacity: 0.75;
+}
+
+html[data-style="hub"][data-theme="light"] .day-card,
+html[data-style="hub"][data-theme="light"] .lesson-card {
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 12px 26px -22px rgba(48, 34, 20, 0.45) !important;
+}
+
+html[data-style="hub"] .lesson-card:hover {
+    border-color: var(--t-border-strong) !important;
+}
+
+/* текущая пара: латунная полоса вместо синей */
+html[data-style="hub"] .lesson-card.lesson-card-current {
+    background-image: linear-gradient(166deg, var(--t-surface-2), var(--t-surface) 62%) !important;
+    background-color: var(--t-lesson-bg) !important;
+    border-color: var(--t-accent-border) !important;
+    border-left-color: var(--t-accent) !important;
+    box-shadow:
+        inset 3px 0 0 var(--t-accent),
+        0 12px 26px -20px rgba(0, 0, 0, 0.85) !important;
+}
+
+html[data-style="hub"] .lesson-card.lesson-card-passed {
+    border-left-color: var(--t-soft-border) !important;
+}
+
+/* активный день — латунная пилюля с мягким светом */
+html[data-style="hub"] #days-tabs {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+html[data-style="hub"] #days-tabs .day-tab.day-tab-active {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 8px 18px -12px rgba(0, 0, 0, 0.9) !important;
+}
+
+html[data-style="hub"][data-theme="light"] #days-tabs .day-tab.day-tab-active {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 8px 18px -12px rgba(48, 34, 20, 0.5) !important;
+}
+
+/* мелкие кнопки тянутся к латуни при наведении */
+html[data-style="hub"] .header-icon-btn:hover,
+html[data-style="hub"] .day-icon-btn:hover,
+html[data-style="hub"] .pin-btn:hover {
+    border-color: var(--t-accent-border) !important;
+    color: var(--t-accent) !important;
+}
+
+/* статусные пилюли и точки — в латунной гамме вместо синего/зелёного */
+html[data-style="hub"] .chip-sm {
+    background: var(--t-accent-soft) !important;
+    color: var(--t-accent) !important;
+    border-color: var(--t-accent-border) !important;
+}
+
+html[data-style="hub"] .bg-emerald-500,
+html[data-style="hub"] .bg-blue-600 {
+    background-color: var(--t-accent) !important;
 }
