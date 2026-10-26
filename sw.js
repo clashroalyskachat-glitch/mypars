@@ -17,7 +17,7 @@
  * from cache while the network is reachable.
  */
 
-const VERSION = 'nkse-v9';
+const VERSION = 'nkse-v11';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
