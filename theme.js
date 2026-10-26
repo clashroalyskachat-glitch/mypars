@@ -11,74 +11,76 @@
 (function () {
     'use strict';
 
-    var STATE_KEY = 'nkse-theme-state-v1';
+    var STATE_KEY = 'nkse-theme-state-v2';
     var PRESET_KEY = 'nkse-theme-presets-v1';
     var LEGACY_KEY = 'nkse-theme-v2';
     var DB_NAME = 'nkse-theme-db';
     var DB_STORE = 'images';
 
     var DEFAULTS = {
+        // Основная тёмная тема в стиле главного меню: чёрная кожа, латунь.
         dark: {
-            bg: '#000000',
-            surface: '#000000',
-            surface2: '#0b0f19',
-            text: '#ffffff',
-            muted: '#9ca3af',
-            accent: '#a855f7',
-            accentContrast: '#ffffff',
-            border: '#ffffff',
-            borderStrong: '#ffffff',
-            softBorder: 'rgba(148,163,184,0.45)',
-            panelBorder: 'rgba(255,255,255,0.16)',
-            warning: '#f59e0b',
-            success: '#10b981',
-            danger: '#ef4444',
-            lessonBg: '#000000',
-            lessonBgHover: '#000000',
-            lessonBorder: 'rgba(255,255,255,0.70)',
-            roomBorder: 'rgba(255,255,255,0.55)',
-            tabBg: '#000000',
-            tabPillBg: '#000000',
-            tabPillBorder: '#ffffff',
-            tabActiveBg: 'transparent',
-            tabActiveText: '#a855f7',
-            tabActiveBorder: '#a855f7',
-            headerBg: '#000000',
-            footerBg: '#000000',
-            inputBg: 'transparent',
-            chipBg: 'transparent',
-            nowBg: 'transparent'
+            bg: '#08080a',
+            surface: '#0f1014',
+            surface2: '#16171d',
+            text: '#ece7df',
+            muted: '#8f8982',
+            accent: '#c99a63',
+            accentContrast: '#1a1208',
+            border: '#26242a',
+            borderStrong: '#3a352f',
+            softBorder: 'rgba(201,154,99,0.24)',
+            panelBorder: 'rgba(201,154,99,0.20)',
+            warning: '#e0a84e',
+            success: '#6fae8a',
+            danger: '#d4624f',
+            lessonBg: '#0f1014',
+            lessonBgHover: '#16171d',
+            lessonBorder: '#26242a',
+            roomBorder: 'rgba(201,154,99,0.34)',
+            tabBg: '#0b0b0e',
+            tabPillBg: '#0f1014',
+            tabPillBorder: '#26242a',
+            tabActiveBg: '#c99a63',
+            tabActiveText: '#1a1208',
+            tabActiveBorder: '#e3bd8c',
+            headerBg: 'rgba(8,8,10,0.86)',
+            footerBg: '#08080a',
+            inputBg: 'rgba(255,255,255,0.035)',
+            chipBg: 'rgba(201,154,99,0.09)',
+            nowBg: 'rgba(15,16,20,0.90)'
         },
+        // Основная светлая тема: тёплая бумага, коричневая латунь.
         light: {
-            bg: '#eef1f6',
-            surface: '#ffffff',
-            surface2: '#f8fafc',
-            text: '#1e293b',
-            muted: '#64748b',
-            accent: '#a855f7',
-            accentContrast: '#ffffff',
-            border: '#d7e0ec',
-            borderStrong: '#c7d2e2',
-            softBorder: 'rgba(100,116,139,0.42)',
-            panelBorder: 'rgba(100,116,139,0.28)',
-            warning: '#f59e0b',
-            success: '#10b981',
-            danger: '#ef4444',
-            lessonBg: '#fdfdfe',
-            lessonBgHover: '#ffffff',
-            lessonBorder: '#dbe3ee',
-            roomBorder: 'rgba(100,116,139,0.42)',
-            tabBg: '#e8edf4',
-            tabPillBg: 'rgba(255,255,255,0.60)',
-            tabPillBorder: 'rgba(100,116,139,0.30)',
-            tabActiveBg: '#2563eb',
-            tabActiveText: '#ffffff',
-            tabActiveBorder: '#2563eb',
-            headerBg: 'rgba(255,255,255,0.94)',
-            footerBg: '#ffffff',
-            inputBg: '#ffffff',
-            chipBg: 'rgba(241,245,249,0.90)',
-            nowBg: '#ffffff'
+            bg: '#e9e5dd',
+            surface: '#f6f2ea',
+            surface2: '#fbf8f1',
+            text: '#1a1714',
+            muted: '#6d655c',
+            accent: '#8a5f34',
+            accentContrast: '#fff6ea',
+            border: '#d7cec0',
+            borderStrong: '#bdb2a1',
+            softBorder: 'rgba(122,74,44,0.24)',
+            panelBorder: 'rgba(122,74,44,0.18)',
+            warning: '#a8793f',
+            success: '#3f7a5a',
+            danger: '#b04a3a',
+            lessonBg: '#f6f2ea',
+            lessonBgHover: '#fbf8f1',
+            lessonBorder: '#ddd4c6',
+            roomBorder: 'rgba(138,95,52,0.40)',
+            tabBg: '#e2ddd4',
+            tabPillBg: '#f3eee6',
+            tabPillBorder: '#d7cec0',
+            tabActiveBg: '#8a5f34',
+            tabActiveText: '#fff6ea',
+            tabActiveBorder: '#a8793f',
+            headerBg: 'rgba(242,238,230,0.92)',
+            footerBg: '#f0ece4',
+            inputBg: '#fbf8f1',
+            chipBg: 'rgba(122,74,44,0.07)',
+            nowBg: '#fbf8f1'
         }
     };
 
@@ -141,8 +143,20 @@
     ];
 
     var PRESET_DEFS = [
-        { id: 'dark', name: 'НКСЭ Тёмная', mode: 'dark' },
-        { id: 'light', name: 'НКСЭ Светлая', mode: 'light' },
+        {
+            id: 'dark',
+            name: 'НКСЭ Тёмная',
+            mode: 'dark',
+            style: 'hub',
+            metrics: { displayFont: 'serif', radius: 16, lineHeight: 1.45 }
+        },
+        {
+            id: 'light',
+            name: 'НКСЭ Светлая',
+            mode: 'light',
+            style: 'hub',
+            metrics: { displayFont: 'serif', radius: 16, lineHeight: 1.45 }
+        },
         {
             id: 'paper',
             name: 'Бумага',
@@ -290,6 +304,7 @@
             version: 1,
             mode: mode === 'light' ? 'light' : 'dark',
             preset: mode === 'light' ? 'light' : 'dark',
+            style: 'hub',
             fx: 'none',
             tokens: clone(DEFAULTS[mode === 'light' ? 'light' : 'dark']),
             metrics: clone(METRIC_DEFAULTS),
@@ -336,6 +351,7 @@
         out.metrics.glow = clamp(out.metrics.glow, 0, 30);
         out.metrics.displayFont = raw.metrics && raw.metrics.displayFont === 'serif' ? 'serif' : 'sans';
         out.fx = raw.fx === 'akashi' ? 'akashi' : 'none';
+        out.style = raw.style === 'hub' ? 'hub' : 'none';
 
         if (raw.background && typeof raw.background === 'object') {
             var bg = raw.background;
@@ -362,10 +378,10 @@
             if (raw) return normalize(JSON.parse(raw));
             var old = localStorage.getItem(LEGACY_KEY);
             if (old) return defaultState(old === 'light' ? 'light' : 'dark');
-            // New visitors see the Akashi theme; the original dark/light
-            // themes are still in the preset list.
-            var akashi = PRESET_DEFS.filter(function (p) { return p.id === 'akashi'; })[0];
-            if (akashi) return presetState(akashi);
+            // New visitors see the main dark theme in the site's style;
+            // the anime and other skins are kept in the preset list.
+            var main = PRESET_DEFS.filter(function (p) { return p.id === 'dark'; })[0];
+            if (main) return presetState(main);
             return defaultState('dark');
         } catch (e) {
             return defaultState('dark');
@@ -493,6 +509,7 @@
     function apply() {
         var root = document.documentElement;
         root.setAttribute('data-theme', state.mode);
+        root.setAttribute('data-style', state.style || 'none');
 
         var tokens = state.tokens;
         Object.keys(COLOR_VARS).forEach(function (k) {
@@ -544,6 +561,7 @@
         Object.keys(metrics).forEach(function (k) { base.metrics[k] = metrics[k]; });
         base.mode = def.mode || 'dark';
         base.preset = def.id;
+        base.style = def.style || 'none';
         base.fx = def.fx || 'none';
         // built-ins may ship a generated background (the Akashi preset does)
         if (def.background) {
@@ -677,6 +695,7 @@
                 name: picked.name,
                 mode: st.mode,
                 fx: st.fx || 'none',
+                style: st.style || 'none',
                 tokens: clone(st.tokens),
                 metrics: clone(st.metrics),
                 background: clone(st.background)
@@ -747,6 +766,7 @@
                     metrics: data.metrics,
                     background: bg,
                     fx: data.fx,
+                    style: data.style,
                     preset: 'custom'
                 };
                 var st = normalize(raw);
@@ -1050,7 +1070,8 @@
 
     function resetAll() {
         var sound = clone(state.sound);
-        state = defaultState('dark');
+        var main = PRESET_DEFS.filter(function (p) { return p.id === 'dark'; })[0];
+        state = main ? presetState(main) : defaultState('dark');
         state.sound = sound;
         runtimeImageUrl = '';
         changed();
