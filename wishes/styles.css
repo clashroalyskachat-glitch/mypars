@@ -1251,6 +1251,211 @@ main,
 
 .footer-links a:hover { color: var(--brass); }
 
+/* ------------------------------------------------------------------ аккаунт */
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auth-btn {
+    min-height: 38px;
+    padding: 0 15px;
+    font-size: .83rem;
+}
+
+.auth-btn svg { width: 16px; height: 16px; color: var(--brass); }
+
+.auth-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 5px 0 13px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--brass) 34%, transparent);
+    background: color-mix(in srgb, var(--brass) 10%, transparent);
+}
+
+.auth-nick {
+    max-width: 12ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .83rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    color: var(--brass-soft);
+}
+
+[data-theme="light"] .auth-nick { color: var(--brass); }
+
+.auth-exit {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: color .3s var(--ease), background-color .3s var(--ease), transform .3s var(--ease);
+}
+
+.auth-exit svg { width: 15px; height: 15px; }
+
+.auth-exit:hover {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.auth-exit:active { transform: scale(.93); }
+
+/* ------------------------------------------------------------ диалог входа */
+
+.auth-dialog {
+    width: min(430px, calc(100vw - 2rem));
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    overflow: visible;
+}
+
+.auth-dialog::backdrop {
+    background: rgb(4 4 6 / .72);
+    backdrop-filter: blur(6px);
+}
+
+.auth-form {
+    position: relative;
+    padding: 26px 26px 22px;
+    border-radius: 24px;
+    border: 1px solid var(--line-strong);
+    background:
+        radial-gradient(120% 100% at 100% 0%, rgb(201 154 99 / .10), transparent 55%),
+        linear-gradient(168deg, var(--card-2), var(--card) 66%);
+    box-shadow: var(--shadow-lg);
+    animation: pop .38s var(--ease) both;
+}
+
+@keyframes pop {
+    from { opacity: 0; transform: translateY(14px) scale(.97); }
+    to { opacity: 1; transform: none; }
+}
+
+.auth-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.auth-head h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.auth-head .eyebrow { margin-bottom: 7px; }
+
+.auth-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    margin-bottom: 18px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.auth-tabs button {
+    flex: 1 1 auto;
+    min-height: 34px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font-size: .84rem;
+    font-weight: 600;
+    transition: color .3s var(--ease), background-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+
+.auth-tabs button:hover { color: var(--ink); }
+
+.auth-tabs button[aria-pressed="true"] {
+    background: linear-gradient(180deg, var(--brass-soft), var(--brass));
+    color: #1b1108;
+    box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--brass) 85%, transparent);
+}
+
+[data-theme="light"] .auth-tabs button[aria-pressed="true"] { color: #fff6ea; }
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 14px;
+}
+
+.field > span {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.field input {
+    height: 46px;
+    padding: 0 15px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--paper) 55%, transparent);
+    color: var(--ink);
+    font-size: .95rem;
+    transition: border-color .3s var(--ease), box-shadow .3s var(--ease), background-color .3s var(--ease);
+}
+
+.field input::placeholder { color: color-mix(in srgb, var(--muted) 75%, transparent); }
+
+.field input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--brass) 58%, var(--line));
+    background: color-mix(in srgb, var(--paper) 72%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 13%, transparent);
+}
+
+.field-hint {
+    font-size: .72rem;
+    color: color-mix(in srgb, var(--muted) 85%, transparent);
+}
+
+.field-error {
+    margin-bottom: 14px;
+    padding: 10px 13px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
+    background: color-mix(in srgb, var(--danger) 11%, transparent);
+    color: var(--danger);
+    font-size: .82rem;
+    line-height: 1.45;
+}
+
+.auth-actions { margin-top: 4px; }
+.auth-actions .btn { width: 100%; }
+
+.auth-note {
+    margin-top: 13px;
+    font-size: .76rem;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+}
+
 /* ------------------------------------------------------------------ тост */
 
 .toast {
@@ -1329,6 +1534,9 @@ main,
     .composer-head h2 { font-size: 1.14rem; }
     .composer-hint { font-size: .7rem; }
 
+    .auth-form { padding: 22px 18px 18px; }
+    .auth-head h2 { font-size: 1.24rem; }
+
     .editor textarea { min-height: 118px; font-size: .98rem; }
 
     .composer-row { gap: 10px; }
@@ -1383,7 +1591,8 @@ main,
     .composer-section,
     .board-tools,
     .board,
-    .note {
+    .note,
+    .auth-form {
         animation: none;
     }
 

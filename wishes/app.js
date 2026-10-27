@@ -77,7 +77,8 @@
         sort: 'new',
         kind: 'idea',
         moderated: false,
-        composerOpen: false
+        composerOpen: false,
+        authRequired: false
     };
 
     var toastTimer = null;
@@ -403,6 +404,7 @@
 
             state.wishes = data.wishes.map(normalizeWish);
             state.moderated = data.moderated === true;
+            state.authRequired = data.auth_required === true;
             state.status = 'ready';
             state.error = '';
             cacheWishes();
@@ -636,6 +638,34 @@
         return !isShared() || state.error === 'not-ready' || state.error === 'no-api';
     }
 
+    /* Сервер может потребовать вход — тогда читаем, а пишем по кнопке «Войти». */
+    function isAuthNeeded() {
+        return state.authRequired && !(window.NKSE_AUTH && window.NKSE_AUTH.isAuthed());
+    }
+
+    function syncAddLabel() {
+        if (!el.addLabel) return;
+
+        el.addLabel.textContent = isAuthNeeded()
+            ? 'Войти, чтобы написать'
+            : (state.composerOpen ? 'Свернуть' : 'Добавить пожелание');
+    }
+
+    /* Общая кнопка: либо открывает письмо, либо ведёт на вход. */
+    function tryOpenComposer(open) {
+        if (isBlocked()) {
+            toast('Доска пока не подключена');
+            return;
+        }
+
+        if (open && isAuthNeeded()) {
+            if (window.NKSE_AUTH) window.NKSE_AUTH.open('login');
+            return;
+        }
+
+        setComposerOpen(open);
+    }
+
     /*
      * Панель письма спрятана за кнопкой: главный экран — доска.
      * Открытие показывает форму и ставит курсор, закрытие прячет её
@@ -651,7 +681,7 @@
             el.section.classList.remove('is-closing');
             el.section.hidden = false;
             el.addBtn.setAttribute('aria-expanded', 'true');
-            if (el.addLabel) el.addLabel.textContent = 'Свернуть';
+            syncAddLabel();
 
             try {
                 el.section.scrollIntoView({
@@ -668,7 +698,7 @@
         }
 
         el.addBtn.setAttribute('aria-expanded', 'false');
-        if (el.addLabel) el.addLabel.textContent = 'Добавить пожелание';
+        syncAddLabel();
 
         function hide() {
             el.section.hidden = true;
@@ -692,19 +722,43 @@
 
     function syncComposerNote() {
         var blocked = isBlocked();
+        var auth = isAuthNeeded();
+        var user = window.NKSE_AUTH && window.NKSE_AUTH.user();
 
-        if (el.submit) el.submit.disabled = blocked;
+        if (el.submit) el.submit.disabled = blocked || auth;
 
         if (el.addBtn) {
             el.addBtn.disabled = blocked;
-            if (blocked && state.composerOpen) setComposerOpen(false);
+            if ((blocked || auth) && state.composerOpen) setComposerOpen(false);
         }
 
-        if (el.emptyBtn) el.emptyBtn.disabled = blocked;
+        if (el.emptyBtn) el.emptyBtn.disabled = blocked || auth;
+
+        /*
+         * Имя берётся из аккаунта, поле смысла не имеет — прячем,
+         * чтобы не путать: можно написать в него что угодно, всё
+         * равно ник подставит сервер.
+         */
+        if (el.name && el.name.parentNode) {
+            el.name.parentNode.hidden = state.authRequired;
+        }
+
+        syncAddLabel();
 
         if (!el.note) return;
+
         if (blocked) {
             el.note.textContent = 'Доска пока не подключена — писать пока нельзя.';
+            return;
+        }
+
+        if (auth) {
+            el.note.textContent = 'Чтобы писать и отвечать, войди под своим ником. Читать можно без входа.';
+            return;
+        }
+
+        if (state.authRequired && user && user.nick) {
+            el.note.textContent = 'Отправится под ником «' + user.nick + '». Спам и реклама уходят на проверку.';
             return;
         }
 
@@ -829,6 +883,11 @@
             return;
         }
 
+        if (isAuthNeeded()) {
+            if (window.NKSE_AUTH) window.NKSE_AUTH.open('login');
+            return;
+        }
+
         var name = el.name ? el.name.value.replace(/\s+/g, ' ').trim().slice(0, 32) : '';
         var kind = state.kind;
 
@@ -841,6 +900,7 @@
             text: text,
             name: name,
             kind: kind,
+            token: window.NKSE_AUTH ? window.NKSE_AUTH.token() : '',
             website: el.trap ? el.trap.value : ''
         }).then(function (data) {
             writeString(KEYS.last, Date.now());
@@ -900,6 +960,12 @@
                 toast('Сегодня лимит пожеланий исчерпан — попробуй завтра');
             } else if (reason === 'bad_text') {
                 toast('Слишком короткое пожелание');
+            } else if (reason === 'no_session') {
+                /* Сессия истекла: форма бесполезна, сразу к входу. */
+                setComposerOpen(false);
+                syncComposerNote();
+                if (window.NKSE_AUTH) window.NKSE_AUTH.open('login');
+                toast('Сессия закончилась — войди ещё раз');
             } else if (reason === 'unknown_action') {
                 toast('Доска пока не подключена');
             } else {
@@ -996,23 +1062,20 @@
 
         if (el.addBtn) {
             el.addBtn.addEventListener('click', function () {
-                if (isBlocked()) {
-                    toast('Доска пока не подключена');
-                    return;
-                }
-                setComposerOpen(!state.composerOpen);
+                tryOpenComposer(!state.composerOpen);
             });
         }
 
         if (el.emptyBtn) {
             el.emptyBtn.addEventListener('click', function () {
-                if (isBlocked()) {
-                    toast('Доска пока не подключена');
-                    return;
-                }
-                setComposerOpen(true);
+                tryOpenComposer(true);
             });
         }
+
+        /* Входились/вышли в соседнем модуле — пересчитываем кнопки. */
+        window.addEventListener('nkse-auth', function () {
+            syncComposerNote();
+        });
 
         if (el.topbar) {
             var onScroll = function () {

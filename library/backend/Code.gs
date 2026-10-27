@@ -4,6 +4,8 @@
  * Один скрипт обслуживает две вещи, у них общая таблица и один адрес /exec:
  *   • библиотеку  — лист «Книги»     (action=list,   POST без board)
  *   • доску пожеланий — лист «Пожелания» (action=wishes, POST board=wishes)
+ *   • авторизацию — ник и пароль, листы «Пользователи» и «Сессии»
+ *                   (POST board=auth)
  *   • админку     — удаление и модерация (POST board=admin, пароль в
  *                   свойствах скрипта, см. раздел «АДМИНКА» внизу файла)
  *
@@ -151,6 +153,10 @@ function setup() {
     /* Лист доски пожеланий заводим заодно: он нужен и сайту, и тебе. */
     wishPrepare_(ss);
 
+    /* Листы авторизации: «Пользователи» и «Сессии». */
+    authPrepare_(ss, AUTH_USERS_SHEET, AUTH_USERS_HEADERS, [180, 150, 150, 260, 340, 90, 70, 150, 150]);
+    authPrepare_(ss, AUTH_SESS_SHEET, AUTH_SESS_HEADERS, [300, 180, 150, 90, 150, 150]);
+
     /* Админ-пароль: генерируем один раз, если его ещё нет. */
     if (!props.getProperty(ADMIN_PROP)) {
         var generated = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
@@ -174,6 +180,7 @@ function doGet(e) {
             return respond_({
                 ok: true,
                 moderated: !WISH_AUTO_APPROVE,
+                auth_required: WISH_REQUIRE_AUTH,
                 wishes: wishRead_()
             }, e);
         }
@@ -199,6 +206,11 @@ function doPost(e) {
         lock.waitLock(15000);
 
         var data = parseBody_(e);
+
+        /* Вход и регистрация. */
+        if (String(data.board || '') === 'auth') {
+            return respond_(authDispatch_(data), e);
+        }
 
         /* Админка: удаление и модерация. Пароль проверяется на сервере. */
         if (String(data.board || '') === 'admin') {
@@ -519,13 +531,25 @@ function wishDispatch_(data) {
 
 
 function wishAdd_(data) {
+    /*
+     * Писать можно только под своим ником: сервер подставляет имя из
+     * сессии, присланное с клиента игнорирует — иначе легко писать
+     * от чужого имени.
+     */
+    var session = null;
+
+    if (WISH_REQUIRE_AUTH) {
+        session = authSession_(data.token);
+        if (!session) return { ok: false, error: 'no_session' };
+    }
+
     var text = limit_(data.text, WISH_MAX_LEN);
     if (text.length < 3) return { ok: false, error: 'bad_text' };
 
     var kind = String(data.kind || 'idea');
     if (WISH_KINDS.indexOf(kind) === -1) kind = 'idea';
 
-    var name = limit_(data.name, WISH_MAX_NAME);
+    var name = session ? session.nick : limit_(data.name, WISH_MAX_NAME);
     var sheet = wishSheet_();
     var values = sheet.getDataRange().getValues();
     var index = headerIndex_(values[0] || []);
@@ -776,6 +800,352 @@ function wishId_() {
 function wishSafe_(value, max) {
     var text = limit_(value, max);
     return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+
+/* ==================================================================
+ * АВТОРИЗАЦИЯ — ник и пароль
+ *
+ * Свой вход вместо Google: сайт работает как есть, без сторонних
+ * провайдеров и без чужих консолей.
+ *
+ * Что хранится: только хеш SHA-256 от «соль:пароль». Сам пароль в
+ * таблицу не попадает нигде. Сессия — случайный токен в листе
+ * «Сессии», живёт 30 дней, на сервере проверяется каждый запрос.
+ *
+ * Роли: пока одна — обычный пользователь (колонка role). Админом
+ * можно сделать вручную, поставив admin в листе «Пользователи».
+ *
+ * Листы создаются сами при первой регистрации, ничего запускать
+ * отдельно не нужно. Всё живёт в той же таблице и на том же /exec.
+ *
+ * Что закрыто входом (флаг WISH_REQUIRE_AUTH):
+ *   • отправка пожеланий;
+ *   • ответы в ветках (следующая ступень).
+ * Читать можно без входа, лайки остались прежними — по устройству.
+ * ================================================================== */
+
+var AUTH_USERS_SHEET = 'Пользователи';
+var AUTH_SESS_SHEET = 'Сессии';
+
+var AUTH_TTL_MS = 30 * 24 * 60 * 60 * 1000;   /* жизнь сессии */
+var AUTH_MAX_TRY = 8;                          /* неверных паролей до блокировки ника */
+var AUTH_LOCK_MS = 10 * 60 * 1000;             /* и сама блокировка */
+var AUTH_REG_MAX = 12;                         /* регистраций за окно */
+var AUTH_REG_MS = 10 * 60 * 1000;
+
+var WISH_REQUIRE_AUTH = true;
+
+var AUTH_USERS_HEADERS = ['id', 'nick', 'nickkey', 'salt', 'hash', 'role', 'fails', 'lockuntil', 'created'];
+var AUTH_SESS_HEADERS = ['token', 'uid', 'nick', 'role', 'created', 'expires'];
+
+var NICK_RE = /^[A-Za-zА-Яа-яЁё0-9_-]{3,20}$/;
+var TOKEN_RE = /^[a-f0-9]{32,80}$/;
+
+
+function authDispatch_(data) {
+    var op = String(data.op || '');
+
+    if (op === 'me') {
+        var session = authSession_(data.token);
+        if (!session) return { ok: false, error: 'no_session' };
+        return { ok: true, user: { nick: session.nick, role: session.role } };
+    }
+
+    if (op === 'logout') {
+        authLogout_(data.token);
+        return { ok: true };
+    }
+
+    if (op !== 'register' && op !== 'login') {
+        return { ok: false, error: 'unknown_op' };
+    }
+
+    /* Ловушка: поле видят только боты. */
+    if (data.website) return { ok: true, ignored: true };
+
+    var nick = String(data.nick == null ? '' : data.nick).trim();
+    var pass = String(data.pass == null ? '' : data.pass);
+
+    if (!NICK_RE.test(nick)) return { ok: false, error: 'bad_nick' };
+    if (pass.length < 6 || pass.length > 100) return { ok: false, error: 'bad_pass' };
+
+    return op === 'register' ? authRegister_(nick, pass) : authLogin_(nick, pass);
+}
+
+
+/* ------------------------------------------------------------------ листы */
+
+function authOpen_(name) {
+    var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+    if (!id) throw new Error('Сначала запусти setup()');
+
+    var ss = SpreadsheetApp.openById(id);
+    var sheet = ss.getSheetByName(name);
+
+    if (!sheet || sheet.getLastRow() === 0) {
+        sheet = authPrepare_(ss, name, name === AUTH_USERS_SHEET ? AUTH_USERS_HEADERS : AUTH_SESS_HEADERS,
+            name === AUTH_USERS_SHEET ? [180, 150, 150, 260, 340, 90, 70, 150, 150] : [300, 180, 150, 90, 150, 150]);
+    }
+
+    return sheet;
+}
+
+function authPrepare_(ss, name, headers, widths) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) sheet = ss.insertSheet(name);
+    if (sheet.getLastRow() > 0) return sheet;
+
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length)
+        .setFontWeight('bold')
+        .setBackground('#1a1208')
+        .setFontColor('#e3bd8c');
+    sheet.setFrozenRows(1);
+
+    for (var i = 0; i < widths.length; i++) {
+        sheet.setColumnWidth(i + 1, widths[i]);
+    }
+
+    return sheet;
+}
+
+
+/* ------------------------------------------------------------------ хеши */
+
+function authHex_(bytes) {
+    var out = '';
+
+    for (var i = 0; i < bytes.length; i++) {
+        var byte = bytes[i];
+        if (byte < 0) byte += 256;
+        out += (byte < 16 ? '0' : '') + byte.toString(16);
+    }
+
+    return out;
+}
+
+function authHash_(salt, pass) {
+    return authHex_(Utilities.computeDigest(
+        Utilities.DigestAlgorithm.SHA_256,
+        salt + ':' + pass,
+        Utilities.Charset.UTF_8
+    ));
+}
+
+function authRandom_(length) {
+    return Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+}
+
+
+/* ------------------------------------------------------------------ пользователи */
+
+function authFindUser_(sheet, nickkey) {
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return null;
+
+    var index = headerIndex_(values[0]);
+
+    for (var row = 1; row < values.length; row++) {
+        if (clean_(values[row][index.nickkey]).toLowerCase() !== nickkey) continue;
+
+        return {
+            row: row + 1,
+            index: index,
+            id: clean_(values[row][index.id]),
+            nick: clean_(values[row][index.nick]),
+            salt: clean_(values[row][index.salt]),
+            hash: clean_(values[row][index.hash]),
+            role: clean_(values[row][index.role]) || 'user',
+            fails: Number(values[row][index.fails]) || 0,
+            lockuntil: values[row][index.lockuntil]
+        };
+    }
+
+    return null;
+}
+
+
+function authRegister_(nick, pass) {
+    /* Не даём завалить таблицу пустыми аккаунтами. */
+    var gate = authRateAdd_('AUTH_REG', AUTH_REG_MAX, AUTH_REG_MS);
+    if (!gate.ok) return { ok: false, error: 'too_many', minutes: gate.minutes };
+
+    var sheet = authOpen_(AUTH_USERS_SHEET);
+    var key = nick.toLowerCase();
+
+    if (authFindUser_(sheet, key)) return { ok: false, error: 'nick_taken' };
+
+    var salt = authRandom_(32);
+    var id = 'u-' + authRandom_(16).slice(0, 16);
+
+    sheet.appendRow([
+        id,
+        safe_(nick),
+        key,
+        salt,
+        authHash_(salt, pass),
+        'user',
+        0,
+        '',
+        new Date()
+    ]);
+
+    return authIssue_(id, nick, 'user');
+}
+
+
+function authLogin_(nick, pass) {
+    var sheet = authOpen_(AUTH_USERS_SHEET);
+    var user = authFindUser_(sheet, nick.toLowerCase());
+
+    /*
+     * Не существующий ник отвечает так же, как неверный пароль:
+     * иначе по ответу можно перебирать, кто вообще зарегистрирован.
+     */
+    if (!user) return { ok: false, error: 'wrong_pass' };
+
+    var now = new Date().getTime();
+    var lockedUntil = user.lockuntil instanceof Date ? user.lockuntil.getTime() : 0;
+
+    if (lockedUntil > now) {
+        return { ok: false, error: 'locked', minutes: Math.ceil((lockedUntil - now) / 60000) };
+    }
+
+    if (authHash_(user.salt, pass) !== user.hash) {
+        var fails = user.fails + 1;
+        var lock = '';
+
+        if (fails >= AUTH_MAX_TRY) {
+            fails = 0;
+            lock = new Date(now + AUTH_LOCK_MS);
+        }
+
+        sheet.getRange(user.row, user.index.fails + 1).setValue(fails);
+        sheet.getRange(user.row, user.index.lockuntil + 1).setValue(lock);
+
+        if (lock) {
+            return { ok: false, error: 'locked', minutes: Math.ceil(AUTH_LOCK_MS / 60000) };
+        }
+
+        return { ok: false, error: 'wrong_pass', tries_left: AUTH_MAX_TRY - fails };
+    }
+
+    /* Успех — сбрасываем счётчик. */
+    sheet.getRange(user.row, user.index.fails + 1).setValue(0);
+    if (user.fails || lockedUntil) {
+        sheet.getRange(user.row, user.index.lockuntil + 1).setValue('');
+    }
+
+    return authIssue_(user.id, user.nick, user.role);
+}
+
+
+/* ------------------------------------------------------------------ сессии */
+
+function authIssue_(uid, nick, role) {
+    var token = authRandom_(64);
+    var now = new Date();
+
+    var sheet = authOpen_(AUTH_SESS_SHEET);
+    authCleanSessions_(sheet);
+    sheet.appendRow([token, uid, safe_(nick), role, now, new Date(now.getTime() + AUTH_TTL_MS)]);
+
+    return { ok: true, token: token, user: { nick: nick, role: role } };
+}
+
+function authSession_(token) {
+    var value = String(token == null ? '' : token);
+    if (!TOKEN_RE.test(value)) return null;
+
+    var sheet = authOpen_(AUTH_SESS_SHEET);
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return null;
+
+    var index = headerIndex_(values[0]);
+    var now = new Date().getTime();
+
+    for (var row = 1; row < values.length; row++) {
+        if (clean_(values[row][index.token]) !== value) continue;
+
+        var expires = values[row][index.expires];
+        if (Object.prototype.toString.call(expires) !== '[object Date]') return null;
+        if (expires.getTime() < now) return null;
+
+        return {
+            uid: clean_(values[row][index.uid]),
+            nick: clean_(values[row][index.nick]),
+            role: clean_(values[row][index.role]) || 'user'
+        };
+    }
+
+    return null;
+}
+
+function authLogout_(token) {
+    var value = String(token == null ? '' : token);
+    if (!TOKEN_RE.test(value)) return;
+
+    var sheet = authOpen_(AUTH_SESS_SHEET);
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+
+    var index = headerIndex_(values[0]);
+
+    for (var row = values.length; row > 1; row--) {
+        if (clean_(values[row - 1][index.token]) === value) {
+            sheet.deleteRow(row);
+            return;
+        }
+    }
+}
+
+/* Убираем истёкшие сессии, чтобы лист не рос бесконечно. */
+function authCleanSessions_(sheet) {
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+
+    var index = headerIndex_(values[0]);
+    var now = new Date().getTime();
+
+    for (var row = values.length; row > 1; row--) {
+        var expires = values[row - 1][index.expires];
+
+        if (Object.prototype.toString.call(expires) !== '[object Date]' || expires.getTime() < now) {
+            sheet.deleteRow(row);
+        }
+    }
+}
+
+
+/* ------------------------------------------------------------------ лимиты */
+
+/* Общий счётчик: регистраций в окне. Не даёт завалить таблицу аккаунтами. */
+function authRateAdd_(prop, max, windowMs) {
+    var props = PropertiesService.getScriptProperties();
+    var state = { n: 0, until: 0 };
+
+    try {
+        var raw = props.getProperty(prop);
+        if (raw) state = JSON.parse(raw);
+    } catch (error) { state = { n: 0, until: 0 }; }
+
+    var now = new Date().getTime();
+
+    if (state.until > now) {
+        return { ok: false, minutes: Math.ceil((state.until - now) / 60000) };
+    }
+
+    if (state.until && state.until <= now) state = { n: 0, until: 0 };
+    state.n += 1;
+
+    if (state.n >= max) {
+        props.setProperty(prop, JSON.stringify({ n: 0, until: now + windowMs }));
+        return { ok: false, minutes: Math.ceil(windowMs / 60000) };
+    }
+
+    props.setProperty(prop, JSON.stringify(state));
+    return { ok: true };
 }
 
 

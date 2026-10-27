@@ -58,15 +58,36 @@
             </span>
         </a>
 
-        <button class="icon-btn" id="theme-btn" type="button" aria-label="Сменить тему" title="Сменить тему">
-            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4.2"/>
-                <path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/>
-            </svg>
-            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
-            </svg>
-        </button>
+        <div class="topbar-right">
+            <button class="btn btn-quiet auth-btn" id="auth-open" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15.5 19.5V18a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1.5"/>
+                    <circle cx="8.7" cy="7.4" r="3.4"/>
+                </svg>
+                <span>Войти</span>
+            </button>
+
+            <div class="auth-user" id="auth-user" hidden>
+                <span class="auth-nick" id="auth-nick-label"></span>
+                <button class="auth-exit" id="auth-exit" type="button" aria-label="Выйти" title="Выйти">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9.5 19.5V18a4 4 0 0 0-4-4H4.6"/>
+                        <path d="M14.5 16l4-4-4-4"/>
+                        <path d="M18.5 12H9"/>
+                    </svg>
+                </button>
+            </div>
+
+            <button class="icon-btn" id="theme-btn" type="button" aria-label="Сменить тему" title="Сменить тему">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4.2"/>
+                    <path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
+                </svg>
+            </button>
+        </div>
     </div>
 </header>
 
@@ -187,7 +208,7 @@
 
 <footer class="footer">
     <div class="wrap footer-inner">
-        <p>Пожелания хранятся в Google Таблице и видны всем.</p>
+        <p>Читать можно без входа, писать — под своим ником. Данные в Google Таблице.</p>
         <nav class="footer-links" aria-label="Другие разделы">
             <a href="/mypars/">Расписание</a>
             <a href="/mypars/library/">Библиотека</a>
@@ -196,9 +217,68 @@
     </div>
 </footer>
 
+<!-- ------------------------------------------------------------ аккаунт -->
+
+<dialog class="auth-dialog" id="auth-dialog">
+    <form class="auth-form" id="auth-form" novalidate>
+        <span class="stitch" aria-hidden="true"></span>
+
+        <header class="auth-head">
+            <div>
+                <p class="eyebrow">Аккаунт</p>
+                <h2 id="auth-title">Вход</h2>
+            </div>
+            <button class="icon-btn" type="button" id="auth-close" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </header>
+
+        <div class="auth-tabs" id="auth-tabs" role="group" aria-label="Режим">
+            <button type="button" data-mode="login" aria-pressed="true">Вход</button>
+            <button type="button" data-mode="register" aria-pressed="false">Регистрация</button>
+        </div>
+
+        <label class="field">
+            <span>Ник</span>
+            <input id="auth-nick" type="text" placeholder="Аня_10" autocomplete="username"
+                   spellcheck="false" maxlength="20" required>
+            <small class="field-hint">Буквы, цифры, _ и - от 3 до 20 знаков</small>
+        </label>
+
+        <label class="field">
+            <span>Пароль</span>
+            <input id="auth-pass" type="password" placeholder="Не короче 6 знаков"
+                   autocomplete="current-password" maxlength="100" required>
+        </label>
+
+        <label class="field" id="auth-pass2-field" hidden>
+            <span>Повторите пароль</span>
+            <input id="auth-pass2" type="password" placeholder="Ещё раз" autocomplete="new-password" maxlength="100">
+        </label>
+
+        <!-- Ловушка для ботов. -->
+        <div class="trap" aria-hidden="true">
+            <input id="auth-website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <p class="field-error" id="auth-error" role="alert" hidden></p>
+
+        <footer class="auth-actions">
+            <button class="btn btn-solid" id="auth-submit" type="submit">Войти</button>
+        </footer>
+
+        <p class="auth-note" id="auth-note">
+            Чтобы писать и отвечать, войди под своим ником.
+        </p>
+    </form>
+</dialog>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="api.js"></script>
-<script src="app.js?v=2"></script>
+<script src="auth.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
