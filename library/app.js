@@ -987,7 +987,8 @@
         }
         el.addLinkError.hidden = true;
         el.addLink.classList.remove('is-invalid');
-        el.addExport.hidden = !hasLocalBooks();
+        /* Служебная кнопка для ручной правки сайта - на общей библиотеке её не показываем. */
+        el.addExport.hidden = isShared() || !hasLocalBooks();
         setSubmitting(false);
         syncAddUi();
         setTimeout(function () {
@@ -1103,7 +1104,7 @@
         render();
         closeDialog();
         el.form.reset();
-        el.addExport.hidden = false;
+        el.addExport.hidden = isShared();
         toast('Книга добавлена');
     }
 
@@ -1169,7 +1170,7 @@
 
         var code = '/* Вставить в books.js внутрь массива BOOKS */\n' + lines.join(',\n');
         copyText(code).then(function (ok) {
-            toast(ok ? 'Код скопирован - вставь в books.js' : 'Не удалось скопировать');
+            toast(ok ? 'Код скопирован' : 'Не удалось скопировать');
         });
     });
 
