@@ -1,8 +1,12 @@
 /*
- * Библиотека НКСЭ — приём книг через Google Таблицу.
+ * НКСЭ — общий «сервер» на Google Apps Script.
+ *
+ * Один скрипт обслуживает две вещи, у них общая таблица и один адрес /exec:
+ *   • библиотеку  — лист «Книги»     (action=list,   POST без board)
+ *   • доску пожеланий — лист «Пожелания» (action=wishes, POST board=wishes)
  *
  * Это бесплатный «сервер»: сайт на GitHub Pages не умеет сохранять данные,
- * поэтому книги складываются в Google Таблицу, а этот скрипт отдаёт их сайту.
+ * поэтому записи складываются в Google Таблицу, а этот скрипт отдаёт их сайту.
  *
  * Как включить (один раз, ~5 минут):
  *   1. Открой https://script.google.com → «Новый проект».
@@ -35,6 +39,15 @@
  *   его не видит), книга тоже уходит на проверку, а не публикуется.
  *
  * Строки, добавленные в таблицу вручную, видны, если в approved пусто или TRUE.
+ *
+ * Доска пожеланий (лист «Пожелания», создаётся сама при первой записи):
+ *   WISH_AUTO_APPROVE = true — пожелание видно сразу;
+ *   false — попадает в таблицу с approved = FALSE и ждёт твоего TRUE.
+ *   WISH_BURST_PER_HOUR — сколько пожеланий за час публикуется сразу;
+ *   дальше они уходят в карантин (approved = FALSE), но не теряются.
+ *   WISH_MAX_PER_DAY — сколько всего принимается за сутки.
+ *   Пожелание со ссылкой, почтой или длинной цепочкой одинаковых символов
+ *   сразу уходит в карантин: так реклама не попадает на доску.
  */
 
 var SHEET_NAME = 'Книги';
@@ -57,11 +70,39 @@ var HEADERS = [
     'created'
 ];
 
+/* --- доска пожеланий ------------------------------------------------------ */
+
+var WISH_SHEET_NAME = 'Пожелания';
+var WISH_AUTO_APPROVE = true;
+
+var WISH_BURST_PER_HOUR = 4;
+var WISH_MAX_PER_DAY = 30;
+
+var WISH_MAX_LEN = 600;
+var WISH_MAX_NAME = 32;
+var WISH_MAX_ITEMS = 400;      /* сколько последних отдаём сайту */
+var WISH_MAX_VOTERS = 300;     /* сколько голосов помним в одной строке */
+
+var WISH_HEADERS = [
+    'id',
+    'text',
+    'name',
+    'kind',
+    'likes',
+    'voters',
+    'added',
+    'approved',
+    'created'
+];
+
+/* kind -> подпись. Незнакомый kind превращается в idea. */
+var WISH_KINDS = ['idea', 'note', 'thanks', 'question'];
+
 
 /* ------------------------------------------------------------------ установка */
 
 /**
- * Создаёт таблицу и лист «Книги». Запусти один раз вручную.
+ * Создаёт таблицу и листы «Книги» и «Пожелания». Запусти один раз вручную.
  */
 function setup() {
     var props = PropertiesService.getScriptProperties();
@@ -105,7 +146,11 @@ function setup() {
         sheet.setColumnWidth(10, 160);
     }
 
+    /* Лист доски пожеланий заводим заодно: он нужен и сайту, и тебе. */
+    wishPrepare_(ss);
+
     Logger.log('Таблица готова: ' + ss.getUrl());
+    Logger.log('Книги: лист «' + SHEET_NAME + '», пожелания: лист «' + WISH_SHEET_NAME + '»');
     return ss.getUrl();
 }
 
@@ -115,6 +160,15 @@ function setup() {
 function doGet(e) {
     try {
         var action = e && e.parameter ? String(e.parameter.action || 'list') : 'list';
+
+        if (action === 'wishes') {
+            return respond_({
+                ok: true,
+                moderated: !WISH_AUTO_APPROVE,
+                wishes: wishRead_()
+            }, e);
+        }
+
         if (action !== 'list') {
             return respond_({ ok: false, error: 'unknown_action' }, e);
         }
@@ -136,6 +190,11 @@ function doPost(e) {
         lock.waitLock(15000);
 
         var data = parseBody_(e);
+
+        /* Запросы доски пожеланий помечены полем board. */
+        if (String(data.board || '') === 'wishes') {
+            return respond_(wishDispatch_(data), e);
+        }
 
         /* Скрытое поле-ловушка: люди его не видят, боты заполняют. */
         if (data.website) {
@@ -420,3 +479,288 @@ function respond_(payload, e) {
         .createTextOutput(json)
         .setMimeType(ContentService.MimeType.JSON);
 }
+
+
+/* ==================================================================
+ * ДОСКА ПОЖЕЛАНИЙ
+ *
+ * Отдельный лист «Пожелания» в той же таблице и тот же адрес /exec.
+ * Сайт читает GET ?action=wishes. Пишет POST с полем board: 'wishes':
+ *     { board:'wishes', action:'add',  text, name, kind, website }
+ *     { board:'wishes', action:'like', id, voter }
+ * ================================================================== */
+
+function wishDispatch_(data) {
+    /* Ловушка: скрытое поле, которое заполняют только боты. */
+    if (data.website) {
+        return { ok: true, ignored: true, moderated: !WISH_AUTO_APPROVE };
+    }
+
+    var action = String(data.action || 'add');
+    if (action === 'like') return wishLike_(data);
+    if (action !== 'add') return { ok: false, error: 'unknown_action' };
+
+    return wishAdd_(data);
+}
+
+
+function wishAdd_(data) {
+    var text = limit_(data.text, WISH_MAX_LEN);
+    if (text.length < 3) return { ok: false, error: 'bad_text' };
+
+    var kind = String(data.kind || 'idea');
+    if (WISH_KINDS.indexOf(kind) === -1) kind = 'idea';
+
+    var name = limit_(data.name, WISH_MAX_NAME);
+    var sheet = wishSheet_();
+    var values = sheet.getDataRange().getValues();
+    var index = headerIndex_(values[0] || []);
+
+    /* Одинаковые пожелания не плодим: второй раз просто отвечаем «уже есть». */
+    var normalized = wishNormalize_(text);
+    for (var row = 1; row < values.length; row++) {
+        if (wishNormalize_(values[row][index.text]) === normalized) {
+            return { ok: true, duplicate: true, moderated: !WISH_AUTO_APPROVE };
+        }
+    }
+
+    var recent = countRecent_(sheet);
+    if (recent.day >= WISH_MAX_PER_DAY) return { ok: false, error: 'too_many' };
+
+    /*
+     * Сразу публикуем только спокойный поток без ссылок. Всё подозрительное
+     * остаётся в таблице с approved = FALSE — на доску оно не попадёт,
+     * пока ты не поставишь TRUE.
+     *
+     * В счёт «сколько уже опубликовано за час» идут только видимые записи:
+     * иначе один спамер своим мусором вытеснял бы в карантин чужие
+     * нормальные пожелания.
+     */
+    var pinned = wishCountPublished_(sheet);
+    var instant = WISH_AUTO_APPROVE
+        && pinned.hour < WISH_BURST_PER_HOUR
+        && !wishRisky_(text);
+
+    var id = wishId_();
+    var today = Utilities.formatDate(new Date(), timezone_(), 'yyyy-MM-dd');
+
+    sheet.appendRow([
+        id,
+        wishSafe_(text, WISH_MAX_LEN),
+        wishSafe_(name, WISH_MAX_NAME),
+        kind,
+        0,
+        '',
+        today,
+        instant,
+        new Date()
+    ]);
+
+    if (!instant) return { ok: true, pending: true, moderated: true };
+
+    return {
+        ok: true,
+        moderated: false,
+        wish: {
+            id: id,
+            text: text,
+            name: name,
+            kind: kind,
+            likes: 0,
+            added: today
+        }
+    };
+}
+
+
+function wishLike_(data) {
+    var id = limit_(data.id, 40);
+    var voter = String(data.voter || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+    if (!id || voter.length < 6) return { ok: false, error: 'bad_vote' };
+
+    var sheet = wishSheet_();
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return { ok: false, error: 'not_found' };
+
+    var index = headerIndex_(values[0]);
+
+    for (var row = 1; row < values.length; row++) {
+        var line = values[row];
+        if (clean_(line[index.id]) !== id) continue;
+        if (!isApproved_(line[index.approved])) return { ok: false, error: 'not_found' };
+
+        var likes = Math.max(0, Number(line[index.likes]) || 0);
+        var stored = clean_(line[index.voters]);
+        var voters = stored ? stored.split(',') : [];
+
+        /* Один голос на устройство: повторный запрос только возвращает счёт. */
+        if (voters.indexOf(voter) !== -1) return { ok: true, already: true, likes: likes };
+
+        voters.push(voter);
+        if (voters.length > WISH_MAX_VOTERS) voters = voters.slice(-WISH_MAX_VOTERS);
+
+        likes += 1;
+        sheet.getRange(row + 1, index.likes + 1).setValue(likes);
+        sheet.getRange(row + 1, index.voters + 1).setValue(voters.join(','));
+
+        return { ok: true, likes: likes };
+    }
+
+    return { ok: false, error: 'not_found' };
+}
+
+
+function wishRead_() {
+    var sheet = wishSheet_();
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return [];
+
+    var index = headerIndex_(values[0]);
+    var items = [];
+
+    for (var row = 1; row < values.length; row++) {
+        var line = values[row];
+        if (!isApproved_(line[index.approved])) continue;
+
+        var text = clean_(line[index.text]);
+        if (!text) continue;
+
+        var kind = clean_(line[index.kind]);
+        if (WISH_KINDS.indexOf(kind) === -1) kind = 'idea';
+
+        items.push({
+            id: clean_(line[index.id]) || ('w' + row),
+            text: text.slice(0, WISH_MAX_LEN),
+            name: clean_(line[index.name]).slice(0, WISH_MAX_NAME),
+            kind: kind,
+            likes: Math.max(0, Number(line[index.likes]) || 0),
+            added: dateText_(line[index.added]),
+            _created: line[index.created],
+            _row: row
+        });
+    }
+
+    /*
+     * Свежие сверху. Время в таблице может совпасть до секунды, поэтому
+     * при равенстве смотрим на номер строки — она всегда растёт.
+     */
+    items.sort(function (a, b) {
+        var at = Object.prototype.toString.call(a._created) === '[object Date]' ? a._created.getTime() : 0;
+        var bt = Object.prototype.toString.call(b._created) === '[object Date]' ? b._created.getTime() : 0;
+        if (bt !== at) return bt - at;
+        return b._row - a._row;
+    });
+
+    items = items.slice(0, WISH_MAX_ITEMS);
+
+    for (var i = 0; i < items.length; i++) {
+        delete items[i]._created;
+        delete items[i]._row;
+    }
+    return items;
+}
+
+
+/* ------------------------------------------------------------------ лист пожеланий */
+
+function wishSheet_() {
+    var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+    if (!id) throw new Error('Сначала запусти setup()');
+
+    var ss = SpreadsheetApp.openById(id);
+    var sheet = ss.getSheetByName(WISH_SHEET_NAME);
+
+    if (!sheet || sheet.getLastRow() === 0) sheet = wishPrepare_(ss);
+    return sheet;
+}
+
+/* Готовит лист «Пожелания»: заголовки, ширины, закреплённая шапка. */
+function wishPrepare_(ss) {
+    var sheet = ss.getSheetByName(WISH_SHEET_NAME);
+    if (!sheet) sheet = ss.insertSheet(WISH_SHEET_NAME);
+    if (sheet.getLastRow() > 0) return sheet;
+
+    sheet.appendRow(WISH_HEADERS);
+    sheet.getRange(1, 1, 1, WISH_HEADERS.length)
+        .setFontWeight('bold')
+        .setBackground('#1a1208')
+        .setFontColor('#e3bd8c');
+    sheet.setFrozenRows(1);
+
+    var widths = [120, 520, 150, 110, 80, 320, 100, 90, 160];
+    for (var i = 0; i < widths.length; i++) {
+        sheet.setColumnWidth(i + 1, widths[i]);
+    }
+
+    return sheet;
+}
+
+
+/* ------------------------------------------------------------------ защита */
+
+/*
+ * Сколько пожеланий реально видно на доске за последний час.
+ * Отдельно от countRecent_: тот считает все строки, включая карантин.
+ */
+function wishCountPublished_(sheet) {
+    var values = sheet.getDataRange().getValues();
+    var result = { hour: 0 };
+    if (values.length < 2) return result;
+
+    var index = headerIndex_(values[0]);
+    var hourAgo = new Date().getTime() - 60 * 60 * 1000;
+
+    for (var row = 1; row < values.length; row++) {
+        var line = values[row];
+        if (!isApproved_(line[index.approved])) continue;
+
+        var created = line[index.created];
+        if (Object.prototype.toString.call(created) !== '[object Date]') continue;
+        if (isNaN(created.getTime())) continue;
+
+        if (created.getTime() >= hourAgo) result.hour += 1;
+    }
+
+    return result;
+}
+
+/*
+ * Что сразу отправляем в карантин:
+ *   • ссылки и почту — обычный канал рекламы;
+ *   • длинные цепочки одинаковых символов — «аааааааааа» и спам-заборы;
+ *   • текст, где больше половины символов — заглавные или знаки.
+ */
+function wishRisky_(text) {
+    if (/(https?:\/\/|www\.)/i.test(text)) return true;
+    if (/[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(text)) return true;
+    if (/(.)\1{9,}/.test(text)) return true;
+
+    var letters = text.replace(/[^A-Za-zА-Яа-яЁё]/g, '');
+    if (letters.length >= 40) {
+        var caps = letters.replace(/[^A-ZА-ЯЁ]/g, '').length;
+        if (caps / letters.length > 0.6) return true;
+    }
+
+    return false;
+}
+
+/* Сравнение «то же самое пожелание»: регистр, лишние пробелы и знаки не важны. */
+function wishNormalize_(value) {
+    return String(value == null ? '' : value)
+        .toLowerCase()
+        .replace(/[ё]/g, 'е')
+        .replace(/[^a-zа-я0-9]+/g, ' ')
+        .trim()
+        .slice(0, 400);
+}
+
+function wishId_() {
+    return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+/* Как safe_, но с собственным лимитом: текст пожелания длиннее 200 символов. */
+function wishSafe_(value, max) {
+    var text = limit_(value, max);
+    return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
