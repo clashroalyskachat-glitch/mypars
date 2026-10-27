@@ -1,14 +1,14 @@
 /*
  * Доска пожеланий - адрес «сервера».
  *
- * Пожелания живут в той же Google Таблице, что и книги, и обслуживаются тем же
- * скриптом (library/backend/Code.gs). Поэтому адрес тот же, что в books.js:
- * отдельная настройка не нужна.
+ * Это отдельный проект Apps Script с отдельной таблицей (лист «Пожелания»).
+ * Библиотека осталась на своём старом адресе в books.js — два проекта
+ * не мешают друг другу.
  *
- * Если когда-нибудь захочешь вынести доску в отдельный проект Apps Script,
- * просто вставь сюда ссылку вида
+ * Адрес вида
  *     https://script.google.com/macros/s/.../exec
- * и запушь файл. Пустая строка выключит отправку (доска станет только для чтения).
+ * меняется только если пересоздать развёртывание. Пустая строка выключает
+ * отправку: доска станет только для чтения.
  */
 
-window.WISHES_API = 'https://script.google.com/macros/s/AKfycbzd-umyqXbrKzvVQwPAuaEhxHql5F-kgzC8wo6TZUjjM1Q2czhvOAlZrVSPQ_A5Eqn-/exec';
+window.WISHES_API = 'https://script.google.com/macros/s/AKfycbwjXUWpCRwCPt2dmWxzq-y9xW-kIu5wM8cH7WeFZoxspd8ncQCVkc_kT9EM83XS654j/exec';
