@@ -4,6 +4,8 @@
  * Один скрипт обслуживает две вещи, у них общая таблица и один адрес /exec:
  *   • библиотеку  — лист «Книги»     (action=list,   POST без board)
  *   • доску пожеланий — лист «Пожелания» (action=wishes, POST board=wishes)
+ *   • админку     — удаление и модерация (POST board=admin, пароль в
+ *                   свойствах скрипта, см. раздел «АДМИНКА» внизу файла)
  *
  * Это бесплатный «сервер»: сайт на GitHub Pages не умеет сохранять данные,
  * поэтому записи складываются в Google Таблицу, а этот скрипт отдаёт их сайту.
@@ -149,6 +151,13 @@ function setup() {
     /* Лист доски пожеланий заводим заодно: он нужен и сайту, и тебе. */
     wishPrepare_(ss);
 
+    /* Админ-пароль: генерируем один раз, если его ещё нет. */
+    if (!props.getProperty(ADMIN_PROP)) {
+        var generated = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+        props.setProperty(ADMIN_PROP, generated);
+        Logger.log('Админ-пароль (сохрани его): ' + generated);
+    }
+
     Logger.log('Таблица готова: ' + ss.getUrl());
     Logger.log('Книги: лист «' + SHEET_NAME + '», пожелания: лист «' + WISH_SHEET_NAME + '»');
     return ss.getUrl();
@@ -190,6 +199,11 @@ function doPost(e) {
         lock.waitLock(15000);
 
         var data = parseBody_(e);
+
+        /* Админка: удаление и модерация. Пароль проверяется на сервере. */
+        if (String(data.board || '') === 'admin') {
+            return respond_(adminDispatch_(data), e);
+        }
 
         /* Запросы доски пожеланий помечены полем board. */
         if (String(data.board || '') === 'wishes') {
@@ -762,5 +776,228 @@ function wishId_() {
 function wishSafe_(value, max) {
     var text = limit_(value, max);
     return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+
+/* ==================================================================
+ * АДМИНКА
+ *
+ * Страница /mypars/wishes/admin.html умеет удалять пожелания и книги
+ * и прятать/показывать их. Пароль хранится ТОЛЬКО в свойствах скрипта
+ * (Script Properties) — ни в репозитории, ни на странице его нет.
+ *
+ * Как включить (один раз):
+ *   1. Запусти setAdminKey('свой-пароль')  —  или setup(), он сам
+ *      сгенерирует случайный и напишет его в журнал выполнения.
+ *   2. Разверни новую версию: Развернуть → Управление развёртываниями →
+ *      карандаш → Версия: новая.
+ *   3. Открой /mypars/wishes/admin.html и введи пароль.
+ *
+ * Оговорка: у Apps Script нет доступа к IP клиента, поэтому счётчик
+ * неверных попыток общий. После ADMIN_MAX_TRY ошибок админка закрывается
+ * для всех на ADMIN_LOCK_MS — перебор просто не успеет.
+ * ================================================================== */
+
+var ADMIN_PROP = 'ADMIN_KEY';
+var ADMIN_FAIL_PROP = 'ADMIN_FAIL';
+var ADMIN_MAX_TRY = 8;
+var ADMIN_LOCK_MS = 10 * 60 * 1000;
+
+/**
+ * Задаёт админский пароль. Запусти один раз, подставив свой пароль:
+ *   setAdminKey('мой-надёжный-пароль')
+ */
+function setAdminKey(key) {
+    var value = String(key == null ? '' : key).trim();
+    if (value.length < 6) {
+        throw new Error('Пароль должен быть не короче 6 символов');
+    }
+
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty(ADMIN_PROP, value);
+    props.deleteProperty(ADMIN_FAIL_PROP);
+
+    Logger.log('Админ-пароль сохранён в свойствах скрипта (в репозитории его нет).');
+    return 'ok';
+}
+
+function adminStoredKey_() {
+    return String(PropertiesService.getScriptProperties().getProperty(ADMIN_PROP) || '').trim();
+}
+
+function adminFailState_() {
+    try {
+        var raw = PropertiesService.getScriptProperties().getProperty(ADMIN_FAIL_PROP);
+        var data = raw ? JSON.parse(raw) : null;
+        if (!data || typeof data !== 'object') return { n: 0, until: 0 };
+        return { n: Number(data.n) || 0, until: Number(data.until) || 0 };
+    } catch (error) {
+        return { n: 0, until: 0 };
+    }
+}
+
+function adminSaveFail_(state) {
+    PropertiesService.getScriptProperties().setProperty(ADMIN_FAIL_PROP, JSON.stringify(state));
+}
+
+function adminCheck_(key) {
+    var stored = adminStoredKey_();
+
+    /* Пароль не задан - админка закрыта всегда, а не «на всякий случай». */
+    if (!stored) return { ok: false, error: 'no_key' };
+
+    var fail = adminFailState_();
+    var now = new Date().getTime();
+
+    if (fail.until > now) {
+        return { ok: false, error: 'locked', minutes: Math.ceil((fail.until - now) / 60000) };
+    }
+
+    var given = String(key == null ? '' : key);
+    if (given === stored) {
+        adminSaveFail_({ n: 0, until: 0 });
+        return { ok: true };
+    }
+
+    fail.n += 1;
+
+    if (fail.n >= ADMIN_MAX_TRY) {
+        adminSaveFail_({ n: 0, until: now + ADMIN_LOCK_MS });
+        return { ok: false, error: 'locked', minutes: Math.ceil(ADMIN_LOCK_MS / 60000) };
+    }
+
+    adminSaveFail_({ n: fail.n, until: 0 });
+    return { ok: false, error: 'bad_key', tries_left: ADMIN_MAX_TRY - fail.n };
+}
+
+
+function adminDispatch_(data) {
+    var auth = adminCheck_(data.key);
+
+    if (!auth.ok) {
+        var answer = { ok: false, error: auth.error };
+        if (auth.minutes) answer.minutes = auth.minutes;
+        if (auth.tries_left != null) answer.tries_left = auth.tries_left;
+        return answer;
+    }
+
+    var op = String(data.op || 'list');
+    var target = String(data.target || 'wishes');
+
+    if (op === 'list') {
+        return { ok: true, items: target === 'books' ? adminListBooks_() : adminListWishes_() };
+    }
+
+    /* Сначала операция, потом id: иначе опечатка в op выглядит как «пустой id». */
+    if (op !== 'delete' && op !== 'set') {
+        return { ok: false, error: 'unknown_op' };
+    }
+
+    var id = limit_(data.id, 60);
+    if (!id) return { ok: false, error: 'bad_id' };
+
+    if (op === 'delete') return adminDelete_(target, id);
+
+    return adminSet_(target, id, data.value);
+}
+
+
+function adminSheet_(target) {
+    return target === 'books' ? openSheet_() : wishSheet_();
+}
+
+function adminListWishes_() {
+    var sheet = adminSheet_('wishes');
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return [];
+
+    var index = headerIndex_(values[0]);
+    var items = [];
+
+    for (var row = 1; row < values.length; row++) {
+        var line = values[row];
+        var text = clean_(line[index.text]);
+        if (!text && !clean_(line[index.id])) continue;
+
+        items.push({
+            row: row + 1,
+            id: clean_(line[index.id]),
+            text: text.slice(0, WISH_MAX_LEN),
+            name: clean_(line[index.name]),
+            kind: clean_(line[index.kind]),
+            likes: Math.max(0, Number(line[index.likes]) || 0),
+            approved: isApproved_(line[index.approved]),
+            added: dateText_(line[index.added])
+        });
+    }
+
+    items.sort(function (a, b) { return b.row - a.row; });
+    return items;
+}
+
+function adminListBooks_() {
+    var sheet = adminSheet_('books');
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return [];
+
+    var index = headerIndex_(values[0]);
+    var items = [];
+
+    for (var row = 1; row < values.length; row++) {
+        var line = values[row];
+        var title = clean_(line[index.title]);
+        var driveId = clean_(line[index.driveId]);
+        if (!title && !driveId) continue;
+
+        items.push({
+            row: row + 1,
+            id: clean_(line[index.id]) || ('drive-' + driveId),
+            title: title.slice(0, 160),
+            author: clean_(line[index.author]).slice(0, 160),
+            subject: clean_(line[index.subject]).slice(0, 80),
+            driveId: driveId,
+            approved: isApproved_(line[index.approved]),
+            added: dateText_(line[index.added])
+        });
+    }
+
+    items.sort(function (a, b) { return b.row - a.row; });
+    return items;
+}
+
+/* Находит строку по id и возвращает её позицию (нумерация с 1). */
+function adminFindRow_(sheet, id) {
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return null;
+
+    var index = headerIndex_(values[0]);
+
+    for (var row = 1; row < values.length; row++) {
+        if (clean_(values[row][index.id]) === id) {
+            return { row: row + 1, index: index };
+        }
+    }
+
+    return null;
+}
+
+function adminDelete_(target, id) {
+    var sheet = adminSheet_(target);
+    var found = adminFindRow_(sheet, id);
+    if (!found) return { ok: false, error: 'not_found' };
+
+    sheet.deleteRow(found.row);
+    return { ok: true, deleted: id };
+}
+
+function adminSet_(target, id, value) {
+    var sheet = adminSheet_(target);
+    var found = adminFindRow_(sheet, id);
+    if (!found) return { ok: false, error: 'not_found' };
+
+    var approved = value === true || value === 'true' || value === 1;
+    sheet.getRange(found.row, found.index.approved + 1).setValue(approved);
+
+    return { ok: true, id: id, approved: approved };
 }
 
