@@ -43,14 +43,39 @@
         return String(window.WISHES_API || '').trim();
     }
 
-    function readToken() {
-        try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+    /*
+     * Токен и пользователь пишутся в localStorage одним куском:
+     * при открытии страницы ник виден сразу, без запроса к серверу.
+     * Сервер всё равно проверяет токен на каждую запись — это просто
+     * про скорость первого экрана.
+     */
+    function readSession() {
+        try {
+            var raw = localStorage.getItem(TOKEN_KEY);
+            if (!raw) return { token: '', user: null };
+
+            if (raw.charAt(0) === '{') {
+                var data = JSON.parse(raw);
+                return {
+                    token: String((data && data.t) || ''),
+                    user: data && data.u && data.u.nick ? data.u : null
+                };
+            }
+
+            /* Старый формат — голый токен: сверимся с сервером один раз. */
+            return { token: raw, user: null };
+        } catch (e) {
+            return { token: '', user: null };
+        }
     }
 
-    function writeToken(value) {
+    function writeSession() {
         try {
-            if (value) localStorage.setItem(TOKEN_KEY, value);
-            else localStorage.removeItem(TOKEN_KEY);
+            if (!state.token) {
+                localStorage.removeItem(TOKEN_KEY);
+                return;
+            }
+            localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: state.token, u: state.user }));
         } catch (e) { /* приватный режим */ }
     }
 
@@ -108,23 +133,39 @@
     function setUser(tokenValue, user) {
         state.token = tokenValue || '';
         state.user = user || null;
-        writeToken(state.token);
+        writeSession();
         render();
         emit();
     }
 
     function restore() {
-        var saved = readToken();
-        if (!saved) {
-            render();
+        var saved = readSession();
+        state.token = saved.token;
+        state.user = saved.user;
+        render();
+
+        /*
+         * Ник есть — вход показан мгновенно и никуда больше не лезем.
+         * Нет ника (старый формат токена) — сверяемся один раз.
+         */
+        if (state.token && state.user) {
+            emit();
             return Promise.resolve();
         }
 
-        state.token = saved;
+        if (!state.token) {
+            emit();
+            return Promise.resolve();
+        }
 
         return call({ op: 'me' }).then(function (data) {
-            if (data && data.ok && data.user) state.user = data.user;
-            else setUser('', null);
+            if (data && data.ok && data.user) {
+                state.user = data.user;
+                writeSession();
+            } else {
+                setUser('', null);
+                return;
+            }
         }).catch(function () {
             /* Нет связи: остаёмся «не вошедшим», но токен не выбрасываем. */
             state.user = null;

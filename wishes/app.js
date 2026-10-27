@@ -276,13 +276,18 @@
     function getWishes() {
         var url = api() + (api().indexOf('?') === -1 ? '?' : '&') + 'action=wishes';
 
-        return jsonp(url, 15000).catch(function () {
-            return fetchWithTimeout(url, { method: 'GET', redirect: 'follow' }, 15000)
-                .then(function (response) {
-                    if (!response.ok) throw new Error('HTTP ' + response.status);
-                    return response.json();
-                });
-        });
+        /*
+         * Сначала обычный fetch: он короче, чем создание <script> для JSONP.
+         * Если вдруг не дадут прочитать ответ — JSONP как запасной путь.
+         */
+        return fetchWithTimeout(url, { method: 'GET', redirect: 'follow' }, 15000)
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .catch(function () {
+                return jsonp(url, 15000);
+            });
     }
 
     /*
@@ -373,10 +378,31 @@
     }
 
     function cacheWishes() {
-        writeJSON(KEYS.cache, { wishes: state.wishes, moderated: state.moderated });
+        writeJSON(KEYS.cache, {
+            wishes: state.wishes,
+            moderated: state.moderated,
+            authRequired: state.authRequired
+        });
     }
 
     function load() {
+        var cached = readJSON(KEYS.cache, null);
+        var haveCache = !!(cached && Array.isArray(cached.wishes) && cached.wishes.length);
+
+        /*
+         * Копия из прошлого визита показывается сразу: страница полезная
+         * с первой секунды, а сеть потом просто обновляет список в фоне.
+         * Скелетон оставляем только для самого первого открытия.
+         */
+        if (haveCache) {
+            state.wishes = cached.wishes.map(normalizeWish);
+            state.moderated = cached.moderated === true;
+            state.authRequired = cached.authRequired === true;
+            state.status = 'ready';
+            state.error = '';
+            render();
+        }
+
         if (!isShared()) {
             state.status = 'error';
             state.error = 'no-api';
@@ -384,8 +410,10 @@
             return Promise.resolve();
         }
 
-        state.status = 'loading';
-        render();
+        if (!haveCache) {
+            state.status = 'loading';
+            render();
+        }
 
         return getWishes().then(function (data) {
             /*
@@ -410,14 +438,9 @@
             cacheWishes();
             render();
         }).catch(function (error) {
-            var cached = readJSON(KEYS.cache, null);
-
-            if (cached && Array.isArray(cached.wishes) && cached.wishes.length) {
-                state.wishes = cached.wishes.map(normalizeWish);
-                state.moderated = cached.moderated === true;
-                state.status = 'ready';
+            /* Сеть не ответила, а копия уже на экране — молча живём на ней. */
+            if (haveCache) {
                 render();
-                toast('Нет связи — показана сохранённая копия доски');
                 return;
             }
 
