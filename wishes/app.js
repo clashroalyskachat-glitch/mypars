@@ -913,6 +913,9 @@
 
     /* ------------------------------------------------------------- тема */
 
+    /* Общий ключ темы на меню, библиотеку и эту страницу. */
+    var THEME_KEY = 'nkse-theme';
+
     function paintTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
 
@@ -920,13 +923,40 @@
         if (meta) meta.setAttribute('content', theme === 'dark' ? '#08080a' : '#e9e5dd');
     }
 
+    function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+
+    function readTheme() {
+        try {
+            var value = localStorage.getItem(THEME_KEY);
+            if (value !== 'dark' && value !== 'light') value = localStorage.getItem(KEYS.theme);
+            return value === 'light' ? 'light' : 'dark';
+        } catch (e) {
+            return currentTheme();
+        }
+    }
+
+    function writeTheme(theme) {
+        writeString(THEME_KEY, theme);
+        writeString(KEYS.theme, theme);   /* старый ключ - для закэшированных версий */
+    }
+
     function initTheme() {
+        /* Другая открытая вкладка переключается сразу, без перезагрузки. */
+        window.addEventListener('storage', function (event) {
+            if (event.key === THEME_KEY || event.key === KEYS.theme) {
+                var next = readTheme();
+                if (next !== currentTheme()) paintTheme(next);
+            }
+        });
+
         if (!el.themeBtn) return;
 
         el.themeBtn.addEventListener('click', function () {
-            var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            var next = currentTheme() === 'dark' ? 'light' : 'dark';
             paintTheme(next);
-            writeString(KEYS.theme, next);
+            writeTheme(next);
         });
     }
 

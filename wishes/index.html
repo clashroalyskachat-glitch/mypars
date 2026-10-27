@@ -12,15 +12,23 @@
 
     <script>
         /*
-         * Тема до первой отрисовки: по умолчанию тёмная, светлая —
-         * только если её выбрали кнопкой. Иначе при загрузке виден
-         * светлый кадр и страница «прыгает».
+         * Тема до первой отрисовки: общая для меню, библиотеки и этой
+         * страницы ('nkse-theme'), по умолчанию тёмная. Иначе при загрузке
+         * виден светлый кадр и страница «прыгает». Старый ключ
+         * 'wishes.theme' остаётся запасным и переносится в общий.
          */
         (function () {
             try {
-                if (localStorage.getItem('wishes.theme') === 'light') {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                }
+                var shared = localStorage.getItem('nkse-theme');
+                var value = shared || localStorage.getItem('wishes.theme');
+                var light = value === 'light';
+
+                document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
+
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', light ? '#e9e5dd' : '#08080a');
+
+                if (!shared && value) localStorage.setItem('nkse-theme', value);
             } catch (e) { /* приватный режим — остаёмся на тёмной */ }
         })();
     </script>
@@ -191,6 +199,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="api.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

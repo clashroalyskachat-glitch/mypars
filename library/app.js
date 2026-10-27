@@ -917,20 +917,44 @@
 
     /* ------------------------------------------------------------- тема */
 
+    /* Общий ключ темы на меню, библиотеку и доску пожеланий. */
+    var THEME_KEY = 'nkse-theme';
+
     function currentTheme() {
         return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    function readTheme() {
+        try {
+            var value = localStorage.getItem(THEME_KEY);
+            if (value !== 'dark' && value !== 'light') value = localStorage.getItem(KEYS.theme);
+            return value === 'light' ? 'light' : 'dark';
+        } catch (e) {
+            return currentTheme();
+        }
     }
 
     function applyTheme(theme, remember) {
         document.documentElement.setAttribute('data-theme', theme);
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute('content', theme === 'dark' ? '#08080a' : '#e9e5dd');
-        if (remember) store(KEYS.theme, theme);
+        if (remember) {
+            store(THEME_KEY, theme);
+            store(KEYS.theme, theme);   /* старый ключ - для закэшированных версий */
+        }
     }
 
     el.themeBtn.addEventListener('click', function () {
         var next = currentTheme() === 'dark' ? 'light' : 'dark';
         applyTheme(next, true);
+    });
+
+    /* Другая открытая вкладка переключается сразу, без перезагрузки. */
+    window.addEventListener('storage', function (event) {
+        if (event.key === THEME_KEY || event.key === KEYS.theme) {
+            var next = readTheme();
+            if (next !== currentTheme()) applyTheme(next, false);
+        }
     });
 
     /* ------------------------------------------------------------- добавление */

@@ -25,15 +25,22 @@
          * светлый кадр, а потом всё прыгает в тёмный - это читается как
          * "сайт дёргается", хотя анимаций ещё нет.
          *
-         * Основная тема - тёмная. Светлая включается только если её
-         * выбрали кнопкой раньше: системную настройку не слушаем.
+         * Тема общая для меню, библиотеки и доски пожеланий ('nkse-theme').
+         * Старый ключ 'library.theme' остаётся запасным и переносится в
+         * общий. Расписание сюда не входит: у него свои пресеты.
          */
         (function () {
             try {
-                var saved = localStorage.getItem('library.theme');
-                if (saved === 'dark' || saved === 'light') {
-                    document.documentElement.setAttribute('data-theme', saved);
-                }
+                var shared = localStorage.getItem('nkse-theme');
+                var saved = shared || localStorage.getItem('library.theme');
+                var light = saved === 'light';
+
+                document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
+
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', light ? '#e9e5dd' : '#08080a');
+
+                if (!shared && saved) localStorage.setItem('nkse-theme', saved);
             } catch (e) { /* приватный режим - остаёмся на тёмной */ }
         })();
     </script>
@@ -268,6 +275,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="books.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
