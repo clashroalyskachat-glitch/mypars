@@ -11,4 +11,4 @@
  * отправку: доска станет только для чтения.
  */
 
-window.WISHES_API = 'https://script.google.com/macros/s/AKfycbwjXUWpCRwCPt2dmWxzq-y9xW-kIu5wM8cH7WeFZoxspd8ncQCVkc_kT9EM83XS654j/exec';
+window.WISHES_API = 'https://script.google.com/macros/s/AKfycbx4m8Wb2uHIpUhC1LVqNCU5JaR0h6b8bw70RTvSnZtiMD6mo_hlLWhC83bWcKNzOTMV/exec';
