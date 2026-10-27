@@ -77,7 +77,30 @@
         </p>
     </section>
 
-    <section class="wrap composer-section" aria-label="Оставить пожелание">
+    <section class="wrap board-tools" aria-label="Фильтры доски">
+        <div class="filters" id="filters" role="group" aria-label="Показать только"></div>
+
+        <div class="tools-right">
+            <label class="sort">
+                <span class="sr-only">Сортировка</span>
+                <select id="sort">
+                    <option value="new">Сначала новые</option>
+                    <option value="likes">Сначала популярные</option>
+                </select>
+            </label>
+
+            <button class="btn btn-solid add-btn" id="add-btn" type="button"
+                    aria-expanded="false" aria-controls="composer-section">
+                <svg class="add-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span id="add-btn-label">Добавить пожелание</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="wrap composer-section" id="composer-section" hidden aria-label="Оставить пожелание">
         <form class="composer" id="composer" novalidate>
             <span class="stitch" aria-hidden="true"></span>
 
@@ -123,17 +146,6 @@
         </form>
     </section>
 
-    <section class="wrap board-tools" aria-label="Фильтры доски">
-        <div class="filters" id="filters" role="group" aria-label="Показать только"></div>
-        <label class="sort">
-            <span class="sr-only">Сортировка</span>
-            <select id="sort">
-                <option value="new">Сначала новые</option>
-                <option value="likes">Сначала популярные</option>
-            </select>
-        </label>
-    </section>
-
     <section class="wrap board-section">
         <div class="board">
             <span class="rivet rivet-tl" aria-hidden="true"></span>
@@ -158,6 +170,7 @@
                 </div>
                 <h2 id="empty-title">Доска пока пустая</h2>
                 <p id="empty-text">Стань первым — напиши, что хочется изменить.</p>
+                <button class="btn btn-solid" id="empty-btn" type="button">Написать пожелание</button>
             </div>
         </div>
     </section>

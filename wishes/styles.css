@@ -514,7 +514,22 @@ main,
 
 /* ------------------------------------------------------------------ форма */
 
-.composer-section { padding-bottom: clamp(1.6rem, 3.4vw, 2.4rem); }
+/*
+ * Форма не занимает место, пока её не открыли: главный экран — доска.
+ * Кнопка над доской разворачивает панель и прячет её обратно.
+ */
+.composer-section {
+    padding-bottom: clamp(1.4rem, 3vw, 2.2rem);
+    animation: rise .5s var(--ease) both;
+}
+
+.composer-section.is-closing {
+    animation: sink .22s var(--ease) both;
+}
+
+@keyframes sink {
+    to { opacity: 0; transform: translateY(-8px); }
+}
 
 .composer {
     position: relative;
@@ -732,7 +747,7 @@ main,
     justify-content: space-between;
     gap: 14px;
     flex-wrap: wrap;
-    padding-bottom: 16px;
+    padding-bottom: 18px;
 }
 
 .filters {
@@ -740,6 +755,31 @@ main,
     gap: 8px;
     flex-wrap: wrap;
     flex: 1 1 auto;
+}
+
+.tools-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* кнопка «Добавить пожелание»: форма спрятана, пока её не открыли */
+.add-btn {
+    min-height: 36px;
+    padding: 0 17px;
+    font-size: .83rem;
+    letter-spacing: .01em;
+}
+
+.add-btn-icon {
+    width: 15px;
+    height: 15px;
+    transition: transform .45s var(--ease);
+}
+
+.add-btn[aria-expanded="true"] .add-btn-icon {
+    transform: rotate(45deg);
 }
 
 .filter {
@@ -1177,6 +1217,8 @@ main,
     max-width: 34ch;
 }
 
+.board-empty .btn { margin-top: 12px; }
+
 /* ------------------------------------------------------------------ подвал */
 
 .footer {
@@ -1243,7 +1285,6 @@ main,
 /* ------------------------------------------------------------------ появление */
 
 .hero > *,
-.composer,
 .board-tools,
 .board {
     animation: rise .9s var(--ease) backwards;
@@ -1253,7 +1294,6 @@ main,
 .hero .hero-title { animation-delay: 90ms; }
 .hero .hero-lede { animation-delay: 150ms; }
 .hero .hero-meta { animation-delay: 200ms; }
-.composer { animation-delay: 250ms; }
 .board-tools { animation-delay: 310ms; }
 .board { animation-delay: 360ms; }
 
@@ -1304,6 +1344,16 @@ main,
     .notes { columns: 1; }
     .board-loading { grid-template-columns: 1fr; }
 
+    .tools-right {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .sort select,
+    .add-btn { width: 100%; }
+
     .board { border-radius: 20px; }
     .board::before { inset: 10px; border-radius: 14px; }
     .rivet { width: 11px; height: 11px; }
@@ -1330,7 +1380,7 @@ main,
     .slip-skeleton { animation: none; }
 
     .hero > *,
-    .composer,
+    .composer-section,
     .board-tools,
     .board,
     .note {

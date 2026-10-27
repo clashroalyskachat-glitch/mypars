@@ -42,6 +42,9 @@
         heroCount: document.getElementById('hero-count'),
 
         form: document.getElementById('composer'),
+        section: document.getElementById('composer-section'),
+        addBtn: document.getElementById('add-btn'),
+        addLabel: document.getElementById('add-btn-label'),
         text: document.getElementById('text'),
         name: document.getElementById('name'),
         kinds: document.getElementById('kinds'),
@@ -60,6 +63,7 @@
         empty: document.getElementById('empty'),
         emptyTitle: document.getElementById('empty-title'),
         emptyText: document.getElementById('empty-text'),
+        emptyBtn: document.getElementById('empty-btn'),
 
         toast: document.getElementById('toast'),
         year: document.getElementById('year')
@@ -72,7 +76,8 @@
         filter: 'all',
         sort: 'new',
         kind: 'idea',
-        moderated: false
+        moderated: false,
+        composerOpen: false
     };
 
     var toastTimer = null;
@@ -626,13 +631,78 @@
         syncComposerNote();
     }
 
-    function syncComposerNote() {
-        if (!el.note) return;
+    /* Писать можно, только если доска реально подключена. */
+    function isBlocked() {
+        return !isShared() || state.error === 'not-ready' || state.error === 'no-api';
+    }
 
-        var blocked = !isShared() || state.error === 'not-ready' || state.error === 'no-api';
+    /*
+     * Панель письма спрятана за кнопкой: главный экран — доска.
+     * Открытие показывает форму и ставит курсор, закрытие прячет её
+     * с короткой анимацией (при выключенных анимациях — сразу).
+     */
+    function setComposerOpen(open) {
+        if (!el.section || !el.addBtn) return;
+        if (open === state.composerOpen) return;
+
+        state.composerOpen = open;
+
+        if (open) {
+            el.section.classList.remove('is-closing');
+            el.section.hidden = false;
+            el.addBtn.setAttribute('aria-expanded', 'true');
+            if (el.addLabel) el.addLabel.textContent = 'Свернуть';
+
+            try {
+                el.section.scrollIntoView({
+                    behavior: reduced ? 'auto' : 'smooth',
+                    block: 'nearest'
+                });
+            } catch (e) { /* старый браузер */ }
+
+            if (el.text) {
+                try { el.text.focus({ preventScroll: true }); }
+                catch (e) { el.text.focus(); }
+            }
+            return;
+        }
+
+        el.addBtn.setAttribute('aria-expanded', 'false');
+        if (el.addLabel) el.addLabel.textContent = 'Добавить пожелание';
+
+        function hide() {
+            el.section.hidden = true;
+            el.section.classList.remove('is-closing');
+            el.section.removeEventListener('animationend', hide);
+        }
+
+        if (reduced) {
+            hide();
+            return;
+        }
+
+        el.section.classList.add('is-closing');
+        el.section.addEventListener('animationend', hide);
+
+        /* Запасной путь: если события анимации не будет, форма всё равно спрячется. */
+        setTimeout(function () {
+            if (!state.composerOpen && !el.section.hidden) hide();
+        }, 340);
+    }
+
+    function syncComposerNote() {
+        var blocked = isBlocked();
 
         if (el.submit) el.submit.disabled = blocked;
 
+        if (el.addBtn) {
+            el.addBtn.disabled = blocked;
+            if (blocked && state.composerOpen) setComposerOpen(false);
+        }
+
+        if (el.emptyBtn) el.emptyBtn.disabled = blocked;
+
+        if (!el.note) return;
         if (blocked) {
             el.note.textContent = 'Доска пока не подключена — писать пока нельзя.';
             return;
@@ -802,6 +872,7 @@
 
                 cacheWishes();
                 render();
+                setComposerOpen(false);
 
                 el.text.value = '';
                 syncCounter();
@@ -892,6 +963,26 @@
         }
 
         if (el.form) el.form.addEventListener('submit', submitWish);
+
+        if (el.addBtn) {
+            el.addBtn.addEventListener('click', function () {
+                if (isBlocked()) {
+                    toast('Доска пока не подключена');
+                    return;
+                }
+                setComposerOpen(!state.composerOpen);
+            });
+        }
+
+        if (el.emptyBtn) {
+            el.emptyBtn.addEventListener('click', function () {
+                if (isBlocked()) {
+                    toast('Доска пока не подключена');
+                    return;
+                }
+                setComposerOpen(true);
+            });
+        }
 
         if (el.topbar) {
             var onScroll = function () {
