@@ -10,6 +10,10 @@ on:
     # NB: cron is UTC (GitHub Actions). Moscow = UTC+3.
     # Times avoid the :00 slot on purpose - GitHub delays scheduled runs
     # most heavily on the hour, by 15-60 minutes.
+    #
+    # Каждые 30 минут: :15 и :45 МСК. Это основной ритм - расписание
+    # не должно отставать больше чем на полчаса.
+    - cron: '15,45 * * * *'
     - cron: '7 23 * * *'    # 02:07 МСК - ночной, ловит правки на следующий день
     - cron: '25 6 * * *'    # 09:25 МСК - за 5 мин до конца 1-й пары (09:30)
     - cron: '55 7 * * *'    # 10:55 МСК - за 5 мин до конца 2-й пары (11:00)
