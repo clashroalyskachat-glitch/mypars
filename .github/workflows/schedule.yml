@@ -14,8 +14,6 @@ on:
     # расписание не меняется, а лишние прогоны только раздражают GitHub
     # и повышают шанс, что он начнёт резать запуски.
     - cron: '*/5 3-17 * * *'
-    # ВРЕМЕННО: диагностика после пересоздания workflow.
-    - cron: '52,55 * * * *'
   workflow_dispatch: # Ручной запуск кнопкой в GitHub
 
 # Не запускать новый прогон, пока предыдущий ещё идёт
@@ -64,9 +62,9 @@ jobs:
 
   deploy:
     needs: update-schedule
-    # Плановый прогон деплоит, только если данные реально поменялись:
-    # иначе 288 публикаций в сутки - лишняя нагрузка на Pages.
-    if: github.event_name != 'schedule' || needs.update-schedule.outputs.changed == 'true'
+    # Пуш кода деплоим всегда. Плановый прогон и внешний пинг - только
+    # если данные реально поменялись, иначе это сотни пустых публикаций.
+    if: github.event_name == 'push' || needs.update-schedule.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

@@ -1371,3 +1371,92 @@ function adminSet_(target, id, value) {
     return { ok: true, id: id, approved: approved };
 }
 
+
+/* ==================================================================
+ * ПИНОК РАСПИСАНИЯ
+ *
+ * Планировщик GitHub на бесплатном тарифе отдаёт cron-запуски
+ * непредсказуемо: бывает, что за час не приходит ни одного, хотя cron
+ * стоит на «каждые 5 минут». Поэтому расписание дёргаем сами — из
+ * Apps Script, у которого есть свои таймеры.
+ *
+ * Один раз нужно:
+ *   1. Создать токен GitHub с правом Actions: write (или classic с repo).
+ *   2. Запустить setGitHubToken('токен').
+ *   3. Запустить installScheduleTrigger().
+ *
+ * Дальше каждые 5 минут скрипт дергает workflow расписания. Токен
+ * лежит в свойствах скрипта, в репозиторий он не попадает.
+ * Остановить: removeScheduleTrigger().
+ * ================================================================== */
+
+var GH_REPO = 'clashroalyskachat-glitch/mypars';
+var GH_WORKFLOW = 'schedule.yml';
+var GH_TOKEN_PROP = 'GITHUB_TOKEN';
+
+/**
+ * Запусти один раз: setGitHubToken('ghp_...')
+ */
+function setGitHubToken(token) {
+    var value = String(token == null ? '' : token).trim();
+    if (value.length < 20) throw new Error('Похоже, это не токен GitHub');
+
+    PropertiesService.getScriptProperties().setProperty(GH_TOKEN_PROP, value);
+    Logger.log('Токен сохранён в свойствах скрипта (в репозитории его нет).');
+    return 'ok';
+}
+
+/** Запусти один раз — включает проверку расписания каждые 5 минут. */
+function installScheduleTrigger() {
+    removeScheduleTrigger();
+
+    ScriptApp.newTrigger('nudgeSchedule')
+        .timeBased()
+        .everyMinutes(5)
+        .create();
+
+    Logger.log('Готово: расписание будет проверяться каждые 5 минут.');
+    return 'ok';
+}
+
+/** Выключает автоматическую проверку. */
+function removeScheduleTrigger() {
+    var triggers = ScriptApp.getProjectTriggers();
+    var removed = 0;
+
+    for (var i = 0; i < triggers.length; i++) {
+        if (triggers[i].getHandlerFunction() === 'nudgeSchedule') {
+            ScriptApp.deleteTrigger(triggers[i]);
+            removed += 1;
+        }
+    }
+
+    Logger.log('Удалено триггеров: ' + removed);
+    return removed;
+}
+
+/** Ставит в очередь один прогон workflow расписания. */
+function nudgeSchedule() {
+    var token = PropertiesService.getScriptProperties().getProperty(GH_TOKEN_PROP);
+    if (!token) return;
+
+    var url = 'https://api.github.com/repos/' + GH_REPO +
+        '/actions/workflows/' + GH_WORKFLOW + '/dispatches';
+
+    try {
+        UrlFetchApp.fetch(url, {
+            method: 'post',
+            contentType: 'application/json',
+            headers: {
+                Authorization: 'Bearer ' + token,
+                Accept: 'application/vnd.github+json',
+                'User-Agent': 'nkse-schedule'
+            },
+            payload: JSON.stringify({ ref: 'main' }),
+            muteHttpExceptions: true
+        });
+    } catch (error) {
+        /* Тихо: следующий тик через 5 минут попробует снова. */
+    }
+}
+
