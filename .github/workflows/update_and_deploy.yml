@@ -8,22 +8,12 @@ on:
       - main
   schedule:
     # NB: cron is UTC (GitHub Actions). Moscow = UTC+3.
-    # Times avoid the :00 slot on purpose - GitHub delays scheduled runs
-    # most heavily on the hour, by 15-60 minutes.
     #
-    # Каждые 30 минут: :15 и :45 МСК. Это основной ритм - расписание
-    # не должно отставать больше чем на полчаса.
-    - cron: '15,45 * * * *'
-    - cron: '7 23 * * *'    # 02:07 МСК - ночной, ловит правки на следующий день
-    - cron: '25 6 * * *'    # 09:25 МСК - за 5 мин до конца 1-й пары (09:30)
-    - cron: '55 7 * * *'    # 10:55 МСК - за 5 мин до конца 2-й пары (11:00)
-    - cron: '15 9 * * *'    # 12:15 МСК - за 5 мин до конца пары 12:20
-    - cron: '35 9 * * *'    # 12:35 МСК - за 5 мин до конца пары 12:40
-    - cron: '3 10 * * *'    # 13:03 МСК - доп. прогон после обеда
-    - cron: '25 11 * * *'   # 14:25 МСК - за 5 мин до конца 3-й пары (14:30)
-    - cron: '5 13 * * *'    # 16:05 МСК - за 5 мин до конца 4-й пары (16:10)
-    - cron: '3 14 * * *'    # 17:03 МСК - доп. прогон
-    - cron: '35 14 * * *'   # 17:35 МСК - за 5 мин до конца 5-й пары (17:40)
+    # Максимальная частота, которую GitHub вообще даёт, - каждые 5 минут.
+    # Более частый cron (* * * * *) он схлопывает и часть запусков теряет.
+    # Сетка сдвинута на 2 минуты: на :00 и :05 задержки самые большие,
+    # а так каждый запуск попадает на «спокойную» минуту.
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
   workflow_dispatch: # Ручной запуск кнопкой в GitHub
 
 # Не запускать новый прогон, пока предыдущий ещё идёт
@@ -39,6 +29,9 @@ permissions:
 jobs:
   update-schedule:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,14 +45,26 @@ jobs:
         run: python update_all_groups_v3.py
 
       - name: Commit and push if schedule changed
+        id: commit
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           git add schedule.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update schedule.json [skip ci]" && git push || echo "Push skipped")
+
+          if git diff --staged --quiet; then
+            echo "Расписание не изменилось"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "Auto-update schedule.json [skip ci]"
+            git push || echo "Push skipped"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
   deploy:
     needs: update-schedule
+    # Плановый прогон деплоит, только если данные реально поменялись:
+    # иначе 288 публикаций в сутки - лишняя нагрузка на Pages.
+    if: github.event_name != 'schedule' || needs.update-schedule.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
