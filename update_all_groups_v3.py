@@ -381,6 +381,14 @@ def main():
         print(f"[ERROR] Refusing to write: {new_count} lessons vs {old_count}. Keeping existing file.")
         sys.exit(1)
 
+    # Стабильный порядок групп. Результаты приходят из потоков в разном
+    # порядке, и без сортировки файл считался бы «изменённым» при каждом
+    # прогоне: лишние коммиты и передеплой сайта каждые 5 минут.
+    # (Меняем словарь на месте: master_schedule объявлен на уровне модуля.)
+    ordered = dict(sorted(master_schedule.items()))
+    master_schedule.clear()
+    master_schedule.update(ordered)
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(master_schedule, f, ensure_ascii=False, indent=2)
 
