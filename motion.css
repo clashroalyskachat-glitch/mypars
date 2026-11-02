@@ -1,8 +1,12 @@
 /*
  * Перетекающая подсветка активной вкладки в доке дней.
  *
- * Всё остальное оформление — из theme.css. Здесь только капсула,
- * которая летит от старой вкладки к новой и вытягивается в полёте.
+ * Всё оформление — из theme.css. Здесь только сама капсула: она течёт
+ * от старой вкладки к новой, вытягивается, а внутри неё движется блик,
+ * как по расплавленному золоту.
+ *
+ * Пока капсула летит, у ВСЕХ вкладок убирается фон: над золотом остаётся
+ * только текст, иначе чужие пилюли перекрывают поток.
  */
 
 #days-tabs {
@@ -17,15 +21,38 @@
     z-index: 0;
 
     border-radius: 999px;
-    background-color: var(--t-tab-active-bg, #c99a63);
-    border: 1px solid var(--t-tab-active-border, #e3bd8c);
+    border: 1px solid rgb(255 226 178 / .55);
+
+    background-color: #b9863f;
+    background-image: linear-gradient(
+        100deg,
+        #8a5a2b 0%,
+        #d9ab6e 14%,
+        #f7e3bd 28%,
+        #c99a63 42%,
+        #ffe9c6 58%,
+        #b07a3f 72%,
+        #e8c48c 86%,
+        #8a5a2b 100%
+    );
+    background-size: 320% 100%;
+    background-position: 0% 50%;
+
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / .26),
-        0 10px 22px -14px rgb(0 0 0 / .85);
+        inset 0 1px 0 rgb(255 255 255 / .45),
+        inset 0 -1px 0 rgb(90 55 20 / .45),
+        0 6px 20px -8px rgb(201 154 99 / .65),
+        0 12px 26px -18px rgb(0 0 0 / .9);
 
     pointer-events: none;
     opacity: 0;
     will-change: left, width, transform;
+    animation: gold-flow 1.1s linear infinite;
+}
+
+@keyframes gold-flow {
+    from { background-position: 0% 50%; }
+    to   { background-position: 320% 50%; }
 }
 
 #days-tabs .day-tab {
@@ -33,15 +60,26 @@
     z-index: 1;
 }
 
-/* пока капсула летит, у самой вкладки подсветку убираем — иначе двоится */
+/*
+ * Пока капсула летит, фон снимаем у всех вкладок — остаётся чистый текст.
+ * Селектор с лишним классом, чтобы перебить !important из theme.css.
+ */
+html[data-theme] #days-tabs.dock-moving .day-tab,
 html[data-theme] #days-tabs.dock-moving .day-tab.day-tab-active {
     background-color: transparent !important;
+    background-image: none !important;
     border-color: transparent !important;
+    box-shadow: none !important;
 }
 
-/* если в системе отключены анимации — просто без перелёта */
+/* в полёте подписи чуть плотнее — чтобы читались на золоте */
+html[data-theme] #days-tabs.dock-moving .day-tab {
+    color: color-mix(in srgb, var(--t-text) 88%, transparent) !important;
+    text-shadow: 0 1px 2px rgb(60 35 10 / .45);
+}
+
 @media (prefers-reduced-motion: reduce) {
     #days-tabs .dock-pill {
-        transition: none;
+        animation: none;
     }
 }
