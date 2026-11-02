@@ -17,7 +17,7 @@
  * from cache while the network is reachable.
  */
 
-const VERSION = 'nkse-v13';
+const VERSION = 'nkse-v14';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
@@ -27,8 +27,10 @@ const SHELL_ASSETS = [
     'app.js',
     'app.css',
     'theme.css',
+    'motion.css',
     'theme.js',
     'settings.js',
+    'motion.js',
     'assets/akashi-desktop.jpg',
     'assets/akashi-phone.jpg',
     'manifest.json',

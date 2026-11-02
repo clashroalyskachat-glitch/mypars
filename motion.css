@@ -1,0 +1,47 @@
+/*
+ * Перетекающая подсветка активной вкладки в доке дней.
+ *
+ * Всё остальное оформление — из theme.css. Здесь только капсула,
+ * которая летит от старой вкладки к новой и вытягивается в полёте.
+ */
+
+#days-tabs {
+    position: relative;
+}
+
+/* капсула живёт под подписями: текст вкладок всегда сверху */
+#days-tabs .dock-pill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+
+    border-radius: 999px;
+    background-color: var(--t-tab-active-bg, #c99a63);
+    border: 1px solid var(--t-tab-active-border, #e3bd8c);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / .26),
+        0 10px 22px -14px rgb(0 0 0 / .85);
+
+    pointer-events: none;
+    opacity: 0;
+    will-change: left, width, transform;
+}
+
+#days-tabs .day-tab {
+    position: relative;
+    z-index: 1;
+}
+
+/* пока капсула летит, у самой вкладки подсветку убираем — иначе двоится */
+html[data-theme] #days-tabs.dock-moving .day-tab.day-tab-active {
+    background-color: transparent !important;
+    border-color: transparent !important;
+}
+
+/* если в системе отключены анимации — просто без перелёта */
+@media (prefers-reduced-motion: reduce) {
+    #days-tabs .dock-pill {
+        transition: none;
+    }
+}
