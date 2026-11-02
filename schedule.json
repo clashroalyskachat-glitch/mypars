@@ -5536,8 +5536,8 @@
         "number": "3",
         "time": "10:30-11:30",
         "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
-        "room": "А401",
+        "teacher": "Давыдова Н Н",
+        "room": "А003",
         "substituted": true
       }
     ],
@@ -5718,8 +5718,7 @@
         "time": "09:40-11:00",
         "subject": "Физическая культура",
         "teacher": "Ворожцова М В",
-        "room": "",
-        "substituted": true
+        "room": ""
       },
       {
         "number": "3",
@@ -8970,7 +8969,7 @@
         "number": "1",
         "time": "08:10-9:10",
         "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
+        "teacher": "Бессарабова А Д",
         "room": "А401",
         "substituted": true
       },
@@ -9271,7 +9270,7 @@
         "number": "2",
         "time": "09:20-10:20",
         "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
+        "teacher": "Бессарабова А Д",
         "room": "А401",
         "substituted": true
       },
@@ -9371,9 +9370,8 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Физическая культура",
-        "teacher": "Теренченко В А",
-        "room": "",
-        "substituted": true
+        "teacher": "Лубенская В В",
+        "room": ""
       }
     ]
   },
@@ -9802,9 +9800,8 @@
         "number": "4",
         "time": "16:20-17:40",
         "subject": "Физическая культура",
-        "teacher": "Ворожцова М В",
-        "room": "",
-        "substituted": true
+        "teacher": "Лубенская В В",
+        "room": ""
       }
     ]
   },
@@ -10141,9 +10138,10 @@
       {
         "number": "4",
         "time": "14:00-15:00",
-        "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
-        "room": "А421"
+        "subject": "Экон. отр.",
+        "teacher": "Гонская О М",
+        "room": "А301",
+        "substituted": true
       }
     ],
     "Среда": [
@@ -11314,9 +11312,10 @@
       {
         "number": "3",
         "time": "12:50-13:50",
-        "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
-        "room": "А421"
+        "subject": "МДК.01.02 Экспл.под.сост.(по вид.подв.сост) и обесп.безопас.движен.",
+        "teacher": "Куликова Е А",
+        "room": "А109",
+        "substituted": true
       },
       {
         "number": "4",
@@ -21379,9 +21378,8 @@
         "number": "3",
         "time": "14:50-16:10",
         "subject": "Физическая культура",
-        "teacher": "Ворожцова М В",
-        "room": "",
-        "substituted": true
+        "teacher": "Лубенская В В",
+        "room": ""
       },
       {
         "number": "4",
