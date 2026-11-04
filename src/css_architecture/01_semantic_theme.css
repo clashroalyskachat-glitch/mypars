@@ -1744,3 +1744,25 @@ html[data-style="hub"][data-theme] :focus-visible {
     outline-offset: 3px;
     box-shadow: 0 0 0 5px color-mix(in srgb, var(--t-accent) 14%);
 }
+
+/* ---- возврат в меню портала ----
+   Иконка в том же языке, что и остальные кнопки шапки: круг 2.35rem,
+   тонкая рамка, приглушённая прозрачность. Стрелка уезжает влево на hover. */
+.menu-btn {
+    text-decoration: none;
+    flex: 0 0 auto;
+    order: -1;
+}
+
+.menu-btn svg {
+    display: block;
+    transition: transform .18s cubic-bezier(.2, .7, .3, 1);
+}
+
+.menu-btn:hover svg { transform: translateX(-2px); }
+.menu-btn:active { transform: scale(.96); }
+
+@media (prefers-reduced-motion: reduce) {
+    .menu-btn svg { transition: none; }
+    .menu-btn:hover svg { transform: none; }
+}
