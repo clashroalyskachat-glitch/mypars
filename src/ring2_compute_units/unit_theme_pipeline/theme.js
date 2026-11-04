@@ -308,8 +308,8 @@
                 motion: true
             },
             background: {
-                url: 'assets/akashi-desktop.jpg',
-                mobileUrl: 'assets/akashi-phone.jpg',
+                url: 'assets/akashi-desktop.webp',
+                mobileUrl: 'assets/akashi-phone.webp',
                 fit: 'cover',
                 position: 'center',
                 dim: 0.08

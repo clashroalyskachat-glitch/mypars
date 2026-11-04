@@ -20,9 +20,9 @@ const PRECACHE = __PRECACHE__;
 
 const DATA_ASSETS = ['schedule.json'];
 
-const VENDOR_ASSETS = [
-    'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap',
-];
+// No third-party origins left: fonts are self-hosted, so nothing external must
+// be warmed up on install.
+const VENDOR_ASSETS = [];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(

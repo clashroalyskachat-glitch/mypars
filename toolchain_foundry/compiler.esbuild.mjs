@@ -41,6 +41,7 @@ const RING2_3 = [
 ];
 
 const CSS_LAYERS = [
+    'css_architecture/00_fonts.css',
     'css_architecture/00_structural.css',
     'css_architecture/01_semantic_theme.css',
     'css_architecture/02_motion.css',
@@ -145,8 +146,6 @@ async function main() {
         kernelName,
         'manifest.json',
         'icon.svg',
-        'assets/akashi-desktop.jpg',
-        'assets/akashi-phone.jpg',
     ];
     const version = hash(precache.join('|') + kernelHash + cssHash);
     const swTemplate = await fsp.readFile(path.join(SRC, 'sw.template.js'), 'utf8');

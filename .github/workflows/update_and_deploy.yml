@@ -61,13 +61,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install build tools
+        run: npm ci
+
+      # Builds src/ -> dist/. If this step fails, the deploy step below never
+      # runs and GitHub Pages keeps serving the last good deployment.
+      - name: Build dist
+        run: npm run build
+
+      # Refuses to publish a half-built die: shell wiring, bundle presence,
+      # schedule.json validity, content hashes, service-worker precache.
+      - name: Verify dist
+        run: node toolchain_foundry/smoke.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
