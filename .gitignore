@@ -13,3 +13,6 @@ dist/
 
 # временный профиль браузера для golden master
 .golden-profile/
+
+# compose-папка для Firebase (меню + /mypars)
+firebase-dist/
