@@ -16,3 +16,6 @@ dist/
 
 # compose-папка для Firebase (меню + /mypars)
 firebase-dist/
+
+# кэш firebase cli
+.firebase/

@@ -91,3 +91,20 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # ---- Firebase mirror: меню в корне + приложение в /mypars/ ----
+      # Dormant until the FIREBASE_TOKEN secret exists (firebase login:ci).
+      - name: Checkout menu (hub)
+        uses: actions/checkout@v4
+        with:
+          repository: clashroalyskachat-glitch/clashroalyskachat-glitch.github.io
+          path: hub-src
+
+      - name: Compose Firebase layout
+        run: HUB_DIR=hub-src node toolchain_foundry/firebase_layout.mjs
+
+      - name: Deploy to Firebase
+        if: ${{ secrets.FIREBASE_TOKEN != '' }}
+        run: npx --yes firebase-tools@13 deploy --only hosting --project nkselove --token "$FIREBASE_TOKEN" --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
