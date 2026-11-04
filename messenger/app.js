@@ -35,10 +35,19 @@
         sbJwt: '',
         sbUid: '',
         chatMeta: readJson('pps.chatmeta', {}) || {},
-        settings: Object.assign(
-            { notifications: true, dnd: false, silent: false, contactsOnly: false },
-            readJson('pps.settings', {}) || {}
-        ),
+        settings: (function () {
+            const saved = readJson('pps.settings', null) || {};
+            const defaults = {
+                notifications: false,
+                dnd: false,
+                silent: true,
+                contactsOnly: false,
+                v2: true,
+            };
+            /* One-time migration: older builds enabled sounds by default. */
+            if (!saved.v2) return defaults;
+            return Object.assign(defaults, saved);
+        })(),
         syncTimer: 0,
         syncBusy: false,
         syncAllTimer: 0,
@@ -381,13 +390,13 @@
 
         $('set-dnd').addEventListener('change', (event) => {
             state.settings.dnd = event.target.checked;
-            if (state.settings.dnd) stopRing();
+            if (state.settings.dnd) stopAllAudio();
             saveSettings();
         });
 
         $('set-silent').addEventListener('change', (event) => {
             state.settings.silent = event.target.checked;
-            if (state.settings.silent) stopRing();
+            if (state.settings.silent) stopAllAudio();
             saveSettings();
         });
 
@@ -404,6 +413,16 @@
         try {
             new Notification(title, { body, tag, icon: '../library/icon.svg' });
         } catch (e) { /* ignore */ }
+    }
+
+    let toastTimer = 0;
+    function showToast(text) {
+        const element = $('toast');
+        if (!element) return;
+        element.textContent = text;
+        element.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { element.hidden = true; }, 2600);
     }
 
     function beep(freq, duration) {
@@ -442,6 +461,14 @@
     function stopRing() {
         if (state.ringTimer) clearInterval(state.ringTimer);
         state.ringTimer = 0;
+    }
+
+    function stopAllAudio() {
+        stopRing();
+        if (state.audioCtx) {
+            try { state.audioCtx.close(); } catch (e) { /* ignore */ }
+            state.audioCtx = null;
+        }
     }
 
     function logCall(peer, media, status, duration) {
@@ -664,7 +691,7 @@
         for (const message of ordered) {
             if (message.kind === 'call' || message.from === 'system') {
                 const callRow = document.createElement('div');
-                callRow.className = 'msg call';
+                callRow.className = 'msg call-log';
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
                 bubble.textContent = message.text;
@@ -837,7 +864,9 @@
         call.media = media;
         call.incoming = incoming || null;
         call.active = false;
+        call.videoUnavailable = false;
         state.callStartedAt = 0;
+        $('video-note').hidden = true;
         $('call-nick').textContent = peer;
         $('call-avatar').textContent = initial(peer);
         $('call-modal').hidden = false;
@@ -872,12 +901,36 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('Браузер не поддерживает звонки');
         }
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: media === 'video',
-        });
+
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
+                video: media === 'video',
+            });
+        } catch (error) {
+            if (media !== 'video') throw error;
+            /* Камеры нет или доступ к ней запрещён — продолжаем аудиозвонком. */
+            stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
+                video: false,
+            });
+            call.videoUnavailable = true;
+        }
+
         call.local = stream;
         $('local-video').srcObject = stream;
+        const noVideo = media === 'video' && stream.getVideoTracks().length === 0;
+        $('video-note').hidden = !noVideo;
+        if (noVideo) $('video-note').textContent = 'Камера недоступна — только звук';
         return stream;
     }
 
@@ -906,7 +959,7 @@
                 const peer = call.peer;
                 setTimeout(() => {
                     if (call.peer === peer) cleanupCall('связь потеряна');
-                }, 1500);
+                }, 800);
             }
         };
         return pc;
@@ -999,16 +1052,33 @@
     }
 
     function cleanupCall(reason) {
+        const peer = call.peer;
+        const media = call.media;
+        const duration = state.callStartedAt
+            ? Math.round((Date.now() - state.callStartedAt) / 1000)
+            : 0;
+
         clearTimeout(state.callTimeout);
         state.callTimeout = 0;
         stopRing();
-        if (call.peer) {
-            addChat(call.peer, state.peerUid);
-            const duration = state.callStartedAt
-                ? Math.round((Date.now() - state.callStartedAt) / 1000)
-                : 0;
-            logCall(call.peer, call.media, reason || 'завершён', duration);
+
+        $('call-modal').hidden = true;
+        $('video-note').hidden = true;
+
+        if (peer) {
+            addChat(peer, state.peerUid);
+            try {
+                logCall(peer, media, reason || 'завершён', duration);
+            } catch (e) { /* history must never block cleanup */ }
+            showToast(
+                reason === 'отклонён' ? 'Звонок отклонён'
+                    : reason === 'пропущен' ? 'Пропущенный звонок'
+                        : reason === 'связь потеряна' ? 'Связь потеряна'
+                            : reason === 'не удалось' ? 'Не удалось соединиться'
+                                : 'Звонок завершён'
+            );
         }
+
         if (call.local) for (const track of call.local.getTracks()) track.stop();
         if (call.pc) {
             try { call.pc.close(); } catch (e) { /* ignore */ }
@@ -1024,7 +1094,6 @@
         state.pendingCall = null;
         $('local-video').srcObject = null;
         $('remote-video').srcObject = null;
-        $('call-modal').hidden = true;
     }
 
     async function handleSignal(from, data, fromUid) {
@@ -1066,19 +1135,7 @@
 
         if (data.kind === 'end' || data.kind === 'reject') {
             if (call.peer === from) {
-                if (data.kind === 'reject') {
-                    setCallStatus('звонок отклонён');
-                    stopRing();
-                    setTimeout(() => {
-                        if (call.peer === from) cleanupCall('отклонён');
-                    }, 1200);
-                } else {
-                    setCallStatus('звонок завершён');
-                    stopRing();
-                    setTimeout(() => {
-                        if (call.peer === from) cleanupCall('завершён');
-                    }, 1000);
-                }
+                cleanupCall(data.kind === 'reject' ? 'отклонён' : 'завершён');
             }
         }
     }
@@ -1228,7 +1285,10 @@
         $('call-camera').addEventListener('click', () => {
             if (!call.local) return;
             const video = call.local.getVideoTracks()[0];
-            if (!video) return;
+            if (!video) {
+                showToast('Камера недоступна');
+                return;
+            }
             video.enabled = !video.enabled;
             $('call-camera').textContent = video.enabled ? 'Камера' : 'Включить камеру';
         });
@@ -1685,8 +1745,13 @@
         }
 
         const message = rowToMessage(row, peerNick);
+        const existing = list.find((item) => item.id === message.id);
         let isNew = false;
-        if (!list.some((item) => item.id === message.id)) {
+        if (existing) {
+            existing.ts = Date.parse(row.created_at) || existing.ts;
+            existing.text = row.body || existing.text;
+            saveHistory(peerNick, list);
+        } else {
             list.push(message);
             saveHistory(peerNick, list.sort((a, b) => a.ts - b.ts));
             isNew = true;
@@ -1721,6 +1786,26 @@
             renderMessages();
             return;
         }
+
+        /* Optimistic personal broadcast: the recipient should see the message
+           even if the REST insert is slow. The real row dedupes by client_id. */
+        if (state.peerUid) {
+            sendUserEvent(state.peerUid, 'message', {
+                row: {
+                    id: null,
+                    sender_id: state.sbUid,
+                    body: message.text,
+                    client_id: message.id,
+                    created_at: new Date().toISOString(),
+                },
+                fromUid: state.sbUid,
+                fromNick: state.me.nick,
+                chatId: state.chatId,
+            }).catch(() => {});
+        }
+        message.status = 'sent';
+        saveHistory(state.peer, loadHistory(state.peer));
+        renderMessages();
 
         const { data, error } = await state.sb
             .from('messages')
@@ -1820,6 +1905,12 @@
 
     function boot() {
         wire();
+        stopAllAudio();
+        const storedSettings = readJson('pps.settings', null);
+        if (!storedSettings || !storedSettings.v2) {
+            state.settings.v2 = true;
+            saveSettings();
+        }
         if (USE_SUPABASE) {
             loadSupabaseSdk()
                 .then(bootSupabase)

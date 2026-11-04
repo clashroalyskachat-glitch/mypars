@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="dark light">
     <meta name="theme-color" content="#08080a">
     <link rel="icon" href="../library/icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
     <script>
         (function () {
             try {
@@ -180,6 +180,7 @@
         <div class="videos" id="videos">
             <video id="remote-video" autoplay playsinline></video>
             <video id="local-video" autoplay playsinline muted></video>
+            <div class="video-note" id="video-note" hidden>Камера недоступна</div>
         </div>
         <div class="call-actions">
             <button class="call-btn accept" id="call-accept" type="button" hidden>Принять</button>
@@ -220,8 +221,10 @@
     </div>
 </div>
 
-<script src="config.js"></script>
-<script src="qrcode.js"></script>
-<script src="app.js"></script>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js?v=2"></script>
+<script src="qrcode.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
