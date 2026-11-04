@@ -8,3 +8,6 @@ _pagecache/
 # а готовый app.css коммитится (GitHub Pages отдаёт его как есть)
 node_modules/
 package-lock.json
+
+# build output (������������ toolchain_foundry/compiler.esbuild.mjs)
+dist/
