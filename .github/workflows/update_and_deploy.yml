@@ -104,7 +104,13 @@ jobs:
         run: HUB_DIR=hub-src node toolchain_foundry/firebase_layout.mjs
 
       - name: Deploy to Firebase
-        if: ${{ secrets.FIREBASE_TOKEN != '' }}
-        run: npx --yes firebase-tools@13 deploy --only hosting --project nkselove --token "$FIREBASE_TOKEN" --non-interactive
+        # secrets в if использовать нельзя — проверяем переменную внутри шага
+        run: |
+          if [ -z "${FIREBASE_TOKEN}" ]; then
+            echo "FIREBASE_TOKEN не задан — Firebase пропущен"
+            exit 0
+          fi
+          npx --yes firebase-tools@13 deploy --only hosting --project nkselove \
+            --token "$FIREBASE_TOKEN" --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
