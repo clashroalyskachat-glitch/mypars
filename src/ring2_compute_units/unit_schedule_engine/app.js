@@ -315,12 +315,21 @@ function runSearch(query) {
 // painted from localStorage. Without this the service worker has no data to
 // fall back on, and the first offline load after the localStorage copy went
 // stale shows the "ошибка загрузки" screen.
-function warmOfflineCache() {
+//
+// `rawText` is the payload loadSchedule already downloaded and parsed: reusing
+// it removes a second full download of the same file on every cold start.
+function warmOfflineCache(rawText) {
     if (!('caches' in window)) return;
     const url = 'schedule.json';
     caches.open(OFFLINE_DATA_CACHE).then((cache) =>
         cache.match(url).then((hit) => {
             if (hit) return null;
+            if (typeof rawText === 'string' && rawText.length) {
+                return cache.put(
+                    url,
+                    new Response(rawText, { headers: { 'Content-Type': 'application/json' } })
+                );
+            }
             return fetch(url, { cache: 'reload' }).then((res) => {
                 if (res && res.ok) return cache.put(url, res.clone());
                 return null;
@@ -720,7 +729,7 @@ const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
 renderTabs();
                  renderSchedule();
                  checkForUpdates();
-                 warmOfflineCache();
+                 warmOfflineCache(cached);
                  return;
              }
          } catch (e) {
@@ -772,7 +781,7 @@ const res = await fetch(forceRefresh ? `schedule.json?_t=${Date.now()}` : 'sched
 renderTabs();
          renderSchedule();
          checkForUpdates();
-         warmOfflineCache();
+         warmOfflineCache(rawText);
 } catch (err) {
          console.error(err);
          uiSound('error');
