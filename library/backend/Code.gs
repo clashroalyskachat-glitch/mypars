@@ -1083,7 +1083,10 @@ function supabaseJwt_(user) {
 }
 
 function supabaseB64_(value) {
-    return String(Utilities.base64EncodeWebSafe(value)).replace(/=+$/, '');
+    var encoded = typeof value === 'string'
+        ? Utilities.base64EncodeWebSafe(value, Utilities.Charset.UTF_8)
+        : Utilities.base64EncodeWebSafe(value);
+    return String(encoded).replace(/=+$/, '');
 }
 
 function authIssue_(uid, nick, role) {    var token = authRandom_(64);

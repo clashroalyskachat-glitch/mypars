@@ -20,7 +20,9 @@
         token: localStorage.getItem(LS.token) || '',
         me: null,
         chats: (readJson(LS.chats, []) || [])
-            .map((chat) => (typeof chat === 'string' ? { nick: chat, uid: null } : chat))
+            .map((chat) => (typeof chat === 'string'
+                ? { nick: chat, uid: null, chatId: null, lastTs: '' }
+                : Object.assign({ chatId: null, lastTs: '' }, chat)))
             .filter((chat) => chat && chat.nick),
         peer: null,
         peerUid: null,
@@ -32,6 +34,20 @@
         sb: null,
         sbJwt: '',
         sbUid: '',
+        chatMeta: readJson('pps.chatmeta', {}) || {},
+        settings: Object.assign(
+            { notifications: true, dnd: false, silent: false, contactsOnly: false },
+            readJson('pps.settings', {}) || {}
+        ),
+        syncTimer: 0,
+        syncBusy: false,
+        syncAllTimer: 0,
+        syncAllBusy: false,
+        ringTimer: 0,
+        callTimeout: 0,
+        audioCtx: null,
+        callStartedAt: 0,
+        chatLastTs: '',
         messages: new Map(),
         online: new Set(),
         unread: new Map(),
@@ -52,6 +68,9 @@
         candidates: [],
         active: false,
     };
+
+    /* Debug hook for local development; harmless in production. */
+    window.__ppsState = state;
 
     /* ------------------------------------------------------------- storage */
 
@@ -80,7 +99,8 @@
     }
 
     function saveHistory(nick, list) {
-        state.messages.set(nick, list.slice(-300));
+        const sorted = list.slice().sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
+        state.messages.set(nick, sorted.slice(-300));
         writeJson(historyKey(nick), state.messages.get(nick));
     }
 
@@ -290,8 +310,221 @@
             if (uid) existing.uid = uid;
             return;
         }
-        state.chats.push({ nick, uid: uid || null });
+        state.chats.push({ nick, uid: uid || null, chatId: null, lastTs: '' });
         writeJson(LS.chats, state.chats);
+    }
+
+    function metaFor(nick) {
+        if (!state.chatMeta[nick]) {
+            state.chatMeta[nick] = { muted: false, blocked: false };
+        }
+        return state.chatMeta[nick];
+    }
+
+    function saveChatMeta() {
+        writeJson('pps.chatmeta', state.chatMeta);
+    }
+
+    function applyChatMeta(nick) {
+        const meta = metaFor(nick);
+        const input = $('text');
+        input.disabled = !!meta.blocked;
+        input.placeholder = meta.blocked ? 'Пользователь заблокирован' : 'Сообщение…';
+        $('chat-banner').hidden = !meta.blocked;
+        $('chat-banner').textContent = meta.blocked ? 'Пользователь заблокирован. Сообщения не отправляются.' : '';
+        const mute = document.querySelector('[data-action="mute"]');
+        const block = document.querySelector('[data-action="block"]');
+        if (mute) mute.textContent = meta.muted ? 'Включить звук' : 'Без звука';
+        if (block) block.textContent = meta.blocked ? 'Разблокировать' : 'Заблокировать';
+    }
+
+    function saveSettings() {
+        writeJson('pps.settings', state.settings);
+    }
+
+    function applySettingsUI() {
+        const map = {
+            'set-notifications': 'notifications',
+            'set-dnd': 'dnd',
+            'set-silent': 'silent',
+            'set-contacts': 'contactsOnly',
+        };
+        Object.keys(map).forEach((id) => {
+            const element = $(id);
+            if (element) element.checked = !!state.settings[map[id]];
+        });
+    }
+
+    function initSettings() {
+        $('settings-btn').addEventListener('click', () => {
+            applySettingsUI();
+            $('settings-modal').hidden = false;
+        });
+        $('settings-close').addEventListener('click', () => { $('settings-modal').hidden = true; });
+
+        $('set-notifications').addEventListener('change', async (event) => {
+            let checked = event.target.checked;
+            if (checked && 'Notification' in window && Notification.permission === 'default') {
+                try {
+                    checked = (await Notification.requestPermission()) === 'granted';
+                } catch (e) {
+                    checked = false;
+                }
+            }
+            if (checked && (!('Notification' in window) || Notification.permission !== 'granted')) {
+                checked = false;
+            }
+            event.target.checked = checked;
+            state.settings.notifications = checked;
+            saveSettings();
+        });
+
+        $('set-dnd').addEventListener('change', (event) => {
+            state.settings.dnd = event.target.checked;
+            if (state.settings.dnd) stopRing();
+            saveSettings();
+        });
+
+        $('set-silent').addEventListener('change', (event) => {
+            state.settings.silent = event.target.checked;
+            if (state.settings.silent) stopRing();
+            saveSettings();
+        });
+
+        $('set-contacts').addEventListener('change', (event) => {
+            state.settings.contactsOnly = event.target.checked;
+            saveSettings();
+        });
+    }
+
+    function notify(title, body, tag) {
+        if (!state.settings.notifications || state.settings.dnd) return;
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        if (document.visibilityState === 'visible' && document.hasFocus()) return;
+        try {
+            new Notification(title, { body, tag, icon: '../library/icon.svg' });
+        } catch (e) { /* ignore */ }
+    }
+
+    function beep(freq, duration) {
+        if (state.settings.silent || state.settings.dnd) return;
+        try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            if (!state.audioCtx) state.audioCtx = new Ctx();
+            const ctx = state.audioCtx;
+            if (ctx.state === 'suspended') ctx.resume();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            const now = ctx.currentTime;
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            osc.start(now);
+            osc.stop(now + duration + 0.03);
+        } catch (e) { /* ignore */ }
+    }
+
+    function startRing() {
+        stopRing();
+        if (state.settings.dnd || state.settings.silent) return;
+        const ring = () => {
+            beep(760, 0.18);
+            setTimeout(() => beep(560, 0.18), 220);
+        };
+        ring();
+        state.ringTimer = setInterval(ring, 1600);
+    }
+
+    function stopRing() {
+        if (state.ringTimer) clearInterval(state.ringTimer);
+        state.ringTimer = 0;
+    }
+
+    function logCall(peer, media, status, duration) {
+        if (!peer) return;
+        const label = media === 'video' ? 'Видеозвонок' : 'Аудиозвонок';
+        let text = label + ' · ' + status;
+        if (duration > 0) {
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            text += ' · ' + minutes + ':' + String(seconds).padStart(2, '0');
+        }
+        const list = loadHistory(peer);
+        list.push({
+            id: newId(),
+            from: 'system',
+            to: peer,
+            text,
+            ts: Date.now(),
+            kind: 'call',
+        });
+        saveHistory(peer, list);
+        if (state.peer === peer) renderMessages();
+        renderChats();
+    }
+
+    function chatAction(action) {
+        const nick = state.peer;
+        if (!nick) return;
+        const meta = metaFor(nick);
+
+        if (action === 'mute') {
+            meta.muted = !meta.muted;
+            saveChatMeta();
+            applyChatMeta(nick);
+            renderChats();
+        }
+
+        if (action === 'block') {
+            meta.blocked = !meta.blocked;
+            saveChatMeta();
+            applyChatMeta(nick);
+            if (meta.blocked) state.unread.delete(nick);
+            renderChats();
+        }
+
+        if (action === 'clear') {
+            if (confirm('Очистить историю этого чата на этом устройстве?')) {
+                saveHistory(nick, []);
+                renderMessages();
+                renderChats();
+            }
+        }
+
+        if (action === 'delete') {
+            if (confirm('Удалить чат «' + nick + '»? История на этом устройстве исчезнет.')) {
+                state.chats = state.chats.filter((chat) => chat.nick !== nick);
+                writeJson(LS.chats, state.chats);
+                localStorage.removeItem(historyKey(nick));
+                state.messages.delete(nick);
+                delete state.chatMeta[nick];
+                saveChatMeta();
+                state.unread.delete(nick);
+
+                clearInterval(state.syncTimer);
+                if (state.chatChannel && state.sb) {
+                    try { state.sb.removeChannel(state.chatChannel); } catch (e) { /* ignore */ }
+                }
+                state.chatChannel = null;
+                state.chatId = null;
+                state.chatLastTs = '';
+                state.peer = null;
+                state.peerUid = null;
+
+                $('chat-view').hidden = true;
+                $('empty').hidden = false;
+                $('messages').replaceChildren();
+                $('app').classList.remove('show-chat');
+                renderChats();
+            }
+        }
+
+        $('chat-menu').hidden = true;
+        $('chat-menu-btn').setAttribute('aria-expanded', 'false');
     }
 
     function bootChats() {
@@ -312,6 +545,8 @@
         state.peerUid = target.uid || null;
         state.unread.delete(target.nick);
         state.chatId = null;
+        state.chatLastTs = '';
+        applyChatMeta(target.nick);
         $('chat-view').hidden = false;
         $('empty').hidden = true;
         $('peer-nick').textContent = target.nick;
@@ -368,6 +603,13 @@
 
             button.append(avatar, meta);
 
+            if (metaFor(nick).muted) {
+                const muted = document.createElement('span');
+                muted.className = 'chat-muted';
+                muted.textContent = 'выкл. звук';
+                button.append(muted);
+            }
+
             if (state.unread.get(nick)) {
                 const dot = document.createElement('span');
                 dot.className = 'unread';
@@ -394,6 +636,8 @@
 
     function receiveMessage(message) {
         if (!message || !message.from) return;
+        if (metaFor(message.from).blocked) return;
+        if (state.settings.contactsOnly && !state.chats.some((chat) => chat.nick === message.from)) return;
         addChat(message.from);
         const list = loadHistory(message.from);
         if (!list.some((m) => m.id === message.id)) {
@@ -414,7 +658,21 @@
         if (!state.peer) return;
         const box = $('messages');
         box.replaceChildren();
-        for (const message of loadHistory(state.peer)) {
+        const ordered = loadHistory(state.peer)
+            .slice()
+            .sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
+        for (const message of ordered) {
+            if (message.kind === 'call' || message.from === 'system') {
+                const callRow = document.createElement('div');
+                callRow.className = 'msg call';
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.textContent = message.text;
+                callRow.append(bubble);
+                box.append(callRow);
+                continue;
+            }
+
             const own = state.me && message.from === state.me.nick;
             const row = document.createElement('div');
             row.className = 'msg' + (own ? ' own' : '');
@@ -442,7 +700,7 @@
         event.preventDefault();
         const input = $('text');
         const text = input.value.trim();
-        if (!text || !state.peer) return;
+        if (!text || !state.peer || metaFor(state.peer).blocked) return;
 
         const message = {
             id: newId(),
@@ -563,6 +821,7 @@
         call.media = media;
         call.incoming = incoming || null;
         call.active = false;
+        state.callStartedAt = 0;
         $('call-nick').textContent = peer;
         $('call-avatar').textContent = initial(peer);
         $('call-modal').hidden = false;
@@ -571,7 +830,26 @@
         $('call-reject').hidden = !incoming;
         $('call-hangup').hidden = !!incoming;
         $('call-mute').hidden = !!incoming;
+        $('call-mute').textContent = 'Микрофон';
+        $('call-camera').hidden = media !== 'video' || !!incoming;
+        $('call-camera').textContent = 'Камера';
+        $('call-volume-wrap').hidden = !!incoming;
+        $('call-volume').value = 100;
+        $('remote-video').volume = 1;
+        $('remote-video').muted = false;
         setCallStatus(incoming ? 'входящий звонок' : 'звоним…');
+
+        if (incoming) {
+            startRing();
+            notify('Входящий звонок', peer, 'call-' + peer);
+            clearTimeout(state.callTimeout);
+            state.callTimeout = setTimeout(() => {
+                if (call.incoming && !call.active) {
+                    setCallStatus('пропущен');
+                    cleanupCall('пропущен');
+                }
+            }, 30000);
+        }
     }
 
     async function mediaFor(media) {
@@ -599,7 +877,11 @@
             $('remote-video').srcObject = event.streams[0];
         };
         pc.onconnectionstatechange = () => {
-            if (pc.connectionState === 'connected') setCallStatus('в звонке');
+            if (pc.connectionState === 'connected') {
+                state.callStartedAt = Date.now();
+                clearTimeout(state.callTimeout);
+                setCallStatus('в звонке');
+            }
             if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) {
                 if (pc.connectionState === 'failed') setCallStatus('связь потеряна');
             }
@@ -638,19 +920,30 @@
             await pc.setLocalDescription(offer);
             signal({ kind: 'offer', media, sdp: pc.localDescription.sdp });
             setCallStatus('ждём ответа…');
+            clearTimeout(state.callTimeout);
+            state.callTimeout = setTimeout(() => {
+                if (call.active && !state.callStartedAt) {
+                    setCallStatus('нет ответа');
+                    cleanupCall('пропущен');
+                }
+            }, 30000);
         } catch (e) {
             setCallStatus(e.message || 'нет доступа к камере/микрофону');
-            setTimeout(endCall, 1200);
+            setTimeout(() => cleanupCall('не удалось'), 1200);
         }
     }
 
     async function acceptCall() {
         if (!call.incoming) return;
         call.active = true;
+        clearTimeout(state.callTimeout);
+        stopRing();
         $('call-accept').hidden = true;
         $('call-reject').hidden = true;
         $('call-hangup').hidden = false;
         $('call-mute').hidden = false;
+        $('call-camera').hidden = call.media !== 'video';
+        $('call-volume-wrap').hidden = false;
         setCallStatus('подключаемся…');
 
         try {
@@ -667,21 +960,32 @@
             setCallStatus('в звонке');
         } catch (e) {
             setCallStatus(e.message || 'не удалось принять звонок');
-            setTimeout(endCall, 1200);
+            setTimeout(() => cleanupCall('не удалось'), 1200);
         }
     }
 
     function rejectCall() {
         if (call.incoming) signal({ kind: 'reject' });
-        cleanupCall();
+        stopRing();
+        cleanupCall('отклонён');
     }
 
     function endCall() {
         if (call.pc) signal({ kind: 'end' });
-        cleanupCall();
+        cleanupCall('завершён');
     }
 
-    function cleanupCall() {
+    function cleanupCall(reason) {
+        clearTimeout(state.callTimeout);
+        state.callTimeout = 0;
+        stopRing();
+        if (call.peer) {
+            addChat(call.peer, state.peerUid);
+            const duration = state.callStartedAt
+                ? Math.round((Date.now() - state.callStartedAt) / 1000)
+                : 0;
+            logCall(call.peer, call.media, reason || 'завершён', duration);
+        }
         if (call.local) for (const track of call.local.getTracks()) track.stop();
         if (call.pc) {
             try { call.pc.close(); } catch (e) { /* ignore */ }
@@ -693,6 +997,7 @@
         call.incoming = null;
         call.candidates = [];
         call.active = false;
+        state.callStartedAt = 0;
         state.pendingCall = null;
         $('local-video').srcObject = null;
         $('remote-video').srcObject = null;
@@ -708,6 +1013,7 @@
                 return;
             }
             state.peerUid = fromUid || state.peerUid;
+            addChat(from, fromUid);
             state.pendingCall = { from, sdp: data.sdp, media: data.media || 'audio', candidates: [] };
             call.peer = from;
             call.media = data.media || 'audio';
@@ -736,7 +1042,17 @@
         }
 
         if (data.kind === 'end' || data.kind === 'reject') {
-            if (call.peer === from) cleanupCall();
+            if (call.peer === from) {
+                if (data.kind === 'reject') {
+                    setCallStatus('звонок отклонён');
+                    stopRing();
+                    setTimeout(() => {
+                        if (call.peer === from) cleanupCall('отклонён');
+                    }, 1200);
+                } else {
+                    cleanupCall('завершён');
+                }
+            }
         }
     }
 
@@ -836,6 +1152,39 @@
         $('composer').addEventListener('submit', submitMessage);
         $('back-btn').addEventListener('click', closeChat);
 
+        $('chat-menu-btn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!state.peer) return;
+            const menu = $('chat-menu');
+            const willOpen = menu.hidden;
+            if (willOpen) applyChatMeta(state.peer);
+            menu.hidden = !willOpen;
+            $('chat-menu-btn').setAttribute('aria-expanded', String(willOpen));
+        });
+
+        $('chat-menu').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-action]');
+            if (!button) return;
+            event.stopPropagation();
+            chatAction(button.dataset.action);
+        });
+
+        document.addEventListener('click', () => {
+            $('chat-menu').hidden = true;
+            $('chat-menu-btn').setAttribute('aria-expanded', 'false');
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                supabaseSyncChat();
+                supabaseSyncAllChats();
+            }
+        });
+        window.addEventListener('online', () => {
+            supabaseSyncChat();
+            supabaseSyncAllChats();
+        });
+
         $('audio-call').addEventListener('click', () => startCall('audio'));
         $('video-call').addEventListener('click', () => startCall('video'));
         $('call-accept').addEventListener('click', acceptCall);
@@ -846,12 +1195,28 @@
             const audio = call.local.getAudioTracks()[0];
             if (!audio) return;
             audio.enabled = !audio.enabled;
-            $('call-mute').textContent = audio.enabled ? 'Микрофон' : 'Включить звук';
+            $('call-mute').textContent = audio.enabled ? 'Микрофон' : 'Включить микрофон';
+        });
+
+        $('call-camera').addEventListener('click', () => {
+            if (!call.local) return;
+            const video = call.local.getVideoTracks()[0];
+            if (!video) return;
+            video.enabled = !video.enabled;
+            $('call-camera').textContent = video.enabled ? 'Камера' : 'Включить камеру';
+        });
+
+        $('call-volume').addEventListener('input', (event) => {
+            const value = Number(event.target.value) / 100;
+            $('remote-video').volume = value;
+            $('remote-video').muted = value === 0;
         });
 
         window.addEventListener('beforeunload', () => {
             if (call.active) signal({ kind: 'end' });
         });
+
+        initSettings();
     }
 
     /* ------------------------------------------------------------- supabase */
@@ -888,7 +1253,10 @@
             const part = String(token).split('.')[1];
             const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
             const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-            return JSON.parse(atob(padded));
+            const binary = atob(padded);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return JSON.parse(new TextDecoder('utf-8').decode(bytes));
         } catch (e) {
             return {};
         }
@@ -904,7 +1272,12 @@
             redirect: 'follow',
         });
         if (!response.ok) throw new Error('auth http ' + response.status);
-        return response.json();
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('Apps Script вернул не JSON. Проверь доступ Web App: «Все».');
+        }
     }
 
     async function supabaseAuth(mode, nick, password) {
@@ -918,7 +1291,8 @@
             await exchangeSession(data.token);
         } catch (e) {
             console.warn(e);
-            showAuth('Не удалось связаться с сервером регистрации. Попробуй позже.');
+            const detail = e && e.message ? e.message : '';
+            showAuth(detail ? 'Ошибка входа: ' + detail : 'Не удалось связаться с сервером регистрации.');
         }
     }
 
@@ -929,7 +1303,7 @@
         }
         const payload = decodeJwt(data.token);
         const uid = payload.sub || (data.user && data.user.uid);
-        const nick = payload.nick || (data.user && data.user.nick);
+        const nick = (data.user && data.user.nick) || payload.nick;
         if (!uid || !nick) throw new Error('invalid supabase token');
         await initSupabase(data.token, { uid, nick });
     }
@@ -985,6 +1359,7 @@
         renderChats();
         subscribePresence();
         subscribeSignals();
+        startAllChatSync();
 
         const add = new URLSearchParams(location.search).get('add');
         if (add) openChat({ nick: add, uid: null });
@@ -1065,8 +1440,7 @@
     }
 
     async function supabaseOpenChat(peer) {
-        if (!state.sb) return;
-        try {
+        if (!state.sb) return;        try {
             let uid = peer.uid;
             if (!uid) {
                 const { data } = await state.sb.from('profiles').select('id').eq('nick', peer.nick).maybeSingle();
@@ -1088,6 +1462,8 @@
             }
 
             state.chatId = chatId;
+            const chatRecord = state.chats.find((item) => item.nick === peer.nick);
+            if (chatRecord) chatRecord.chatId = chatId;
             const { data: rows, error: loadError } = await state.sb
                 .from('messages')
                 .select('id,sender_id,body,client_id,created_at')
@@ -1097,15 +1473,22 @@
             if (loadError) console.warn('messages', loadError);
 
             const mapped = (rows || []).map((row) => rowToMessage(row, peer.nick));
+            state.chatLastTs = rows && rows.length
+                ? rows[rows.length - 1].created_at
+                : new Date(0).toISOString();
+            if (chatRecord && state.chatLastTs) chatRecord.lastTs = state.chatLastTs;
             saveHistory(peer.nick, mergeMessages(loadHistory(peer.nick), mapped));
             renderMessages();
             renderChats();
             subscribeChat(chatId, peer.nick);
+            startChatSync();
         } catch (e) {
             console.warn(e);
             $('peer-status').textContent = 'ошибка чата';
         }
     }
+
+    window.__ppsOpenChat = supabaseOpenChat;
 
     function subscribeChat(chatId, peerNick) {
         if (!state.sb) return;
@@ -1118,16 +1501,109 @@
             .on('broadcast', { event: 'message' }, ({ payload }) => {
                 if (payload) handleIncomingRow(payload, peerNick);
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') supabaseSyncChat();
+            });
+    }
+
+    function startChatSync() {
+        clearInterval(state.syncTimer);
+        state.syncTimer = setInterval(supabaseSyncChat, 1500);
+    }
+
+    async function supabaseSyncChat() {
+        if (state.syncBusy) return;
+        if (!state.sb || !state.chatId || !state.peer || !state.chatLastTs) return;
+
+        const chatId = state.chatId;
+        const peer = state.peer;
+        const since = state.chatLastTs;
+
+        state.syncBusy = true;
+        try {
+            const { data, error } = await state.sb
+                .from('messages')
+                .select('id,sender_id,body,client_id,created_at')
+                .eq('chat_id', chatId)
+                .gt('created_at', since)
+                .order('created_at', { ascending: true })
+                .limit(100);
+
+            if (!error && data && state.chatId === chatId && state.peer === peer) {
+                for (const row of data) {
+                    handleIncomingRow(row, peer);
+                }
+            }
+        } catch (e) {
+            /* transient network; next tick retries */
+        } finally {
+            state.syncBusy = false;
+        }
+    }
+
+    function startAllChatSync() {
+        clearInterval(state.syncAllTimer);
+        state.syncAllTimer = setInterval(supabaseSyncAllChats, 2500);
+    }
+
+    async function supabaseSyncAllChats() {
+        if (!state.sb || !state.me || state.syncAllBusy) return;
+        state.syncAllBusy = true;
+
+        try {
+            for (const chat of [...state.chats]) {
+                if (!chat.uid || chat.nick === state.me.nick) continue;
+
+                if (!chat.chatId) {
+                    const { data, error } = await state.sb.rpc('create_direct_chat', { other_id: chat.uid });
+                    if (!error && data) chat.chatId = data;
+                }
+                if (!chat.chatId) continue;
+
+                const since = chat.lastTs || new Date(0).toISOString();
+                const { data, error } = await state.sb
+                    .from('messages')
+                    .select('id,sender_id,body,client_id,created_at')
+                    .eq('chat_id', chat.chatId)
+                    .gt('created_at', since)
+                    .order('created_at', { ascending: true })
+                    .limit(50);
+
+                if (!error && data) {
+                    for (const row of data) {
+                        if (row.created_at) chat.lastTs = row.created_at;
+                        handleIncomingRow(row, chat.nick);
+                    }
+                }
+            }
+            writeJson(LS.chats, state.chats);
+        } catch (e) {
+            /* transient; retry */
+        } finally {
+            state.syncAllBusy = false;
+        }
     }
 
     function handleIncomingRow(row, peerNick) {
+        if (metaFor(peerNick).blocked) return;
+        if (!state.chats.some((chat) => chat.nick === peerNick)) {
+            if (state.settings.contactsOnly) return;
+            addChat(peerNick, null);
+        }
+        const chat = state.chats.find((item) => item.nick === peerNick);
+        if (chat && row.created_at && (!chat.lastTs || row.created_at > chat.lastTs)) {
+            chat.lastTs = row.created_at;
+        }
+        if (peerNick === state.peer && row.created_at && (!state.chatLastTs || row.created_at > state.chatLastTs)) {
+            state.chatLastTs = row.created_at;
+        }
         const list = loadHistory(peerNick);
 
         if (row.sender_id === state.sbUid) {
             const found = list.find((message) => message.id === (row.client_id || row.id));
             if (found) {
                 found.status = 'sent';
+                found.ts = Date.parse(row.created_at) || found.ts;
                 saveHistory(peerNick, list);
                 if (state.peer === peerNick) renderMessages();
             }
@@ -1135,12 +1611,20 @@
         }
 
         const message = rowToMessage(row, peerNick);
+        let isNew = false;
         if (!list.some((item) => item.id === message.id)) {
             list.push(message);
             saveHistory(peerNick, list.sort((a, b) => a.ts - b.ts));
+            isNew = true;
         }
         if (state.peer === peerNick) renderMessages();
-        else state.unread.set(peerNick, (state.unread.get(peerNick) || 0) + 1);
+        else if (isNew) {
+            state.unread.set(peerNick, (state.unread.get(peerNick) || 0) + 1);
+            if (message.from !== state.me.nick) {
+                notify('pps · ' + peerNick, message.text, 'msg-' + peerNick);
+                if (document.visibilityState !== 'visible' || !document.hasFocus()) beep(520, 0.07);
+            }
+        }
         renderChats();
     }
 
@@ -1177,10 +1661,13 @@
 
         message.status = error ? 'failed' : 'sent';
         if (error) console.warn('send message', error);
-        if (!error && data && state.chatChannel) {
-            state.chatChannel
-                .send({ type: 'broadcast', event: 'message', payload: data })
-                .catch(() => {});
+        if (!error && data) {
+            message.ts = Date.parse(data.created_at) || message.ts;
+            if (state.chatChannel) {
+                state.chatChannel
+                    .send({ type: 'broadcast', event: 'message', payload: data })
+                    .catch(() => {});
+            }
         }
         saveHistory(state.peer, loadHistory(state.peer));
         renderMessages();

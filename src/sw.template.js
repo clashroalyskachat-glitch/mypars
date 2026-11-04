@@ -18,6 +18,11 @@ const IMMUTABLE = /\.[0-9a-f]{8}\.(?:js|css)$/;
 
 const PRECACHE = __PRECACHE__;
 
+// Пути оболочки для быстрого поиска. Подприложения сюда не входят.
+const PRECACHE_PATHS = new Set(
+    PRECACHE.map((p) => new URL(p, self.location).pathname)
+);
+
 const DATA_ASSETS = ['schedule.json'];
 
 // No third-party origins left: fonts are self-hosted, so nothing external must
@@ -124,9 +129,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Только файлы оболочки. Подприложения (/library/, /wishes/, /messenger/)
+    // намеренно НЕ кэшируются: иначе после деплоя люди получают старый app.js
+    // и старые API-адреса, пока service worker не обновится.
     const isShell =
-        url.origin === self.location.origin ||
-        VENDOR_ASSETS.some((u) => url.href.startsWith(u.split('?')[0]));
+        url.origin === self.location.origin &&
+        PRECACHE_PATHS.has(url.pathname);
 
     if (!isShell) return;
     event.respondWith(cacheFirst(req, CACHE));

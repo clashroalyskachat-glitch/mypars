@@ -45,6 +45,12 @@
                         <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
                     </svg>
                 </button>
+                <button class="icon-btn" id="settings-btn" type="button" title="Настройки" aria-label="Настройки">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3.2"/>
+                        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+                    </svg>
+                </button>
                 <button class="icon-btn" id="logout-btn" type="button" title="Выйти" aria-label="Выйти" hidden>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M9.5 19.5V18a4 4 0 0 0-4-4H4.6"/><path d="M14.5 16l4-4-4-4"/><path d="M18.5 12H9"/>
@@ -103,7 +109,18 @@
                 <button class="icon-btn" id="video-call" type="button" title="Видеозвонок" aria-label="Видеозвонок">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2.5"/><path d="M15 10.5l6-3.5v10l-6-3.5"/></svg>
                 </button>
+                <button class="icon-btn" id="chat-menu-btn" type="button" title="Настройки чата" aria-label="Настройки чата" aria-haspopup="menu" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+                </button>
+                <div class="chat-menu" id="chat-menu" hidden role="menu">
+                    <button type="button" data-action="mute" role="menuitem">Без звука</button>
+                    <button type="button" data-action="block" role="menuitem">Заблокировать</button>
+                    <button type="button" data-action="clear" role="menuitem">Очистить историю</button>
+                    <button type="button" data-action="delete" role="menuitem" class="danger">Удалить чат</button>
+                </div>
             </header>
+
+            <div class="chat-banner" id="chat-banner" hidden></div>
 
             <div class="messages" id="messages" aria-live="polite"></div>
 
@@ -121,7 +138,6 @@
 <div class="modal" id="auth-modal">
     <div class="modal-card auth-card">
         <div class="auth-brand">pps <span>НКСЭ</span></div>
-        <p class="auth-lede">Ник и пароль — как на доске пожеланий. Это локальный прототип: аккаунт живёт в памяти dev-сервера.</p>
         <div class="tabs" role="tablist">
             <button class="tab is-active" data-mode="login" type="button" role="tab" aria-selected="true">Войти</button>
             <button class="tab" data-mode="register" type="button" role="tab" aria-selected="false">Регистрация</button>
@@ -138,7 +154,6 @@
             <p class="form-error" id="auth-error" hidden></p>
             <button class="primary wide" id="auth-submit" type="submit">Войти</button>
         </form>
-        <p class="auth-foot">Данные не уходят в интернет. Позже это подключится к Supabase Realtime.</p>
     </div>
 </div>
 
@@ -171,7 +186,37 @@
             <button class="call-btn reject" id="call-reject" type="button">Отклонить</button>
             <button class="call-btn hangup" id="call-hangup" type="button" hidden>Завершить</button>
             <button class="call-btn mute" id="call-mute" type="button" hidden>Микрофон</button>
+            <button class="call-btn mute" id="call-camera" type="button" hidden>Камера</button>
+            <label class="call-volume" id="call-volume-wrap" hidden>
+                <span>Звук</span>
+                <input id="call-volume" type="range" min="0" max="100" value="100">
+            </label>
         </div>
+    </div>
+</div>
+
+<!-- Settings -->
+<div class="modal" id="settings-modal" hidden>
+    <div class="modal-card settings-card">
+        <button class="modal-close" id="settings-close" type="button" aria-label="Закрыть">×</button>
+        <h2>Настройки</h2>
+        <label class="switch-row">
+            <span>Уведомления</span>
+            <input type="checkbox" id="set-notifications">
+        </label>
+        <label class="switch-row">
+            <span>Не беспокоить</span>
+            <input type="checkbox" id="set-dnd">
+        </label>
+        <label class="switch-row">
+            <span>Без звука</span>
+            <input type="checkbox" id="set-silent">
+        </label>
+        <label class="switch-row">
+            <span>Только контакты</span>
+            <input type="checkbox" id="set-contacts">
+        </label>
+        <p class="settings-note">«Не беспокоить» отключает звук и уведомления, но сообщения продолжают приходить.</p>
     </div>
 </div>
 

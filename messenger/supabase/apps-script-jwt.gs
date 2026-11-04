@@ -35,7 +35,9 @@ function supabaseJwt_(user) {
 }
 
 function b64url_(value) {
-    var encoded = Utilities.base64EncodeWebSafe(value);
+    var encoded = typeof value === 'string'
+        ? Utilities.base64EncodeWebSafe(value, Utilities.Charset.UTF_8)
+        : Utilities.base64EncodeWebSafe(value);
     return String(encoded).replace(/=+$/, '');
 }
 

@@ -15,5 +15,5 @@
     } : null;
 
     /* Existing college auth endpoint (same one used by the wishes board). */
-    window.PPS_AUTH_API = 'https://script.google.com/macros/s/AKfycbxxCl5PY_PKIHwThoVSrfLvVP29jxgHhvxHjXTNXrnk-3g1nQrGm1ywZk8w5UWeWgkL/exec';
+    window.PPS_AUTH_API = 'https://script.google.com/macros/s/AKfycbyLgfwIeyM6irptQU_4I3giVfX2AO0wPCnkGtMRa_GrKBHGdUu9n23u0YEnOA7WtG1z/exec';
 })();

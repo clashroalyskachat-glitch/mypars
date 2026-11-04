@@ -26,7 +26,7 @@
  * сохраняет книгу только в этом браузере. После настройки backend/Code.gs
  * вставь сюда ссылку, которая заканчивается на /exec.
  */
-window.LIBRARY_API = 'https://script.google.com/macros/s/AKfycbxxCl5PY_PKIHwThoVSrfLvVP29jxgHhvxHjXTNXrnk-3g1nQrGm1ywZk8w5UWeWgkL/exec';
+window.LIBRARY_API = 'https://script.google.com/macros/s/AKfycbyLgfwIeyM6irptQU_4I3giVfX2AO0wPCnkGtMRa_GrKBHGdUu9n23u0YEnOA7WtG1z/exec';
 
 window.BOOKS = [
     {
