@@ -1140,13 +1140,8 @@ html[data-style="hub"][data-theme] #days-tabs .day-tab-active .tab-today-dot {
 
 /* ------------------------------------------------- 5. карточки дней */
 
-@media screen and (min-width: 700px) {
-    html[data-style="hub"][data-theme] #schedule-container:has(> .day-card:only-of-type) {
-        grid-template-columns: minmax(0, 1fr) !important;
-        max-width: 47rem;
-        margin-inline: auto;
-    }
-}
+/* Один выбранный день больше не центрируется и не сужается до 47rem:
+   он занимает обычную ячейку сетки, как в остальных темах. */
 
 html[data-style="hub"][data-theme] .day-card {
     position: relative;
@@ -1745,24 +1740,49 @@ html[data-style="hub"][data-theme] :focus-visible {
     box-shadow: 0 0 0 5px color-mix(in srgb, var(--t-accent) 14%);
 }
 
-/* ---- возврат в меню портала ----
-   Иконка в том же языке, что и остальные кнопки шапки: круг 2.35rem,
-   тонкая рамка, приглушённая прозрачность. Стрелка уезжает влево на hover. */
-.menu-btn {
+
+/* ---- переключатель экосистемы "Меню" ----
+   Стоит после бренда, а не перед ним: первая точка чтения остаётся за НКСЭ.
+   Капсула с подписью — понятно, что делает, и не читается как "назад". */
+.menu-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .42em;
+    height: 2.25rem;
+    padding: 0 .85rem 0 .7rem;
+    border-radius: 999px;
+    border: 1px solid rgb(148 163 184 / .38);
+    background: transparent;
+    color: inherit;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .01em;
     text-decoration: none;
+    white-space: nowrap;
     flex: 0 0 auto;
-    order: -1;
+    opacity: .72;
+    transition: opacity .18s ease, background-color .18s ease, border-color .18s ease;
 }
 
-.menu-btn svg {
-    display: block;
-    transition: transform .18s cubic-bezier(.2, .7, .3, 1);
+.menu-pill:hover,
+.menu-pill:focus-visible {
+    opacity: 1;
+    background: rgb(148 163 184 / .12);
+    border-color: rgb(148 163 184 / .6);
 }
 
-.menu-btn:hover svg { transform: translateX(-2px); }
-.menu-btn:active { transform: scale(.96); }
+.menu-pill svg { display: block; opacity: .9; }
+
+@media (max-width: 380px) {
+    .menu-pill { padding-inline: .6rem; gap: .3em; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-    .menu-btn svg { transition: none; }
-    .menu-btn:hover svg { transform: none; }
+    .menu-pill { transition: none; }
+}
+/* На телефоне "Меню" должно остаться в одной строке с брендом, а не уезжать
+   на отдельный ряд: бренд больше не растягивается на всю ширину. */
+@media (max-width: 639px) {
+    .header-brand { flex: 0 1 auto; }
+    .menu-pill { margin-left: auto; }
 }

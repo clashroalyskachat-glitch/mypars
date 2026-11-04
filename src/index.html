@@ -461,7 +461,8 @@
                 flex-wrap: wrap;
                 gap: 0.7rem 0.75rem;
             }
-            .header-brand { flex: 1 1 auto; }
+            .header-brand { flex: 1 1 0; }
+            /* "Меню" остаётся в первой строке рядом с брендом, а не уезжает вниз */
             .header-controls { flex: 1 1 100%; }
             .header-controls .group-picker { flex: 1 1 auto; min-width: 0; }
             .header-controls .group-trigger {
@@ -1308,16 +1309,6 @@
 
             <!-- Логотип, выбор группы и переключатель темы -->
             <div class="header-main flex items-center gap-3.5 w-full min-w-0 sm:flex-1">
-                <!-- Возврат в меню портала. Корень "/" — это меню на обоих
-                     зеркалах (github.io и nkselove.web.app), поэтому ссылка
-                     остаётся в пределах текущего домена. -->
-                <a class="header-icon-btn menu-btn" href="/"
-                   title="В меню" aria-label="Вернуться в меню">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M15 5l-7 7 7 7"/>
-                    </svg>
-                </a>
                 <div class="header-brand flex items-center gap-3 min-w-0">
                     <span class="brand-word select-none shrink-0" aria-label="НКСЭ">НКС<span class="accent">Э</span></span>
                     <div class="min-w-0">
@@ -1325,6 +1316,18 @@
                         <p class="fs-meta text-slate-500 dark:text-slate-400 font-medium truncate" id="last-updated">Загрузка...</p>
                     </div>
                 </div>
+                <!-- Переключатель экосистемы. Стоит ПОСЛЕ бренда: логотип остаётся
+                     первой точкой чтения. Корень "/" — меню на обоих зеркалах. -->
+                <a class="menu-pill" href="/" title="Меню портала: расписание, библиотека, пожелания">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7.5" height="7.5" rx="2"/>
+                        <rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/>
+                        <rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/>
+                        <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>
+                    </svg>
+                    <span>Меню</span>
+                </a>
                 <span id="stale-dot" class="stale-dot" hidden title="Данные могут быть неактуальны"></span>
 
                 <!-- Группа, закрепление и тема -->
