@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>pps — мессенджер НКСЭ</title>
+    <meta name="description" content="Мессенджер НКСЭ: поиск по нику, чат и звонки.">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#08080a">
+    <link rel="icon" href="../library/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        (function () {
+            try {
+                var shared = localStorage.getItem('nkse-theme');
+                var light = shared === 'light';
+                document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', light ? '#e9e5dd' : '#08080a');
+            } catch (e) { /* private mode */ }
+        })();
+    </script>
+</head>
+<body>
+
+<div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+        <header class="side-head">
+            <a class="brand" href="/" title="В меню">
+                <span class="brand-mark">pps</span>
+                <span class="brand-sub">НКСЭ</span>
+            </a>
+            <div class="side-actions">
+                <button class="icon-btn" id="qr-btn" type="button" title="Мой QR" aria-label="Мой QR">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="theme-btn" type="button" title="Сменить тему" aria-label="Сменить тему">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/>
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="logout-btn" type="button" title="Выйти" aria-label="Выйти" hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9.5 19.5V18a4 4 0 0 0-4-4H4.6"/><path d="M14.5 16l4-4-4-4"/><path d="M18.5 12H9"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="me" id="me-bar" hidden>
+            <span class="avatar" id="me-avatar">?</span>
+            <span class="me-text">
+                <b id="me-nick">—</b>
+                <small id="me-status">не в сети</small>
+            </span>
+            <span class="conn-dot" id="conn-dot" title="Соединение"></span>
+        </div>
+
+        <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>
+            </svg>
+            <input id="search" type="search" placeholder="Поиск по нику…" autocomplete="off" spellcheck="false" aria-label="Поиск по нику" disabled>
+        </div>
+
+        <div class="search-results" id="search-results" hidden></div>
+        <div class="chat-list" id="chat-list"></div>
+
+        <footer class="side-foot">
+            <span>локальный прототип</span>
+            <span id="peer-count">0 онлайн</span>
+        </footer>
+    </aside>
+
+    <main class="chat" id="chat">
+        <div class="empty" id="empty">
+            <div class="empty-orb" aria-hidden="true"></div>
+            <h1>Кому написать?</h1>
+            <p>Найди друга по нику, открой чат или покажи свой QR.</p>
+            <button class="primary" id="empty-qr" type="button">Показать мой QR</button>
+        </div>
+
+        <section class="chat-view" id="chat-view" hidden>
+            <header class="chat-head">
+                <button class="icon-btn back" id="back-btn" type="button" aria-label="Назад">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+                </button>
+                <span class="avatar small" id="peer-avatar">?</span>
+                <span class="peer-text">
+                    <b id="peer-nick">—</b>
+                    <small id="peer-status">не в сети</small>
+                </span>
+                <span class="spacer"></span>
+                <button class="icon-btn" id="audio-call" type="button" title="Аудиозвонок" aria-label="Аудиозвонок">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5h3l1.4 3.6-2 1.3a12.5 12.5 0 0 0 6.7 6.7l1.3-2 3.6 1.4v3a2 2 0 0 1-2.2 2A17 17 0 0 1 3.5 6.7a2 2 0 0 1 2-2.2z"/></svg>
+                </button>
+                <button class="icon-btn" id="video-call" type="button" title="Видеозвонок" aria-label="Видеозвонок">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2.5"/><path d="M15 10.5l6-3.5v10l-6-3.5"/></svg>
+                </button>
+            </header>
+
+            <div class="messages" id="messages" aria-live="polite"></div>
+
+            <form class="composer" id="composer">
+                <input id="text" type="text" maxlength="4000" autocomplete="off" placeholder="Сообщение…" aria-label="Сообщение">
+                <button class="send" type="submit" aria-label="Отправить">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5M21 3l-7 18-3.5-7.5L3 10z"/></svg>
+                </button>
+            </form>
+        </section>
+    </main>
+</div>
+
+<!-- Auth -->
+<div class="modal" id="auth-modal">
+    <div class="modal-card auth-card">
+        <div class="auth-brand">pps <span>НКСЭ</span></div>
+        <p class="auth-lede">Ник и пароль — как на доске пожеланий. Это локальный прототип: аккаунт живёт в памяти dev-сервера.</p>
+        <div class="tabs" role="tablist">
+            <button class="tab is-active" data-mode="login" type="button" role="tab" aria-selected="true">Войти</button>
+            <button class="tab" data-mode="register" type="button" role="tab" aria-selected="false">Регистрация</button>
+        </div>
+        <form id="auth-form" autocomplete="on">
+            <label class="field">
+                <span>Ник</span>
+                <input id="auth-nick" name="nick" type="text" maxlength="20" autocomplete="username" required>
+            </label>
+            <label class="field">
+                <span>Пароль</span>
+                <input id="auth-pass" name="password" type="password" maxlength="100" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" id="auth-error" hidden></p>
+            <button class="primary wide" id="auth-submit" type="submit">Войти</button>
+        </form>
+        <p class="auth-foot">Данные не уходят в интернет. Позже это подключится к Supabase Realtime.</p>
+    </div>
+</div>
+
+<!-- QR -->
+<div class="modal" id="qr-modal" hidden>
+    <div class="modal-card qr-card">
+        <button class="modal-close" id="qr-close" type="button" aria-label="Закрыть">×</button>
+        <h2>Мой QR</h2>
+        <p class="muted">Покажи другу — он откроет чат с тобой.</p>
+        <div class="qr-box" id="qr-box"></div>
+        <div class="qr-link" id="qr-link"></div>
+        <button class="primary wide" id="qr-copy" type="button">Скопировать ссылку</button>
+    </div>
+</div>
+
+<!-- Call -->
+<div class="call" id="call-modal" hidden>
+    <div class="call-card">
+        <div class="call-top">
+            <span class="avatar" id="call-avatar">?</span>
+            <b id="call-nick">—</b>
+            <small id="call-status">звоним…</small>
+        </div>
+        <div class="videos" id="videos">
+            <video id="remote-video" autoplay playsinline></video>
+            <video id="local-video" autoplay playsinline muted></video>
+        </div>
+        <div class="call-actions">
+            <button class="call-btn accept" id="call-accept" type="button" hidden>Принять</button>
+            <button class="call-btn reject" id="call-reject" type="button">Отклонить</button>
+            <button class="call-btn hangup" id="call-hangup" type="button" hidden>Завершить</button>
+            <button class="call-btn mute" id="call-mute" type="button" hidden>Микрофон</button>
+        </div>
+    </div>
+</div>
+
+<script src="config.js"></script>
+<script src="qrcode.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -852,6 +852,21 @@ function authDispatch_(data) {
         return { ok: true, user: { nick: session.nick, role: session.role } };
     }
 
+    /*
+     * Мост в Supabase: существующая сессия НКСЭ -> JWT для Supabase.
+     * Секрет HS256 лежит только в Script Properties:
+     *   SUPABASE_JWT_SECRET
+     */
+    if (op === 'supabase') {
+        var sbSession = authSession_(data.token);
+        if (!sbSession) return { ok: false, error: 'no_session' };
+        return {
+            ok: true,
+            token: supabaseJwt_({ uid: sbSession.uid, nick: sbSession.nick }),
+            user: { nick: sbSession.nick, role: sbSession.role }
+        };
+    }
+
     if (op === 'logout') {
         authLogout_(data.token);
         return { ok: true };
@@ -1043,8 +1058,35 @@ function authLogin_(nick, pass) {
 
 /* ------------------------------------------------------------------ сессии */
 
-function authIssue_(uid, nick, role) {
-    var token = authRandom_(64);
+/*
+ * Supabase JWT (HS256). Секрет хранится в Script Properties и никогда
+ * не попадает в клиент или репозиторий.
+ */
+function supabaseJwt_(user) {
+    var secret = PropertiesService.getScriptProperties().getProperty('SUPABASE_JWT_SECRET');
+    if (!secret) throw new Error('SUPABASE_JWT_SECRET is not set');
+
+    var now = Math.floor(Date.now() / 1000);
+    var header = supabaseB64_(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    var payload = supabaseB64_(JSON.stringify({
+        sub: String(user.uid),
+        role: 'authenticated',
+        aud: 'authenticated',
+        nick: String(user.nick),
+        iat: now - 60,
+        exp: now + 12 * 60 * 60
+    }));
+
+    var unsigned = header + '.' + payload;
+    var signature = Utilities.computeHmacSha256Signature(unsigned, secret);
+    return unsigned + '.' + supabaseB64_(signature);
+}
+
+function supabaseB64_(value) {
+    return String(Utilities.base64EncodeWebSafe(value)).replace(/=+$/, '');
+}
+
+function authIssue_(uid, nick, role) {    var token = authRandom_(64);
     var now = new Date();
 
     var sheet = authOpen_(AUTH_SESS_SHEET);

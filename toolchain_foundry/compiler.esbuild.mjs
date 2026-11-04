@@ -133,9 +133,16 @@ async function main() {
         'assets',
         'library',
         'wishes',
+        'messenger',
     ]) {
         await copy(rel);
     }
+
+    /* messenger: в прод не едут dev-скрипты и SQL-схема Supabase */
+    for (const rel of ['messenger/dev-server.mjs', 'messenger/dev-smoke.mjs', 'messenger/README.md']) {
+        await fsp.rm(path.join(DIST, rel), { force: true });
+    }
+    await fsp.rm(path.join(DIST, 'messenger', 'supabase'), { recursive: true, force: true });
 
     /* --- service worker: manifest is baked in at build time --- */
     const precache = [
