@@ -1308,8 +1308,10 @@
 
             <!-- Логотип, выбор группы и переключатель темы -->
             <div class="header-main flex items-center gap-3.5 w-full min-w-0 sm:flex-1">
-                <!-- Возврат в меню портала. Ведёт на главную (hub), а не на /mypars/ -->
-                <a class="header-icon-btn menu-btn" href="https://clashroalyskachat-glitch.github.io/"
+                <!-- Возврат в меню портала. Корень "/" — это меню на обоих
+                     зеркалах (github.io и nkselove.web.app), поэтому ссылка
+                     остаётся в пределах текущего домена. -->
+                <a class="header-icon-btn menu-btn" href="/"
                    title="В меню" aria-label="Вернуться в меню">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
                          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
