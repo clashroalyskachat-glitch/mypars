@@ -6,6 +6,12 @@ let currentDayFilter = 'all';
 let lastModTime = null;
 let _lastCheckAt = 0;
 
+/* L1 hot slice: только расписание текущей группы (~2-3 КБ). Читается синхронно
+ * до любого сетевого запроса, чтобы первый кадр был на экране за единицы мс.
+ * Версия схемы в ключе: при смене формата старый срез просто игнорируется. */
+const HOT_SLICE_KEY = 'nkse-hot-slice-v1';
+const HOT_SLICE_SCHEMA = 1;
+
 const PIN_KEY = 'nkse-pinned-groups';
 const TEACHER_PIN_KEY = 'nkse-pinned-teachers';
 const TEACHER_KEY = 'selected_teacher';
@@ -691,10 +697,67 @@ function fetchScheduleVersion() {
     return _versionPromise;
 }
 
+/* ------------------- L1: горячий срез текущей группы ------------------- */
+
+function readHotSlice() {
+    try {
+        const raw = localStorage.getItem(HOT_SLICE_KEY);
+        if (!raw) return null;
+        const s = JSON.parse(raw);
+        if (!s || s.v !== HOT_SLICE_SCHEMA) return null;
+        if (typeof s.g !== 'string' || !s.d || typeof s.d !== 'object') return null;
+        return s;
+    } catch (e) {
+        return null;
+    }
+}
+
+function paintHotSlice() {
+    const slice = readHotSlice();
+    if (!slice) return false;
+    if (!allGroupsData || !Object.keys(allGroupsData).length || !allGroupsData[slice.g]) {
+        allGroupsData = { [slice.g]: slice.d };
+    }
+    if (!allGroupsData[currentGroup]) currentGroup = slice.g;
+    try {
+        populateGroupSelect();
+        renderQuickGroups();
+        renderPinButton();
+        renderTabs();
+        renderSchedule();
+        markStaleness(slice.t || null, true);
+        setUpdatedLabel(slice.t || null);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
+
+function saveHotSlice() {
+    try {
+        if (!currentGroup || !allGroupsData || !allGroupsData[currentGroup]) return;
+        localStorage.setItem(
+            HOT_SLICE_KEY,
+            JSON.stringify({
+                v: HOT_SLICE_SCHEMA,
+                g: currentGroup,
+                t: lastModTime || 0,
+                d: allGroupsData[currentGroup],
+            })
+        );
+    } catch (e) {
+        /* приватный режим или переполнение квоты: работаем без среза */
+    }
+}
+
  async function loadSchedule(forceRefresh = false) {
      const container = document.getElementById('schedule-container');
      const lastUpdatedEl = document.getElementById('last-updated');
-     
+
+     // L1: мгновенный кадр из среза текущей группы. Синхронно и до первого
+     // await — иначе старт снова упрётся в сеть.
+     if (!forceRefresh) paintHotSlice();
+
      const CACHE_KEY = 'nkse-schedule-cache';
      const TIME_KEY = 'nkse-schedule-time';
      const CACHE_VER_KEY = 'nkse-cache-ver';
@@ -783,6 +846,7 @@ renderTabs();
          renderSchedule();
          checkForUpdates();
          warmOfflineCache(rawText);
+         saveHotSlice();
 } catch (err) {
          console.error(err);
          uiSound('error');
@@ -1092,6 +1156,7 @@ function selectGroup(group) {
     renderPinButton();
     renderQuickGroups();
     renderSchedule();
+    saveHotSlice();
     updateViewUrl();
     scrollToScheduleTop();
     uiSound('tap');
@@ -1983,7 +2048,7 @@ function renderSchedule() {
 }
 
 function checkForUpdates(once) {
-    _lastCheckAt = Date.now();
+    _lastCheckAt = performance.now();
     fetchScheduleVersion()
         .then((data) => {
             if (!data || !data.mod_time) return;
@@ -1999,7 +2064,13 @@ function checkForUpdates(once) {
 
             if (prev !== null && next !== prev) {
                 console.log('[Update] New schedule detected!');
-                loadSchedule(true).then(() => showUpdateToast());
+                // Могли поменять чужую группу: обновляем данные молча и
+                // показываем toast только если изменилась текущая.
+                const before = JSON.stringify((allGroupsData && allGroupsData[currentGroup]) || null);
+                loadSchedule(true).then(() => {
+                    const after = JSON.stringify((allGroupsData && allGroupsData[currentGroup]) || null);
+                    if (before !== after) showUpdateToast();
+                });
             }
             lastModTime = data.mod_time;
         })
@@ -2012,12 +2083,19 @@ function checkForUpdates(once) {
 // schedule is revalidated the moment the tab is actually looked at again.
 function revalidateOnReturn() {
     if (document.visibilityState === 'hidden') return;
-    if (Date.now() - _lastCheckAt < 60 * 1000) return;
+    // performance.now() монотонен: перевод часов на телефоне не сломает троттлинг
+    if (performance.now() - _lastCheckAt < 60 * 1000) return;
     checkForUpdates(true);
 }
 
 document.addEventListener('visibilitychange', revalidateOnReturn);
 window.addEventListener('focus', revalidateOnReturn);
+// телефон вышел из тоннеля
+window.addEventListener('online', revalidateOnReturn);
+// возврат из bfcache (Safari/Chrome восстанавливают страницу без DOMContentLoaded)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) revalidateOnReturn();
+});
 
 function showUpdateToast() {
     const el = document.createElement('div');
