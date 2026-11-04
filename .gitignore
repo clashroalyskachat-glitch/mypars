@@ -10,3 +10,6 @@ node_modules/
 
 # build output (������������ toolchain_foundry/compiler.esbuild.mjs)
 dist/
+
+# временный профиль браузера для golden master
+.golden-profile/
