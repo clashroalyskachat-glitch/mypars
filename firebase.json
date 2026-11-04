@@ -1,14 +1,10 @@
 {
   "hosting": {
-    "public": ".",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "server.py",
-      "update_all_groups_v3.py",
-      "update_and_start.bat",
-      ".github/**"
+      "**/node_modules/**"
     ]
   }
 }

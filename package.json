@@ -4,11 +4,12 @@
   "private": true,
   "description": "Расписание НКСЭ — статический сайт с офлайн-режимом",
   "scripts": {
-    "build:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o app.css --minify",
+    "build:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o src/css_architecture/00_structural.css --minify",
     "watch:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o app.css --watch",
-    "build": "npm run build:css"
+    "build": "node toolchain_foundry/compiler.esbuild.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "tailwindcss": "3.4.17"
   }
 }
