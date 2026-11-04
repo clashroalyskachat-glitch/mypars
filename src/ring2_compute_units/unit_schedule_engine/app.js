@@ -4,6 +4,7 @@ let allGroupsData = {};
 let currentGroup = localStorage.getItem('selected_group') || 'СЗ-13-26';
 let currentDayFilter = 'all';
 let lastModTime = null;
+let _lastCheckAt = 0;
 
 const PIN_KEY = 'nkse-pinned-groups';
 const TEACHER_PIN_KEY = 'nkse-pinned-teachers';
@@ -1981,17 +1982,52 @@ function renderSchedule() {
     }
 }
 
-function checkForUpdates() {
+function checkForUpdates(once) {
+    _lastCheckAt = Date.now();
     fetchScheduleVersion()
         .then((data) => {
-            if (!data) return;
-            if (data.mod_time && lastModTime && data.mod_time !== lastModTime) {
+            if (!data || !data.mod_time) return;
+            const next = parseFloat(data.mod_time);
+            const prev = lastModTime ? parseFloat(lastModTime) : null;
+
+            // Monotonic barrier: a stale CDN/proxy copy must never roll the
+            // schedule back in time, even if it arrives after a fresher one.
+            if (prev !== null && isFinite(next) && next <= prev) {
+                lastModTime = prev;
+                return;
+            }
+
+            if (prev !== null && next !== prev) {
                 console.log('[Update] New schedule detected!');
-                loadSchedule(true);
+                loadSchedule(true).then(() => showUpdateToast());
             }
             lastModTime = data.mod_time;
         })
         .catch(() => {});
-    
-    setTimeout(checkForUpdates, 10 * 60 * 1000);
+
+    if (!once) setTimeout(checkForUpdates, 10 * 60 * 1000);
+}
+
+// Students keep the tab open for days; background timers are throttled, so the
+// schedule is revalidated the moment the tab is actually looked at again.
+function revalidateOnReturn() {
+    if (document.visibilityState === 'hidden') return;
+    if (Date.now() - _lastCheckAt < 60 * 1000) return;
+    checkForUpdates(true);
+}
+
+document.addEventListener('visibilitychange', revalidateOnReturn);
+window.addEventListener('focus', revalidateOnReturn);
+
+function showUpdateToast() {
+    const el = document.createElement('div');
+    el.className = 'nkse-toast';
+    el.textContent = 'Расписание обновилось';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('is-in'));
+    setTimeout(() => {
+        el.classList.remove('is-in');
+        setTimeout(() => el.remove(), 400);
+    }, 3200);
 }

@@ -83,3 +83,36 @@ html[data-theme] #days-tabs.dock-moving .day-tab {
         animation: none;
     }
 }
+
+/* ---- toast: расписание обновилось в фоне ----
+   Живёт вне #schedule-container, чтобы не влиять на Golden Master слепок.
+   Только transform/opacity: не вызывает layout и не мешает скроллу. */
+.nkse-toast {
+    position: fixed;
+    left: 50%;
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    z-index: 200;
+    padding: 0.7em 1.1em 0.6em;
+    border-radius: 999px;
+    border: 1px solid rgb(201 154 99 / .55);
+    background: rgb(18 16 14 / .92);
+    color: #f4eee3;
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / .9);
+    transform: translate(-50%, 140%);
+    opacity: 0;
+    transition: transform .32s cubic-bezier(.2, .8, .25, 1), opacity .32s ease;
+    pointer-events: none;
+}
+
+.nkse-toast.is-in {
+    transform: translate(-50%, 0);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nkse-toast { transition: opacity .2s ease; transform: translate(-50%, 0); }
+}
