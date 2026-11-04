@@ -809,7 +809,23 @@
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+            },
+            {
+                urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+            },
         ],
+        iceCandidatePoolSize: 10,
     };
 
     function setCallStatus(text) {
@@ -882,8 +898,15 @@
                 clearTimeout(state.callTimeout);
                 setCallStatus('в звонке');
             }
-            if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) {
-                if (pc.connectionState === 'failed') setCallStatus('связь потеряна');
+            if (pc.connectionState === 'disconnected') {
+                setCallStatus('связь нестабильна…');
+            }
+            if (pc.connectionState === 'failed') {
+                setCallStatus('связь потеряна');
+                const peer = call.peer;
+                setTimeout(() => {
+                    if (call.peer === peer) cleanupCall('связь потеряна');
+                }, 1500);
             }
         };
         return pc;
@@ -1050,7 +1073,11 @@
                         if (call.peer === from) cleanupCall('отклонён');
                     }, 1200);
                 } else {
-                    cleanupCall('завершён');
+                    setCallStatus('звонок завершён');
+                    stopRing();
+                    setTimeout(() => {
+                        if (call.peer === from) cleanupCall('завершён');
+                    }, 1000);
                 }
             }
         }
@@ -1402,6 +1429,17 @@
                 if (!payload || !payload.data) return;
                 handleSignal(payload.fromNick || payload.fromUid, payload.data, payload.fromUid);
             })
+            .on('broadcast', { event: 'message' }, ({ payload }) => {
+                if (!payload || !payload.row || !payload.fromUid) return;
+                if (state.settings.contactsOnly && !state.chats.some((item) => item.nick === payload.fromNick)) return;
+                addChat(payload.fromNick, payload.fromUid);
+                const chat = state.chats.find((item) => item.nick === payload.fromNick);
+                if (chat) {
+                    if (payload.chatId) chat.chatId = payload.chatId;
+                    if (payload.row.created_at) chat.lastTs = payload.row.created_at;
+                }
+                handleIncomingRow(payload.row, payload.fromNick);
+            })
             .subscribe();
     }
 
@@ -1541,6 +1579,40 @@
         }
     }
 
+    async function discoverChats() {
+        if (!state.sb || !state.sbUid) return;
+        const { data, error } = await state.sb
+            .from('chat_members')
+            .select('chat_id')
+            .eq('user_id', state.sbUid);
+        if (error || !data) return;
+
+        const known = new Set(state.chats.map((chat) => chat.chatId).filter(Boolean));
+        for (const row of data) {
+            const chatId = row.chat_id;
+            if (!chatId || known.has(chatId)) continue;
+
+            const { data: others } = await state.sb
+                .from('chat_members')
+                .select('user_id')
+                .eq('chat_id', chatId)
+                .neq('user_id', state.sbUid)
+                .limit(1);
+            const other = others && others[0];
+            if (!other) continue;
+
+            const { data: profile } = await state.sb
+                .from('profiles')
+                .select('nick')
+                .eq('id', other.user_id)
+                .maybeSingle();
+            if (!profile || !profile.nick) continue;
+
+            addChat(profile.nick, other.user_id);
+            const chat = state.chats.find((item) => item.nick === profile.nick);
+            if (chat) chat.chatId = chatId;
+        }
+    }
     function startAllChatSync() {
         clearInterval(state.syncAllTimer);
         state.syncAllTimer = setInterval(supabaseSyncAllChats, 2500);
@@ -1551,6 +1623,8 @@
         state.syncAllBusy = true;
 
         try {
+            await discoverChats();
+
             for (const chat of [...state.chats]) {
                 if (!chat.uid || chat.nick === state.me.nick) continue;
 
@@ -1668,6 +1742,14 @@
                     .send({ type: 'broadcast', event: 'message', payload: data })
                     .catch(() => {});
             }
+            if (state.peerUid) {
+                sendUserEvent(state.peerUid, 'message', {
+                    row: data,
+                    fromUid: state.sbUid,
+                    fromNick: state.me.nick,
+                    chatId: state.chatId,
+                }).catch(() => {});
+            }
         }
         saveHistory(state.peer, loadHistory(state.peer));
         renderMessages();
@@ -1688,15 +1770,23 @@
         return entry;
     }
 
-    async function sendSignalTo(uid, data) {
+    async function sendUserEvent(uid, event, payload) {
         if (!state.sb || !uid) return;
         const { channel, ready } = signalChannelFor(uid);
         await ready;
-        await channel.send({
-            type: 'broadcast',
-            event: 'signal',
-            payload: { fromUid: state.sbUid, fromNick: state.me.nick, data },
-        });
+        await channel.send({ type: 'broadcast', event, payload });
+    }
+
+    async function sendSignalTo(uid, data) {
+        try {
+            await sendUserEvent(uid, 'signal', {
+                fromUid: state.sbUid,
+                fromNick: state.me.nick,
+                data,
+            });
+        } catch (e) {
+            console.warn('signal', e);
+        }
     }
 
     async function supabaseSignal(data) {

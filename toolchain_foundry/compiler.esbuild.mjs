@@ -154,7 +154,14 @@ async function main() {
         'manifest.json',
         'icon.svg',
     ];
-    const version = hash(precache.join('|') + kernelHash + cssHash);
+    const version = hash(
+        precache.join('|') +
+        kernelHash +
+        cssHash +
+        ['app.js', 'config.js', 'styles.css', 'index.html']
+            .map((file) => hash(fs.readFileSync(path.join(ROOT, 'messenger', file))))
+            .join('')
+    );
     const swTemplate = await fsp.readFile(path.join(SRC, 'sw.template.js'), 'utf8');
     const sw = swTemplate
         .replace('__VERSION__', `nkse-${version}`)

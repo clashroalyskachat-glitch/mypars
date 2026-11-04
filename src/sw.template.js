@@ -119,6 +119,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    /* The messenger is updated independently of the schedule bundles. Never
+       serve a stale app.js/config.js from the shell cache. */
+    if (url.origin === self.location.origin && url.pathname.includes('/messenger/')) {
+        event.respondWith(networkFirst(req, CACHE));
+        return;
+    }
+
     if (req.mode === 'navigate') {
         event.respondWith(networkFirst(req, CACHE, 'index.html'));
         return;
