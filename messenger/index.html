@@ -23,20 +23,14 @@
         })();
     </script>
 </head>
-<body>
+<body class="auth-locked">
 
 <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
         <header class="side-head">
             <a class="brand" href="/" title="В меню">
-                <span class="brand-logo" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.5 11.6c0 4-3.8 7.2-8.5 7.2-1 0-2-.2-2.9-.5L4 20.6l1.4-4A6.8 6.8 0 0 1 3.5 11.6C3.5 7.6 7.3 4.4 12 4.4s8.5 3.2 8.5 7.2z"/>
-                        <path d="M8.2 11.6h.1M12 11.6h.1M15.8 11.6h.1"/>
-                    </svg>
-                </span>
                 <span class="brand-text">
-                    <b>pps</b>
+                    <b>PPS</b>
                     <small>НКСЭ</small>
                 </span>
             </a>
@@ -98,8 +92,10 @@
         </div>
 
         <footer class="side-foot">
-            <span id="peer-count">0 онлайн</span>
-            <span class="conn-dot" id="conn-dot-side" title="Соединение"></span>
+            <span class="status-pill">
+                <span class="conn-dot" id="conn-dot-side" title="Соединение"></span>
+                <span id="peer-count">В сети</span>
+            </span>
         </footer>
     </aside>
 
@@ -164,10 +160,58 @@
     </main>
 </div>
 
-<!-- Auth -->
-<div class="modal" id="auth-modal">
-    <div class="modal-card auth-card">
-        <div class="auth-brand">pps <span>НКСЭ</span></div>
+<div class="message-menu" id="message-menu" hidden role="menu">
+    <button type="button" data-msg-action="copy" role="menuitem">Копировать</button>
+    <button type="button" data-msg-action="delete-self" role="menuitem">Удалить у себя</button>
+    <button type="button" data-msg-action="delete-all" role="menuitem" class="danger">Удалить у всех</button>
+</div>
+
+<!-- Auth page -->
+<div class="auth-screen" id="auth-modal">
+    <div class="auth-deco" aria-hidden="true">
+        <div class="auth-space">
+            <span class="space-nebula neb-a"></span>
+            <span class="space-nebula neb-b"></span>
+            <span class="space-nebula neb-c"></span>
+            <span class="space-stars stars-far"></span>
+            <span class="space-stars stars-mid"></span>
+            <span class="space-stars stars-near"></span>
+            <span class="space-stars stars-faint"></span>
+            <div class="space-hole">
+                <span class="hole-glow"></span>
+                <span class="hole-disk"></span>
+                <span class="hole-core"></span>
+            </div>
+            <span class="space-planet planet-a"></span>
+            <span class="space-planet planet-b"></span>
+            <span class="space-shoot shoot-a"></span>
+            <span class="space-shoot shoot-b"></span>
+            <span class="space-shoot shoot-c"></span>
+            <span class="space-dust dust-a"></span>
+            <span class="space-dust dust-b"></span>
+            <span class="space-dust dust-c"></span>
+            <span class="space-dust dust-d"></span>
+        </div>
+
+        <div class="auth-float float-a">
+            <span class="af-avatar">?</span>
+            <span class="af-lines"><i></i><i></i></span>
+        </div>
+        <div class="auth-float float-b own">
+            <span class="af-lines"><i></i><i></i></span>
+            <span class="af-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4 4 10-10"/></svg>
+            </span>
+        </div>
+
+    </div>
+
+    <a class="auth-back" href="/">← В меню</a>
+
+    <div class="auth-panel">
+        <div class="auth-brand">PPS</div>
+        <div class="auth-sub">НКСЭ</div>
+        <h1 id="auth-title">Вход</h1>
         <div class="tabs" role="tablist">
             <button class="tab is-active" data-mode="login" type="button" role="tab" aria-selected="true">Войти</button>
             <button class="tab" data-mode="register" type="button" role="tab" aria-selected="false">Регистрация</button>
@@ -179,7 +223,23 @@
             </label>
             <label class="field">
                 <span>Пароль</span>
-                <input id="auth-pass" name="password" type="password" maxlength="100" autocomplete="current-password" required>
+                <span class="pass-wrap">
+                    <input id="auth-pass" name="password" type="password" maxlength="100" autocomplete="current-password" required>
+                    <button class="pass-eye" type="button" data-eye="auth-pass" aria-label="Показать пароль">
+                        <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                        <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 6.2A10.6 10.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.7M6.2 6.7C3.8 8.4 2.5 12 2.5 12s3.5 6 9.5 6c1.2 0 2.3-.2 3.3-.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                    </button>
+                </span>
+            </label>
+            <label class="field" id="auth-confirm-field" hidden>
+                <span>Пароль ещё раз</span>
+                <span class="pass-wrap">
+                    <input id="auth-confirm" name="password2" type="password" maxlength="100" autocomplete="new-password">
+                    <button class="pass-eye" type="button" data-eye="auth-confirm" aria-label="Показать пароль">
+                        <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                        <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 6.2A10.6 10.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.7M6.2 6.7C3.8 8.4 2.5 12 2.5 12s3.5 6 9.5 6c1.2 0 2.3-.2 3.3-.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                    </button>
+                </span>
             </label>
             <p class="form-error" id="auth-error" hidden></p>
             <button class="primary wide" id="auth-submit" type="submit">Войти</button>
@@ -247,6 +307,14 @@
                 <button type="button" data-accent-choice="amber" aria-label="Янтарный"></button>
             </div>
         </div>
+        <label class="status-row">
+            <span>Статус</span>
+            <input id="set-status" type="text" maxlength="40" placeholder="Например: на парах" autocomplete="off">
+        </label>
+        <label class="switch-row">
+            <span>Скрывать, что я в сети</span>
+            <input type="checkbox" id="set-invisible">
+        </label>
         <label class="switch-row">
             <span>Уведомления</span>
             <input type="checkbox" id="set-notifications">

@@ -1,6 +1,11 @@
 (function () {
     'use strict';
 
+    const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+        || (navigator.deviceMemory && navigator.deviceMemory <= 4)
+        || (navigator.connection && navigator.connection.saveData);
+    if (lowPower) document.documentElement.classList.add('pps-low-power');
+
     const $ = (id) => document.getElementById(id);
     const LS = {
         token: 'pps.token',
@@ -29,6 +34,7 @@
         chatId: null,
         chatChannel: null,
         presenceChannel: null,
+        presenceHooked: false,
         signalChannel: null,
         signalOut: new Map(),
         sb: null,
@@ -36,6 +42,8 @@
         sbUid: '',
         chatMeta: readJson('pps.chatmeta', {}) || {},
         hiddenChats: readJson('pps.hidden', {}) || {},
+        localDeleted: readJson('pps.deleted', {}) || {},
+        contextMessage: null,
         settings: (function () {
             const saved = readJson('pps.settings', null) || {};
             const defaults = {
@@ -43,6 +51,8 @@
                 dnd: false,
                 silent: true,
                 contactsOnly: false,
+                status: '',
+                invisible: false,
                 v2: true,
             };
             /* One-time migration: older builds enabled sounds by default. */
@@ -63,6 +73,7 @@
         chatLastTs: '',
         messages: new Map(),
         online: new Set(),
+        statuses: {},
         unread: new Map(),
         search: [],
         searchTimer: 0,
@@ -137,6 +148,28 @@
     }
     const isOnline = (nick) => state.online.has(String(nick).toLowerCase());
 
+    function presenceText(nick) {
+        if (!isOnline(nick)) return 'не в сети';
+        const status = state.statuses[String(nick).toLowerCase()];
+        return status || 'в сети';
+    }
+
+    function updateOwnStatus() {
+        const text = state.settings.invisible ? 'скрыт' : (state.settings.status || 'в сети');
+        if ($('settings-status')) $('settings-status').textContent = text;
+        if ($('me-status')) $('me-status').textContent = text;
+    }
+
+    function trackPresence() {
+        if (!state.presenceChannel || !state.me) return;
+        state.presenceChannel.track({
+            uid: state.sbUid,
+            nick: state.me.nick,
+            status: state.settings.status || '',
+            invisible: !!state.settings.invisible,
+        }).catch(() => {});
+    }
+
     function fmtTime(ts) {
         try {
             return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -175,14 +208,29 @@
         return false;
     }
 
+    function updatePeerCount() {
+        const el = $('peer-count');
+        if (!el) return;
+        const dot = $('conn-dot-side');
+        const connected = dot ? dot.classList.contains('on') : true;
+        const count = state.online.size;
+        el.textContent = !connected
+            ? 'Нет связи'
+            : state.settings.invisible
+                ? 'Скрыт'
+                : (count > 0 ? count + ' онлайн' : 'В сети');
+    }
+
     function setConn(on) {
         const dot = $('conn-dot');
         if (dot) dot.classList.toggle('on', !!on);
         const side = $('conn-dot-side');
         if (side) side.classList.toggle('on', !!on);
+        updatePeerCount();
     }
 
     function showAuth(message) {
+        document.body.classList.add('auth-locked');
         $('auth-modal').hidden = false;
         if (message) {
             $('auth-error').textContent = message;
@@ -192,6 +240,7 @@
     }
 
     function hideAuth() {
+        document.body.classList.remove('auth-locked');
         $('auth-modal').hidden = true;
         $('auth-error').hidden = true;
     }
@@ -202,14 +251,13 @@
         writeJson(LS.user, user);
         $('me-bar').hidden = false;
         $('me-nick').textContent = user.nick;
-        $('me-status').textContent = 'в сети';
         $('me-avatar').textContent = initial(user.nick);
         $('logout-btn').hidden = true;
         paintAvatar($('settings-avatar'), user.nick);
         $('settings-nick').textContent = user.nick;
-        $('settings-status').textContent = 'в сети';
+        updateOwnStatus();
         $('search').disabled = false;
-        $('peer-count').textContent = state.online.size + ' онлайн';
+        updatePeerCount();
     }
 
     /* ----------------------------------------------------------- websocket */
@@ -379,6 +427,122 @@
         writeJson('pps.hidden', state.hiddenChats);
     }
 
+    function isLocallyDeleted(nick, id) {
+        return (state.localDeleted[nick] || []).includes(id);
+    }
+
+    function markLocallyDeleted(nick, id) {
+        const list = state.localDeleted[nick] || [];
+        if (!list.includes(id)) list.push(id);
+        state.localDeleted[nick] = list.slice(-500);
+        writeJson('pps.deleted', state.localDeleted);
+    }
+
+    function removeMessageLocal(nick, id) {
+        const list = loadHistory(nick).filter((message) => message.id !== id);
+        saveHistory(nick, list);
+        if (state.peer === nick) renderMessages();
+        renderChats();
+    }
+
+    function handleDeleted(payload) {
+        const clientId = payload && payload.clientId;
+        const dbId = payload && payload.id;
+        for (const [nick, list] of [...state.messages.entries()]) {
+            const next = list.filter((message) => {
+                if (clientId && message.id === clientId) return false;
+                if (dbId && message.dbId === dbId) return false;
+                return true;
+            });
+            if (next.length !== list.length) saveHistory(nick, next);
+        }
+        if (state.peer) renderMessages();
+        renderChats();
+    }
+
+    function removeChatLocal(nick) {
+        const wasActive = state.peer === nick;
+        state.chats = state.chats.filter((chat) => chat.nick !== nick);
+        writeJson(LS.chats, state.chats);
+        localStorage.removeItem(historyKey(nick));
+        state.messages.delete(nick);
+        state.unread.delete(nick);
+        delete state.chatMeta[nick];
+        saveChatMeta();
+        delete state.localDeleted[nick];
+        writeJson('pps.deleted', state.localDeleted);
+        if (wasActive) closeChat();
+        else renderChats();
+    }
+
+    function handleChatDeleted(payload) {
+        const nick = payload && payload.nick;
+        if (!nick) return;
+        hideChat(nick);
+        removeChatLocal(nick);
+        showToast('Чат удалён');
+    }
+
+    function showMessageMenu(event, message) {
+        state.contextMessage = message;
+        const menu = $('message-menu');
+        const own = state.me && message.from === state.me.nick;
+        const deleteAll = menu.querySelector('[data-msg-action="delete-all"]');
+        if (deleteAll) deleteAll.hidden = !own;
+
+        menu.hidden = false;
+        const width = 190;
+        const height = own ? 130 : 90;
+        const x = Math.min(event.clientX || 20, window.innerWidth - width - 10);
+        const y = Math.min(event.clientY || 20, window.innerHeight - height - 10);
+        menu.style.left = Math.max(8, x) + 'px';
+        menu.style.top = Math.max(8, y) + 'px';
+        event.preventDefault();
+    }
+
+    async function deleteContextMessage(forAll) {
+        const message = state.contextMessage;
+        const peer = state.peer;
+        $('message-menu').hidden = true;
+        state.contextMessage = null;
+        if (!message || !peer) return;
+
+        if (forAll) {
+            if (!state.sb || !state.me) return;
+            const patch = {
+                deleted_at: new Date().toISOString(),
+                deleted_for_all: true,
+                body: '',
+            };
+            let query = state.sb.from('messages').update(patch);
+            query = message.dbId
+                ? query.eq('id', message.dbId)
+                : query.eq('client_id', message.id).eq('sender_id', state.sbUid);
+            const { error } = await query;
+            if (error) {
+                showToast('Не удалось удалить у всех');
+                return;
+            }
+            if (state.peerUid) {
+                sendUserEvent(state.peerUid, 'message-deleted', {
+                    id: message.dbId,
+                    clientId: message.id,
+                }).catch(() => {});
+            }
+            if (state.chatChannel) {
+                state.chatChannel.send({
+                    type: 'broadcast',
+                    event: 'message-deleted',
+                    payload: { id: message.dbId, clientId: message.id },
+                }).catch(() => {});
+            }
+        } else {
+            markLocallyDeleted(peer, message.id);
+        }
+
+        removeMessageLocal(peer, message.id);
+    }
+
     function hideChat(nick) {
         state.hiddenChats[nick] = serverNow();
         saveHiddenChats();
@@ -419,6 +583,9 @@
             const element = $(id);
             if (element) element.checked = !!state.settings[map[id]];
         });
+        if ($('set-status')) $('set-status').value = state.settings.status || '';
+        if ($('set-invisible')) $('set-invisible').checked = !!state.settings.invisible;
+        updateOwnStatus();
     }
 
     function applyAccent(name) {
@@ -479,6 +646,25 @@
         $('set-contacts').addEventListener('change', (event) => {
             state.settings.contactsOnly = event.target.checked;
             saveSettings();
+        });
+
+        $('set-status').addEventListener('change', (event) => {
+            state.settings.status = event.target.value.trim().slice(0, 40);
+            event.target.value = state.settings.status;
+            saveSettings();
+            updateOwnStatus();
+            trackPresence();
+        });
+        $('set-status').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') event.target.blur();
+        });
+
+        $('set-invisible').addEventListener('change', (event) => {
+            state.settings.invisible = event.target.checked;
+            saveSettings();
+            updateOwnStatus();
+            updatePeerCount();
+            trackPresence();
         });
     }
 
@@ -570,7 +756,7 @@
         renderChats();
     }
 
-    function chatAction(action) {
+    async function chatAction(action) {
         const nick = state.peer;
         if (!nick) return;
         const meta = metaFor(nick);
@@ -599,32 +785,24 @@
         }
 
         if (action === 'delete') {
-            if (confirm('Удалить чат «' + nick + '»? История на этом устройстве исчезнет.')) {
-                state.chats = state.chats.filter((chat) => chat.nick !== nick);
-                writeJson(LS.chats, state.chats);
-                localStorage.removeItem(historyKey(nick));
-                state.messages.delete(nick);
-                delete state.chatMeta[nick];
-                hideChat(nick);
-                saveChatMeta();
-                state.unread.delete(nick);
-
-                clearInterval(state.syncTimer);
-                if (state.chatChannel && state.sb) {
-                    try { state.sb.removeChannel(state.chatChannel); } catch (e) { /* ignore */ }
+            const both = !!(state.sb && state.peerUid)
+                && confirm('Удалить чат у обоих? OK — у обоих, Отмена — только у тебя.');
+            if (both) {
+                try {
+                    const { error } = await state.sb.rpc('delete_direct_chat', { other_id: state.peerUid });
+                    if (error) throw error;
+                } catch (e) {
+                    showToast('Не удалось удалить у обоих');
+                    return;
                 }
-                state.chatChannel = null;
-                state.chatId = null;
-                state.chatLastTs = '';
-                state.peer = null;
-                state.peerUid = null;
-
-                $('chat-view').hidden = true;
-                $('empty').hidden = false;
-                $('messages').replaceChildren();
-                $('app').classList.remove('show-chat');
-                renderChats();
+                sendUserEvent(state.peerUid, 'chat-deleted', {
+                    nick,
+                    chatId: state.chatId,
+                }).catch(() => {});
             }
+
+            hideChat(nick);
+            removeChatLocal(nick);
         }
 
         $('chat-menu').hidden = true;
@@ -661,7 +839,7 @@
         $('empty').hidden = true;
         $('peer-nick').textContent = target.nick;
         paintAvatar($('peer-avatar'), target.nick);
-        $('peer-status').textContent = isOnline(target.nick) ? 'в сети' : 'не в сети';
+        $('peer-status').textContent = presenceText(target.nick);
         $('app').classList.add('show-chat');
         $('search').value = '';
         $('search-results').hidden = true;
@@ -744,7 +922,7 @@
             list.append(button);
         }
 
-        $('peer-count').textContent = state.online.size + ' онлайн';
+        updatePeerCount();
     }
 
     function lastMessage(nick) {
@@ -754,9 +932,9 @@
 
     function renderPresence() {
         renderChats();
-        if (state.peer) $('peer-status').textContent = isOnline(state.peer) ? 'в сети' : 'не в сети';
+        if (state.peer) $('peer-status').textContent = presenceText(state.peer);
         if (!$('search-results').hidden) renderSearch();
-        $('peer-count').textContent = state.online.size + ' онлайн';
+        updatePeerCount();
     }
 
     function receiveMessage(message) {
@@ -789,6 +967,7 @@
             .sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
         let lastDay = '';
         for (const message of ordered) {
+            if (isLocallyDeleted(state.peer, message.id)) continue;
             const day = dayLabel(message.ts);
             if (day !== lastDay) {
                 lastDay = day;
@@ -812,6 +991,8 @@
             const own = state.me && message.from === state.me.nick;
             const row = document.createElement('div');
             row.className = 'msg' + (own ? ' own' : '');
+            row.dataset.id = message.id;
+            row._message = message;
 
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
@@ -922,7 +1103,9 @@
             name.textContent = user.nick;
 
             const status = document.createElement('small');
-            status.textContent = user.online ? 'в сети' : 'не в сети';
+            status.textContent = user.online
+                ? (state.statuses[user.nick.toLowerCase()] || 'в сети')
+                : 'не в сети';
 
             button.append(avatar, name, status);
             button.addEventListener('click', () => openChat({ nick: user.nick, uid: user.uid }));
@@ -1329,7 +1512,22 @@
                     t.setAttribute('aria-selected', String(active));
                 });
                 $('auth-submit').textContent = state.authMode === 'login' ? 'Войти' : 'Создать аккаунт';
-                $('auth-pass').autocomplete = state.authMode === 'login' ? 'current-password' : 'new-password';
+                $('auth-title').textContent = state.authMode === 'login' ? 'Вход' : 'Регистрация';
+                const registering = state.authMode === 'register';
+                $('auth-confirm-field').hidden = !registering;
+                $('auth-confirm').required = registering;
+                $('auth-pass').autocomplete = registering ? 'new-password' : 'current-password';
+            });
+        });
+
+        document.querySelectorAll('.pass-eye').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = $(button.dataset.eye);
+                if (!input) return;
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                button.classList.toggle('is-on', show);
+                button.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
             });
         });
 
@@ -1338,6 +1536,20 @@
             const nick = $('auth-nick').value.trim();
             const password = $('auth-pass').value;
             $('auth-error').hidden = true;
+
+            if (state.authMode === 'register') {
+                if (password.length < 6) {
+                    $('auth-error').textContent = 'Пароль должен быть от 6 символов.';
+                    $('auth-error').hidden = false;
+                    return;
+                }
+                if (password !== $('auth-confirm').value) {
+                    $('auth-error').textContent = 'Пароли не совпадают.';
+                    $('auth-error').hidden = false;
+                    return;
+                }
+            }
+
             $('auth-submit').disabled = true;
 
             if (USE_SUPABASE) {
@@ -1396,6 +1608,47 @@
             updateScrollButton();
         });
 
+        $('messages').addEventListener('contextmenu', (event) => {
+            const row = event.target.closest('.msg');
+            if (row && row._message) showMessageMenu(event, row._message);
+        });
+
+        let pressTimer = 0;
+        $('messages').addEventListener('touchstart', (event) => {
+            const row = event.target.closest('.msg');
+            if (!row || !row._message) return;
+            const touch = event.touches[0];
+            pressTimer = setTimeout(() => {
+                showMessageMenu({
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault() {},
+                }, row._message);
+            }, 500);
+        }, { passive: true });
+        ['touchend', 'touchmove', 'touchcancel'].forEach((name) => {
+            $('messages').addEventListener(name, () => clearTimeout(pressTimer), { passive: true });
+        });
+
+        $('message-menu').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const button = event.target.closest('[data-msg-action]');
+            if (!button) return;
+            const action = button.dataset.msgAction;
+            const message = state.contextMessage;
+            if (!message) return;
+
+            if (action === 'copy') {
+                navigator.clipboard.writeText(message.text).then(() => showToast('Скопировано')).catch(() => {});
+                $('message-menu').hidden = true;
+                state.contextMessage = null;
+            } else if (action === 'delete-self') {
+                deleteContextMessage(false);
+            } else if (action === 'delete-all') {
+                deleteContextMessage(true);
+            }
+        });
+
         document.addEventListener('keydown', (event) => {
             const tag = document.activeElement && document.activeElement.tagName;
             const typing = tag === 'INPUT' || tag === 'TEXTAREA';
@@ -1431,6 +1684,7 @@
         document.addEventListener('click', () => {
             $('chat-menu').hidden = true;
             $('chat-menu-btn').setAttribute('aria-expanded', 'false');
+            $('message-menu').hidden = true;
         });
 
         document.addEventListener('visibilitychange', () => {
@@ -1659,24 +1913,35 @@
         channel.on('presence', { event: 'sync' }, () => {
             const snapshot = channel.presenceState();
             const next = new Set();
+            const statuses = {};
             Object.keys(snapshot).forEach((key) => {
                 for (const entry of snapshot[key] || []) {
-                    if (entry && entry.nick && entry.uid !== state.sbUid) {
-                        next.add(String(entry.nick).toLowerCase());
-                    }
+                    if (!entry || !entry.nick || entry.uid === state.sbUid || entry.invisible) continue;
+                    const nick = String(entry.nick).toLowerCase();
+                    next.add(nick);
+                    if (entry.status) statuses[nick] = String(entry.status).slice(0, 40);
                 }
             });
             state.online = next;
+            state.statuses = statuses;
             renderPresence();
         });
 
-        channel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                await channel.track({ uid: state.sbUid, nick: state.me.nick });
-            }
+        channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') trackPresence();
         });
 
         state.presenceChannel = channel;
+
+        if (!state.presenceHooked) {
+            state.presenceHooked = true;
+            const retrack = () => {
+                if (document.visibilityState !== 'visible') return;
+                trackPresence();
+            };
+            document.addEventListener('visibilitychange', retrack);
+            window.addEventListener('focus', retrack);
+        }
     }
 
     function subscribeSignals() {
@@ -1697,6 +1962,12 @@
                     if (payload.row.created_at) chat.lastTs = payload.row.created_at;
                 }
                 handleIncomingRow(payload.row, payload.fromNick);
+            })
+            .on('broadcast', { event: 'message-deleted' }, ({ payload }) => {
+                handleDeleted(payload);
+            })
+            .on('broadcast', { event: 'chat-deleted' }, ({ payload }) => {
+                handleChatDeleted(payload);
             })
             .subscribe();
     }
@@ -1762,7 +2033,7 @@
             if (chatRecord) chatRecord.chatId = chatId;
             const { data: rows, error: loadError } = await state.sb
                 .from('messages')
-                .select('id,sender_id,body,client_id,created_at')
+                .select('*')
                 .eq('chat_id', chatId)
                 .order('created_at', { ascending: true })
                 .limit(200);
@@ -1797,6 +2068,12 @@
             .on('broadcast', { event: 'message' }, ({ payload }) => {
                 if (payload) handleIncomingRow(payload, peerNick);
             })
+            .on('broadcast', { event: 'message-deleted' }, ({ payload }) => {
+                handleDeleted(payload);
+            })
+            .on('broadcast', { event: 'chat-deleted' }, ({ payload }) => {
+                handleChatDeleted(payload);
+            })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') supabaseSyncChat();
             });
@@ -1819,7 +2096,7 @@
         try {
             const { data, error } = await state.sb
                 .from('messages')
-                .select('id,sender_id,body,client_id,created_at')
+                .select('*')
                 .eq('chat_id', chatId)
                 .gt('created_at', since)
                 .order('created_at', { ascending: true })
@@ -1844,6 +2121,13 @@
             .select('chat_id')
             .eq('user_id', state.sbUid);
         if (error || !data) return;
+
+        const memberIds = new Set(data.map((row) => row.chat_id));
+        for (const chat of [...state.chats]) {
+            if (chat.chatId && !memberIds.has(chat.chatId)) {
+                removeChatLocal(chat.nick);
+            }
+        }
 
         const known = new Set(state.chats.map((chat) => chat.chatId).filter(Boolean));
         for (const row of data) {
@@ -1896,7 +2180,7 @@
                 const since = chat.lastTs || new Date(0).toISOString();
                 const { data, error } = await state.sb
                     .from('messages')
-                    .select('id,sender_id,body,client_id,created_at')
+                    .select('*')
                     .eq('chat_id', chat.chatId)
                     .gt('created_at', since)
                     .order('created_at', { ascending: true })
@@ -1919,6 +2203,12 @@
 
     function handleIncomingRow(row, peerNick) {
         if (metaFor(peerNick).blocked) return;
+        const messageId = row.client_id || row.id;
+        if (isLocallyDeleted(peerNick, messageId)) return;
+        if (row.deleted_for_all) {
+            removeMessageLocal(peerNick, messageId);
+            return;
+        }
         const hiddenAt = state.hiddenChats[peerNick];
         if (hiddenAt) {
             const messageAt = Date.parse(row.created_at) || 0;
@@ -1976,6 +2266,7 @@
         const own = row.sender_id === state.sbUid;
         return {
             id: row.client_id || row.id,
+            dbId: row.id,
             from: own ? state.me.nick : peerNick,
             to: own ? peerNick : state.me.nick,
             text: row.body,
@@ -2020,13 +2311,14 @@
                 body: message.text,
                 client_id: message.id,
             })
-            .select('id,sender_id,body,client_id,created_at')
+            .select('*')
             .single();
 
         message.status = error ? 'failed' : 'sent';
         if (error) console.warn('send message', error);
         if (!error && data) {
             message.ts = Date.parse(data.created_at) || message.ts;
+            message.dbId = data.id;
             if (state.chatChannel) {
                 state.chatChannel
                     .send({ type: 'broadcast', event: 'message', payload: data })
