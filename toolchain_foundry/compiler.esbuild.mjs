@@ -139,7 +139,12 @@ async function main() {
     }
 
     /* messenger: в прод не едут dev-скрипты и SQL-схема Supabase */
-    for (const rel of ['messenger/dev-server.mjs', 'messenger/dev-smoke.mjs', 'messenger/README.md']) {
+    for (const rel of [
+        'messenger/dev-server.mjs',
+        'messenger/dev-smoke.mjs',
+        'messenger/README.md',
+        'messenger/UX_RESEARCH.md',
+    ]) {
         await fsp.rm(path.join(DIST, rel), { force: true });
     }
     await fsp.rm(path.join(DIST, 'messenger', 'supabase'), { recursive: true, force: true });

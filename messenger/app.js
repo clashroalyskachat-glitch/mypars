@@ -35,6 +35,7 @@
         sbJwt: '',
         sbUid: '',
         chatMeta: readJson('pps.chatmeta', {}) || {},
+        hiddenChats: readJson('pps.hidden', {}) || {},
         settings: (function () {
             const saved = readJson('pps.settings', null) || {};
             const defaults = {
@@ -120,6 +121,20 @@
 
     const esc = (value) => String(value == null ? '' : value);
     const initial = (nick) => esc(nick).trim().charAt(0).toUpperCase() || '?';
+
+    function avatarHue(nick) {
+        let hash = 0;
+        for (const char of String(nick || '')) {
+            hash = (hash * 31 + char.codePointAt(0)) % 360;
+        }
+        return hash;
+    }
+
+    function paintAvatar(element, nick) {
+        if (!element) return;
+        element.style.setProperty('--avatar-hue', String(avatarHue(nick)));
+        element.textContent = initial(nick);
+    }
     const isOnline = (nick) => state.online.has(String(nick).toLowerCase());
 
     function fmtTime(ts) {
@@ -128,6 +143,16 @@
         } catch (e) {
             return '';
         }
+    }
+
+    function dayLabel(ts) {
+        const date = new Date(ts);
+        const today = new Date();
+        const start = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+        const diff = Math.round((start(today) - start(date)) / 86400000);
+        if (diff === 0) return 'Сегодня';
+        if (diff === 1) return 'Вчера';
+        return date.toLocaleDateString([], { day: 'numeric', month: 'long' });
     }
 
     function newId() {
@@ -151,8 +176,10 @@
     }
 
     function setConn(on) {
-        $('conn-dot').classList.toggle('on', !!on);
-        $('conn-dot').title = on ? 'соединение есть' : 'нет соединения';
+        const dot = $('conn-dot');
+        if (dot) dot.classList.toggle('on', !!on);
+        const side = $('conn-dot-side');
+        if (side) side.classList.toggle('on', !!on);
     }
 
     function showAuth(message) {
@@ -178,6 +205,9 @@
         $('me-status').textContent = 'в сети';
         $('me-avatar').textContent = initial(user.nick);
         $('logout-btn').hidden = true;
+        paintAvatar($('settings-avatar'), user.nick);
+        $('settings-nick').textContent = user.nick;
+        $('settings-status').textContent = 'в сети';
         $('search').disabled = false;
         $('peer-count').textContent = state.online.size + ' онлайн';
     }
@@ -345,6 +375,22 @@
         writeJson('pps.chatmeta', state.chatMeta);
     }
 
+    function saveHiddenChats() {
+        writeJson('pps.hidden', state.hiddenChats);
+    }
+
+    function hideChat(nick) {
+        state.hiddenChats[nick] = serverNow();
+        saveHiddenChats();
+    }
+
+    function unhideChat(nick) {
+        if (state.hiddenChats[nick]) {
+            delete state.hiddenChats[nick];
+            saveHiddenChats();
+        }
+    }
+
     function applyChatMeta(nick) {
         const meta = metaFor(nick);
         const input = $('text');
@@ -375,6 +421,16 @@
         });
     }
 
+    function applyAccent(name) {
+        const allowed = ['blue', 'emerald', 'violet', 'amber'];
+        const value = allowed.includes(name) ? name : 'blue';
+        document.documentElement.setAttribute('data-accent', value);
+        localStorage.setItem('pps.accent', value);
+        document.querySelectorAll('[data-accent-choice]').forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.accentChoice === value));
+        });
+    }
+
     function initSettings() {
         $('settings-btn').addEventListener('click', () => {
             applySettingsUI();
@@ -385,6 +441,11 @@
             $('settings-modal').hidden = true;
             $('logout-btn').click();
         });
+
+        document.querySelectorAll('[data-accent-choice]').forEach((button) => {
+            button.addEventListener('click', () => applyAccent(button.dataset.accentChoice));
+        });
+        applyAccent(localStorage.getItem('pps.accent') || 'blue');
 
         $('set-notifications').addEventListener('change', async (event) => {
             let checked = event.target.checked;
@@ -544,6 +605,7 @@
                 localStorage.removeItem(historyKey(nick));
                 state.messages.delete(nick);
                 delete state.chatMeta[nick];
+                hideChat(nick);
                 saveChatMeta();
                 state.unread.delete(nick);
 
@@ -582,6 +644,12 @@
         const target = typeof peer === 'string' ? { nick: peer, uid: null } : peer;
         if (!state.me || !target || !target.nick || target.nick === state.me.nick) return;
 
+        if (state.peer === target.nick && !$('chat-view').hidden) {
+            closeChat();
+            return;
+        }
+
+        unhideChat(target.nick);
         addChat(target.nick, target.uid);
         state.peer = target.nick;
         state.peerUid = target.uid || null;
@@ -592,14 +660,20 @@
         $('chat-view').hidden = false;
         $('empty').hidden = true;
         $('peer-nick').textContent = target.nick;
-        $('peer-avatar').textContent = initial(target.nick);
+        paintAvatar($('peer-avatar'), target.nick);
         $('peer-status').textContent = isOnline(target.nick) ? 'в сети' : 'не в сети';
         $('app').classList.add('show-chat');
         $('search').value = '';
         $('search-results').hidden = true;
         loadHistory(target.nick);
         renderMessages();
+        $('messages').scrollTop = $('messages').scrollHeight;
+        updateScrollButton();
         renderChats();
+        const view = $('chat-view');
+        view.style.animation = 'none';
+        void view.offsetWidth;
+        view.style.animation = '';
 
         if (USE_SUPABASE) {
             supabaseOpenChat(target);
@@ -610,7 +684,14 @@
     }
 
     function closeChat() {
+        state.peer = null;
+        state.peerUid = null;
+        state.chatId = null;
+        state.chatLastTs = '';
+        $('chat-view').hidden = true;
+        $('empty').hidden = false;
         $('app').classList.remove('show-chat');
+        renderChats();
     }
 
     function renderChats() {
@@ -632,7 +713,7 @@
 
             const avatar = document.createElement('span');
             avatar.className = 'avatar';
-            avatar.textContent = initial(nick);
+            paintAvatar(avatar, nick);
 
             const meta = document.createElement('span');
             meta.className = 'meta';
@@ -653,9 +734,11 @@
             }
 
             if (state.unread.get(nick)) {
-                const dot = document.createElement('span');
-                dot.className = 'unread';
-                button.append(dot);
+                const badge = document.createElement('span');
+                badge.className = 'unread-badge';
+                const count = state.unread.get(nick);
+                badge.textContent = count > 99 ? '99+' : String(count);
+                button.append(badge);
             }
 
             list.append(button);
@@ -699,11 +782,22 @@
     function renderMessages() {
         if (!state.peer) return;
         const box = $('messages');
+        const stick = box.scrollTop + box.clientHeight >= box.scrollHeight - 90;
         box.replaceChildren();
         const ordered = loadHistory(state.peer)
             .slice()
             .sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
+        let lastDay = '';
         for (const message of ordered) {
+            const day = dayLabel(message.ts);
+            if (day !== lastDay) {
+                lastDay = day;
+                const separator = document.createElement('div');
+                separator.className = 'day-sep';
+                separator.textContent = day;
+                box.append(separator);
+            }
+
             if (message.kind === 'call' || message.from === 'system') {
                 const callRow = document.createElement('div');
                 callRow.className = 'msg call-log';
@@ -731,11 +825,26 @@
                 status.textContent = '· отправка';
                 time.append(status);
             }
+            if (own && message.status === 'failed') {
+                const status = document.createElement('span');
+                status.className = 'status';
+                status.textContent = '· не отправлено';
+                time.append(status);
+            }
 
             row.append(bubble, time);
             box.append(row);
         }
-        box.scrollTop = box.scrollHeight;
+        if (stick) box.scrollTop = box.scrollHeight;
+        updateScrollButton();
+    }
+
+    function updateScrollButton() {
+        const box = $('messages');
+        const button = $('scroll-bottom');
+        if (!box || !button) return;
+        const far = box.scrollHeight - box.scrollTop - box.clientHeight > 120;
+        button.hidden = !far;
     }
 
     function submitMessage(event) {
@@ -807,7 +916,7 @@
 
             const avatar = document.createElement('span');
             avatar.className = 'avatar';
-            avatar.textContent = initial(user.nick);
+            paintAvatar(avatar, user.nick);
 
             const name = document.createElement('b');
             name.textContent = user.nick;
@@ -883,7 +992,7 @@
         state.callStartedAt = 0;
         $('video-note').hidden = true;
         $('call-nick').textContent = peer;
-        $('call-avatar').textContent = initial(peer);
+        paintAvatar($('call-avatar'), peer);
         $('call-modal').hidden = false;
         $('videos').classList.toggle('on', media === 'video');
         $('call-accept').hidden = !incoming;
@@ -1175,8 +1284,31 @@
             if (meta) meta.setAttribute('content', next === 'light' ? '#e9e5dd' : '#08080a');
         });
 
+        $('fullscreen-btn').addEventListener('click', () => {
+            const app = $('app');
+            const on = !app.classList.contains('is-fullscreen');
+            app.classList.toggle('is-fullscreen', on);
+            document.body.classList.toggle('is-fullscreen', on);
+            if (on && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (!on && document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                $('app').classList.remove('is-fullscreen');
+                document.body.classList.remove('is-fullscreen');
+            }
+        });
+
         $('qr-btn').addEventListener('click', openQr);
         $('empty-qr').addEventListener('click', openQr);
+        $('empty-search').addEventListener('click', () => {
+            $('search').focus();
+            $('search').select();
+        });
         $('qr-close').addEventListener('click', () => { $('qr-modal').hidden = true; });
         $('qr-copy').addEventListener('click', async () => {
             try {
@@ -1258,6 +1390,26 @@
 
         $('composer').addEventListener('submit', submitMessage);
         $('back-btn').addEventListener('click', closeChat);
+        $('messages').addEventListener('scroll', updateScrollButton);
+        $('scroll-bottom').addEventListener('click', () => {
+            $('messages').scrollTop = $('messages').scrollHeight;
+            updateScrollButton();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            const tag = document.activeElement && document.activeElement.tagName;
+            const typing = tag === 'INPUT' || tag === 'TEXTAREA';
+            if (event.key === '/' && !typing) {
+                event.preventDefault();
+                $('search').focus();
+            }
+            if (event.key === 'Escape') {
+                if (!$('settings-modal').hidden) $('settings-modal').hidden = true;
+                else if (!$('qr-modal').hidden) $('qr-modal').hidden = true;
+                else if (!$('chat-menu').hidden) $('chat-menu').hidden = true;
+                else if (state.peer && window.matchMedia('(max-width: 760px)').matches) closeChat();
+            }
+        });
 
         $('chat-menu-btn').addEventListener('click', (event) => {
             event.stopPropagation();
@@ -1431,6 +1583,14 @@
         }
 
         const session = readNkseSession();
+        const cachedUser = readJson(LS.user, null);
+        if (cachedUser) {
+            setMe(cachedUser);
+            hideAuth();
+            for (const chat of state.chats) loadHistory(chat.nick);
+            renderChats();
+            $('settings-status').textContent = 'подключение…';
+        }
         if (session.token) {
             hideAuth();
             $('me-status').textContent = 'подключение…';
@@ -1448,15 +1608,6 @@
         state.sbJwt = jwt;
         state.sbUid = user.uid;
 
-        try {
-            const now = await fetch(SUPABASE.url + '/rest/v1/', {
-                method: 'HEAD',
-                headers: { apikey: SUPABASE.key },
-            });
-            const date = now.headers.get('date');
-            if (date) state.clockOffset = new Date(date).getTime() - Date.now();
-        } catch (e) { /* keep local clock */ }
-
         const client = window.PPS.createClient(SUPABASE.url, SUPABASE.key, {
             global: { headers: { Authorization: 'Bearer ' + jwt } },
             auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -1467,15 +1618,18 @@
         setMe({ nick: user.nick, uid: user.uid });
         hideAuth();
         setConn(true);
-
-        const { error } = await client.from('profiles').upsert(
-            { id: user.uid, nick: user.nick, last_seen: new Date().toISOString() },
-            { onConflict: 'id' }
-        );
-        if (error) console.warn('profile upsert', error);
-
         for (const chat of state.chats) loadHistory(chat.nick);
         renderChats();
+
+        /* These must not delay the first paint. */
+        syncServerClock().catch(() => {});
+        client.from('profiles').upsert(
+            { id: user.uid, nick: user.nick, last_seen: new Date().toISOString() },
+            { onConflict: 'id' }
+        ).then(({ error }) => {
+            if (error) console.warn('profile upsert', error);
+        });
+
         subscribePresence();
         subscribeSignals();
         startSignalPoll();
@@ -1483,6 +1637,17 @@
 
         const add = new URLSearchParams(location.search).get('add');
         if (add) openChat({ nick: add, uid: null });
+    }
+
+    async function syncServerClock() {
+        try {
+            const now = await fetch(SUPABASE.url + '/rest/v1/', {
+                method: 'HEAD',
+                headers: { apikey: SUPABASE.key },
+            });
+            const date = now.headers.get('date');
+            if (date) state.clockOffset = new Date(date).getTime() - Date.now();
+        } catch (e) { /* keep local clock */ }
     }
 
     function subscribePresence() {
@@ -1639,7 +1804,7 @@
 
     function startChatSync() {
         clearInterval(state.syncTimer);
-        state.syncTimer = setInterval(supabaseSyncChat, 1500);
+        state.syncTimer = setInterval(supabaseSyncChat, 1000);
     }
 
     async function supabaseSyncChat() {
@@ -1700,6 +1865,7 @@
                 .eq('id', other.user_id)
                 .maybeSingle();
             if (!profile || !profile.nick) continue;
+            if (state.hiddenChats[profile.nick]) continue;
 
             addChat(profile.nick, other.user_id);
             const chat = state.chats.find((item) => item.nick === profile.nick);
@@ -1708,7 +1874,7 @@
     }
     function startAllChatSync() {
         clearInterval(state.syncAllTimer);
-        state.syncAllTimer = setInterval(supabaseSyncAllChats, 2500);
+        state.syncAllTimer = setInterval(supabaseSyncAllChats, 1500);
     }
 
     async function supabaseSyncAllChats() {
@@ -1753,6 +1919,12 @@
 
     function handleIncomingRow(row, peerNick) {
         if (metaFor(peerNick).blocked) return;
+        const hiddenAt = state.hiddenChats[peerNick];
+        if (hiddenAt) {
+            const messageAt = Date.parse(row.created_at) || 0;
+            if (messageAt <= hiddenAt) return;
+            unhideChat(peerNick);
+        }
         if (!state.chats.some((chat) => chat.nick === peerNick)) {
             if (state.settings.contactsOnly) return;
             addChat(peerNick, null);
