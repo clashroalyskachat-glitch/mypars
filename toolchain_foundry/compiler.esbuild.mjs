@@ -163,7 +163,7 @@ async function main() {
         precache.join('|') +
         kernelHash +
         cssHash +
-        ['app.js', 'config.js', 'styles.css', 'index.html']
+        ['app.js', 'config.js', 'styles.css', 'index.html', 'jsqr.min.js']
             .map((file) => hash(fs.readFileSync(path.join(ROOT, 'messenger', file))))
             .join('')
     );

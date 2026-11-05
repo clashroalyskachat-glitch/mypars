@@ -60,6 +60,11 @@ var AUTO_APPROVE = true;
 var BURST_PER_HOUR = 6;
 var MAX_PER_DAY = 40;
 
+var MEDIA_FOLDER_NAME = 'PPS Медиа';
+var STICKER_FOLDER_NAME = 'PPS Стикеры';
+var SUPABASE_URL = 'https://ddlbctrydkaazyitipup.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_ib6_aOSMcEZIQwlwuJjXog_2lgTXWDk';
+
 /* Порядок колонок. Не меняй названия, если уже есть данные. */
 var HEADERS = [
     'id',
@@ -108,6 +113,17 @@ var WISH_KINDS = ['idea', 'note', 'thanks', 'question'];
 /**
  * Создаёт таблицу и листы «Книги» и «Пожелания». Запусти один раз вручную.
  */
+function authorize() {
+    DriveApp.getRootFolder();
+    UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
+    return 'ok';
+}
+
+function setTelegramToken(token) {
+    PropertiesService.getScriptProperties().setProperty('TELEGRAM_BOT_TOKEN', String(token || ''));
+    return 'ok';
+}
+
 function setup() {
     var props = PropertiesService.getScriptProperties();
     var id = props.getProperty('SHEET_ID');
@@ -220,6 +236,21 @@ function doPost(e) {
         /* Запросы доски пожеланий помечены полем board. */
         if (String(data.board || '') === 'wishes') {
             return respond_(wishDispatch_(data), e);
+        }
+
+        /* Файлы и стикеры: загрузка в Google Диск и импорт паков Telegram. */
+        if (String(data.board || '') === 'media') {
+            return respond_(mediaDispatch_(data), e);
+        }
+
+        /* Удаление сообщений у всех участников чата. */
+        if (String(data.board || '') === 'messages') {
+            return respond_(messageDispatch_(data), e);
+        }
+
+        /* Push-уведомления: регистрация устройства и отправка. */
+        if (String(data.board || '') === 'push') {
+            return respond_(pushDispatch_(data), e);
         }
 
         /* Скрытое поле-ловушка: люди его не видят, боты заполняют. */
@@ -1053,6 +1084,440 @@ function authLogin_(nick, pass) {
     }
 
     return authIssue_(user.id, user.nick, user.role);
+}
+
+
+/* ------------------------------------------------------------------ медиа */
+
+function mediaDispatch_(data) {
+    var session = authSession_(data.token);
+    if (!session) return { ok: false, error: 'no_session' };
+
+    var op = String(data.op || '');
+    if (op === 'upload') return mediaUpload_(data);
+    if (op === 'stickerpack') return stickerPack_(data);
+    return { ok: false, error: 'unknown_action' };
+}
+
+function mediaFolder_(name) {
+    var props = PropertiesService.getScriptProperties();
+    var key = 'FOLDER_' + name;
+    var id = props.getProperty(key);
+
+    if (id) {
+        try {
+            return DriveApp.getFolderById(id);
+        } catch (e) {
+            /* Папку удалили — создадим заново. */
+        }
+    }
+
+    var found = DriveApp.getFoldersByName(name);
+    var folder = found.hasNext() ? found.next() : DriveApp.createFolder(name);
+    props.setProperty(key, folder.getId());
+    return folder;
+}
+
+function publicFileUrl_(file) {
+    return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+}
+
+function publicThumbUrl_(file, size) {
+    return 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w' + (size || 1600);
+}
+
+function mediaUpload_(data) {
+    var raw = String(data.data || '');
+    var mime = String(data.mime || 'application/octet-stream');
+    var name = limit_(data.name, 120) || ('file-' + Date.now());
+    var base64 = raw.replace(/^data:[^;]+;base64,/, '');
+
+    if (!base64) return { ok: false, error: 'empty' };
+    if (base64.length > 8 * 1024 * 1024) return { ok: false, error: 'too_big' };
+
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64), mime, name);
+    var folder = mediaFolder_(MEDIA_FOLDER_NAME);
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return {
+        ok: true,
+        id: file.getId(),
+        url: publicFileUrl_(file),
+        thumb: publicThumbUrl_(file, 1600),
+        view: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+        name: file.getName(),
+        mime: mime
+    };
+}
+
+function telegramJson_(url) {
+    try {
+        var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        return JSON.parse(response.getContentText());
+    } catch (e) {
+        return null;
+    }
+}
+
+function telegramBlob_(url) {
+    try {
+        var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        if (response.getResponseCode() !== 200) return null;
+        return response.getBlob();
+    } catch (e) {
+        return null;
+    }
+}
+
+function stickerPack_(data) {
+    var props = PropertiesService.getScriptProperties();
+    var token = props.getProperty('TELEGRAM_BOT_TOKEN');
+    if (!token) return { ok: false, error: 'no_bot_token' };
+
+    var name = String(data.name || '').trim();
+    if (!name) return { ok: false, error: 'bad_name' };
+
+    var api = 'https://api.telegram.org/bot' + token + '/';
+    var set = telegramJson_(api + 'getStickerSet?name=' + encodeURIComponent(name));
+    if (!set || !set.ok || !set.result) return { ok: false, error: 'pack_not_found' };
+
+    var parent = mediaFolder_(STICKER_FOLDER_NAME);
+    var safeName = name.replace(/[^\w.-]+/g, '_').slice(0, 60);
+    var found = parent.getFoldersByName(safeName);
+    var folder = found.hasNext() ? found.next() : parent.createFolder(safeName);
+
+    var urls = [];
+    var stickers = set.result.stickers || [];
+    var debug = null;
+    var limit = Math.max(1, Math.min(Number(data.limit) || 24, 50));
+    var max = Math.min(stickers.length, limit);
+
+    for (var i = 0; i < max; i++) {
+        var sticker = stickers[i];
+        /* Анимированные .tgs и видео .webm браузер не покажет как картинку. */
+        if (sticker.is_animated || sticker.is_video) continue;
+
+        var fileName = String(sticker.file_id || ('sticker-' + i)) + '.webp';
+        var cached = folder.getFilesByName(fileName);
+        if (cached.hasNext()) {
+            urls.push(publicThumbUrl_(cached.next(), 400));
+            continue;
+        }
+
+        var info = telegramJson_(api + 'getFile?file_id=' + encodeURIComponent(sticker.file_id));
+        if (!debug) debug = { step: 'getFile', info: info };
+        if (!info || !info.ok || !info.result || !info.result.file_path) continue;
+
+        var fileUrl = 'https://api.telegram.org/file/bot' + token + '/' + info.result.file_path;
+        var response = UrlFetchApp.fetch(fileUrl, { muteHttpExceptions: true });
+        if (i === 0) {
+            debug = {
+                step: 'download',
+                code: response.getResponseCode(),
+                type: response.getBlob().getContentType(),
+                bytes: response.getBlob().getBytes().length
+            };
+        }
+        if (response.getResponseCode() !== 200) continue;
+
+        var blob = response.getBlob();
+        var file = folder.createFile(blob.setName(fileName));
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        urls.push(publicThumbUrl_(file, 400));
+    }
+
+    if (!urls.length) {
+        return {
+            ok: false,
+            error: 'no_static_stickers',
+            title: set.result.title || name,
+            total: stickers.length,
+            debug: debug
+        };
+    }
+    return {
+        ok: true,
+        title: set.result.title || name,
+        stickers: urls,
+        total: stickers.length,
+        partial: stickers.length > max
+    };
+}
+
+function supabaseServiceJwt_() {
+    var secret = PropertiesService.getScriptProperties().getProperty('SUPABASE_JWT_SECRET');
+    if (!secret) throw new Error('SUPABASE_JWT_SECRET is not set');
+
+    var now = Math.floor(Date.now() / 1000);
+    var header = supabaseB64_(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    var payload = supabaseB64_(JSON.stringify({
+        role: 'service_role',
+        iss: 'supabase',
+        ref: 'ddlbctrydkaazyitipup',
+        iat: now - 60,
+        exp: now + 300
+    }));
+
+    var unsigned = header + '.' + payload;
+    var signature = Utilities.computeHmacSha256Signature(unsigned, secret);
+    return unsigned + '.' + supabaseB64_(signature);
+}
+
+function supabaseRest_(path, method, body, jwt) {
+    var token = jwt || supabaseServiceJwt_();
+    var options = {
+        method: method || 'get',
+        headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: 'Bearer ' + token
+        },
+        muteHttpExceptions: true
+    };
+
+    if (body) {
+        options.contentType = 'application/json';
+        options.payload = JSON.stringify(body);
+    }
+
+    var response = UrlFetchApp.fetch(SUPABASE_URL + path, options);
+    return { code: response.getResponseCode(), text: response.getContentText() };
+}
+
+function messageDispatch_(data) {
+    var session = authSession_(data.token);
+    if (!session) return { ok: false, error: 'no_session' };
+    if (String(data.op || '') === 'delete') return messageDelete_(data, session);
+    return { ok: false, error: 'unknown_action' };
+}
+
+function messageDelete_(data, session) {
+    var id = String(data.id || '').trim();
+    var clientId = String(data.clientId || '').trim();
+    var path = '';
+
+    if (id) {
+        path = '/rest/v1/messages?id=eq.' + encodeURIComponent(id) + '&select=id,chat_id&limit=1';
+    } else if (clientId) {
+        path = '/rest/v1/messages?client_id=eq.' + encodeURIComponent(clientId) + '&select=id,chat_id&limit=1';
+    } else {
+        return { ok: false, error: 'bad_id' };
+    }
+
+    var userJwt = supabaseJwt_({ uid: session.uid, nick: session.nick });
+    var found = supabaseRest_(path, 'get', null, userJwt);
+    if (found.code >= 300) {
+        return { ok: false, error: 'db', status: found.code, detail: String(found.text).slice(0, 300) };
+    }
+
+    var rows = [];
+    try { rows = JSON.parse(found.text || '[]'); } catch (e) { rows = []; }
+    if (!rows.length) return { ok: true, deleted: false };
+    var message = rows[0];
+
+    var members = supabaseRest_(
+        '/rest/v1/chat_members?chat_id=eq.' + encodeURIComponent(message.chat_id) +
+        '&user_id=eq.' + encodeURIComponent(session.uid) + '&select=user_id&limit=1',
+        'get',
+        null,
+        userJwt
+    );
+    if (members.code >= 300) {
+        return { ok: false, error: 'db', status: members.code, detail: String(members.text).slice(0, 300) };
+    }
+
+    var list = [];
+    try { list = JSON.parse(members.text || '[]'); } catch (e) { list = []; }
+    if (!list.length) return { ok: false, error: 'not_member' };
+
+    var del = supabaseRest_('/rest/v1/messages?id=eq.' + encodeURIComponent(message.id), 'delete');
+    if (del.code >= 300) return { ok: false, error: 'delete_failed' };
+    return { ok: true, deleted: true };
+}
+
+
+/* ------------------------------------------------------------------ push */
+
+function pushDispatch_(data) {
+    var session = authSession_(data.token);
+    if (!session) return { ok: false, error: 'no_session' };
+
+    var op = String(data.op || '');
+    if (op === 'register') return pushRegister_(data, session);
+    if (op === 'send') return pushSend_(data, session);
+    return { ok: false, error: 'unknown_action' };
+}
+
+function pushSheet_() {
+    var props = PropertiesService.getScriptProperties();
+    var id = props.getProperty('SHEET_ID');
+    if (!id) return null;
+
+    var ss = SpreadsheetApp.openById(id);
+    var sheet = ss.getSheetByName('PushTokens');
+    if (!sheet) {
+        sheet = ss.insertSheet('PushTokens');
+        sheet.appendRow(['nick', 'token', 'updated']);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+function pushRegister_(data, session) {
+    var fcm = String(data.fcm || '').trim();
+    if (!fcm) return { ok: false, error: 'bad_token' };
+
+    var sheet = pushSheet_();
+    if (!sheet) return { ok: false, error: 'no_sheet' };
+
+    var values = sheet.getDataRange().getValues();
+    var nick = String(session.nick).toLowerCase();
+
+    for (var i = 1; i < values.length; i++) {
+        if (String(values[i][0]).toLowerCase() === nick && String(values[i][1] || '') === fcm) {
+            sheet.getRange(i + 1, 3).setValue(new Date());
+            return { ok: true };
+        }
+    }
+
+    sheet.appendRow([session.nick, fcm, new Date()]);
+    return { ok: true };
+}
+
+function pushSend_(data, session) {
+    var to = String(data.to || '').trim().toLowerCase();
+    if (!to) return { ok: false, error: 'bad_to' };
+
+    var sheet = pushSheet_();
+    if (!sheet) return { ok: false, error: 'no_sheet' };
+
+    var values = sheet.getDataRange().getValues();
+    var tokens = [];
+
+    for (var i = 1; i < values.length; i++) {
+        if (String(values[i][0]).toLowerCase() === to) {
+            var value = String(values[i][1] || '').trim();
+            if (value && tokens.indexOf(value) === -1) tokens.push(value);
+        }
+    }
+
+    if (!tokens.length) return { ok: false, error: 'no_token' };
+
+    var props = PropertiesService.getScriptProperties();
+    var service = props.getProperty('FCM_SERVICE_ACCOUNT');
+    var serverKey = props.getProperty('FCM_SERVER_KEY');
+    if (!service && !serverKey) return { ok: false, error: 'no_push_key' };
+
+    var sent = 0;
+    var last = null;
+    for (var t = 0; t < tokens.length; t++) {
+        last = service
+            ? pushFcmV1_(service, tokens[t], data)
+            : pushFcmLegacy_(serverKey, tokens[t], data);
+        if (last && last.ok) sent++;
+    }
+
+    return {
+        ok: sent > 0,
+        sent: sent,
+        total: tokens.length,
+        code: last && last.code,
+        text: last && last.text
+    };
+}
+
+function pushFcmLegacy_(key, token, data) {
+    var response = UrlFetchApp.fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'key=' + key },
+        payload: JSON.stringify({
+            to: token,
+            priority: 'high',
+            data: {
+                title: String(data.title || 'pps'),
+                body: String(data.body || ''),
+                nick: String(data.nick || ''),
+                type: String(data.type || 'message'),
+                tag: String(data.tag || '')
+            }
+        }),
+        muteHttpExceptions: true
+    });
+    return {
+        ok: response.getResponseCode() < 300,
+        code: response.getResponseCode(),
+        text: response.getContentText().slice(0, 300)
+    };
+}
+
+function pushGoogleToken_(sa) {
+    var now = Math.floor(Date.now() / 1000);
+    var header = supabaseB64_(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+    var claim = supabaseB64_(JSON.stringify({
+        iss: sa.client_email,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging',
+        aud: 'https://oauth2.googleapis.com/token',
+        iat: now,
+        exp: now + 3600
+    }));
+
+    var unsigned = header + '.' + claim;
+    var signature = Utilities.computeRsaSha256Signature(unsigned, sa.private_key);
+    var jwt = unsigned + '.' + supabaseB64_(signature);
+
+    var response = UrlFetchApp.fetch('https://oauth2.googleapis.com/token', {
+        method: 'post',
+        payload: {
+            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            assertion: jwt
+        },
+        muteHttpExceptions: true
+    });
+
+    try {
+        var json = JSON.parse(response.getContentText());
+        if (json.access_token) return json.access_token;
+        return 'ERR:' + response.getContentText().slice(0, 300);
+    } catch (e) {
+        return 'ERR:' + response.getContentText().slice(0, 300);
+    }
+}
+
+function pushFcmV1_(serviceJson, token, data) {
+    var sa;
+    try { sa = JSON.parse(serviceJson); } catch (e) { return { ok: false, error: 'bad_service' }; }
+
+    var access = pushGoogleToken_(sa);
+    if (!access) return { ok: false, error: 'no_access' };
+    if (access.indexOf('ERR:') === 0) {
+        return { ok: false, error: 'token', text: access.slice(4) };
+    }
+
+    var response = UrlFetchApp.fetch('https://fcm.googleapis.com/v1/projects/nkselove/messages:send', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + access },
+        payload: JSON.stringify({
+            message: {
+                token: token,
+                data: {
+                    title: String(data.title || 'pps'),
+                    body: String(data.body || ''),
+                    nick: String(data.nick || ''),
+                    type: String(data.type || 'message'),
+                    tag: String(data.tag || '')
+                },
+                android: { priority: 'high' },
+                webpush: {
+                    headers: { Urgency: 'high' }
+                }
+            }
+        }),
+        muteHttpExceptions: true
+    });
+
+    return { ok: response.getResponseCode() < 300, code: response.getResponseCode() };
 }
 
 

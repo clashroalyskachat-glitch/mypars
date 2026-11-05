@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="dark light">
     <meta name="theme-color" content="#0e1621">
     <link rel="icon" href="../library/icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=7">
     <script>
         (function () {
             try {
@@ -24,6 +24,7 @@
     </script>
 </head>
 <body class="auth-locked">
+<div class="grain" aria-hidden="true"></div>
 
 <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
@@ -91,6 +92,14 @@
             <div class="skeleton-row"><span class="skeleton-avatar"></span><span class="skeleton-lines"><i></i><i></i></span></div>
         </div>
 
+        <div class="side-empty" id="side-empty" hidden>
+            <div class="side-empty-orb" aria-hidden="true">?</div>
+            <b>Пока нет чатов</b>
+            <p>Найди друга по нику или отсканируй QR-код.</p>
+            <button class="primary" id="side-empty-search" type="button">Найти по нику</button>
+            <button class="ghost" id="side-empty-scan" type="button">Сканировать QR</button>
+        </div>
+
         <footer class="side-foot">
             <span class="status-pill">
                 <span class="conn-dot" id="conn-dot-side" title="Соединение"></span>
@@ -112,6 +121,7 @@
             <div class="empty-actions">
                 <button class="primary" id="empty-search" type="button">Найти по нику</button>
                 <button class="ghost" id="empty-qr" type="button">Мой QR</button>
+                <button class="ghost" id="empty-scan" type="button">Сканировать</button>
             </div>
         </div>
 
@@ -151,11 +161,27 @@
             </button>
 
             <form class="composer" id="composer">
+                <button class="emoji-btn" id="file-btn" type="button" aria-label="Прикрепить файл">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></svg>
+                </button>
+                <input id="file-input" type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" hidden>
+                <button class="emoji-btn" id="emoji-btn" type="button" aria-label="Эмодзи" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.4c.9 1.2 2.1 1.9 3.5 1.9s2.6-.7 3.5-1.9"/><path d="M9 9.7h.01M15 9.7h.01"/></svg>
+                </button>
                 <input id="text" type="text" maxlength="4000" autocomplete="off" placeholder="Сообщение…" aria-label="Сообщение">
                 <button class="send" type="submit" aria-label="Отправить">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5M21 3l-7 18-3.5-7.5L3 10z"/></svg>
                 </button>
             </form>
+
+            <div class="emoji-panel" id="emoji-panel" hidden>
+                <div class="emoji-tabs">
+                    <button type="button" class="is-active" data-emoji-tab="emoji">Эмодзи</button>
+                    <button type="button" data-emoji-tab="sticker">Стикеры</button>
+                </div>
+                <div class="emoji-packs" id="emoji-packs" hidden></div>
+                <div class="emoji-grid" id="emoji-grid"></div>
+            </div>
         </section>
     </main>
 </div>
@@ -256,6 +282,46 @@
         <div class="qr-box" id="qr-box"></div>
         <div class="qr-link" id="qr-link"></div>
         <button class="primary wide" id="qr-copy" type="button">Скопировать ссылку</button>
+        <button class="ghost wide" id="qr-scan" type="button">Сканировать QR</button>
+    </div>
+</div>
+
+<!-- Scanner -->
+<div class="modal" id="scan-modal" hidden>
+    <div class="modal-card scan-card">
+        <button class="modal-close" id="scan-close" type="button" aria-label="Закрыть">×</button>
+        <h2>Сканировать QR</h2>
+        <div class="scan-stage">
+            <video id="scan-video" playsinline muted></video>
+            <span class="scan-frame" aria-hidden="true"></span>
+        </div>
+        <p class="scan-hint" id="scan-hint">Наведи камеру на QR-код</p>
+        <label class="ghost wide scan-file">
+            Выбрать фото
+            <input id="scan-file" type="file" accept="image/*" hidden>
+        </label>
+    </div>
+</div>
+
+<!-- Sticker pack -->
+<div class="modal" id="pack-modal" hidden>
+    <div class="modal-card pack-card">
+        <button class="modal-close" id="pack-close" type="button" aria-label="Закрыть">×</button>
+        <h2>Добавить стикеры</h2>
+        <label class="field">
+            <span>Название пака</span>
+            <input id="pack-name" type="text" maxlength="40" placeholder="Например: Котики">
+        </label>
+        <label class="field">
+            <span>Пак из Telegram</span>
+            <input id="pack-link" type="text" placeholder="t.me/addstickers/..." autocomplete="off">
+        </label>
+        <label class="field">
+            <span>Или ссылки на картинки</span>
+            <textarea id="pack-urls" rows="3" placeholder="https://...png"></textarea>
+        </label>
+        <p class="form-error" id="pack-error" hidden></p>
+        <button class="primary wide" id="pack-add" type="button">Добавить пак</button>
     </div>
 </div>
 
@@ -268,10 +334,11 @@
             <small id="call-status">звоним…</small>
         </div>
         <div class="videos" id="videos">
-            <video id="remote-video" autoplay playsinline></video>
+            <video id="remote-video" autoplay playsinline muted></video>
             <video id="local-video" autoplay playsinline muted></video>
             <div class="video-note" id="video-note" hidden>Камера недоступна</div>
         </div>
+        <audio id="remote-audio" autoplay playsinline></audio>
         <div class="call-actions">
             <button class="call-btn accept" id="call-accept" type="button" hidden>Принять</button>
             <button class="call-btn reject" id="call-reject" type="button">Отклонить</button>
@@ -319,6 +386,7 @@
             <span>Уведомления</span>
             <input type="checkbox" id="set-notifications">
         </label>
+        <button class="push-test" id="push-test" type="button">Проверить уведомление</button>
         <label class="switch-row">
             <span>Не беспокоить</span>
             <input type="checkbox" id="set-dnd">
@@ -338,8 +406,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=3"></script>
-<script src="qrcode.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="config.js?v=7"></script>
+<script src="qrcode.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
