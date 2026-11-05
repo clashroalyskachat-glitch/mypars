@@ -337,6 +337,17 @@ button { cursor: pointer; }
 }
 .switch-row input { width: 18px; height: 18px; accent-color: var(--ink); }
 .settings-note { color: var(--muted); font-size: 11px; margin: 14px 0 0; line-height: 1.5; }
+.danger-button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 10px 14px;
+    border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--line));
+    border-radius: 9px;
+    background: transparent;
+    color: var(--danger);
+    font-weight: 650;
+}
+.danger-button:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
 
 .msg.call-log { align-self: center; max-width: 90%; text-align: center; }
 .msg.call-log .bubble { background: transparent; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; border-radius: 999px; padding: 5px 11px; }

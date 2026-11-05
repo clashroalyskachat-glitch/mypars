@@ -47,6 +47,11 @@ const count = (dir) =>
         return n + 1;
     }, 0);
 
+/* Кэш загрузок firebase-tools живёт отдельно от файлов. Если он разойдётся с
+ * реальным содержимым бакета, CLI молча пропускает файлы, и часть сайта
+ * начинает отдавать 404. Полная перезаливка 46 файлов дешевле такой поломки. */
+fs.rmSync(path.join(ROOT, '.firebase'), { recursive: true, force: true });
+
 console.log('firebase layout готов: ' + OUT);
 console.log('  меню:  ' + fs.readdirSync(OUT).filter((n) => n !== 'mypars').join(', '));
 console.log('  /mypars: ' + count(path.join(OUT, 'mypars')) + ' файлов');

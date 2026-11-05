@@ -54,6 +54,9 @@
         syncAllBusy: false,
         ringTimer: 0,
         callTimeout: 0,
+        signalPollTimer: 0,
+        seenSignals: new Set(),
+        clockOffset: 0,
         audioCtx: null,
         callStartedAt: 0,
         chatLastTs: '',
@@ -131,6 +134,14 @@
         return (crypto.randomUUID && crypto.randomUUID()) || (Date.now() + '-' + Math.random().toString(16).slice(2));
     }
 
+    function serverNow() {
+        return Date.now() + (state.clockOffset || 0);
+    }
+
+    function serverNowIso() {
+        return new Date(serverNow()).toISOString();
+    }
+
     function send(payload) {
         if (state.ws && state.ws.readyState === WebSocket.OPEN) {
             state.ws.send(JSON.stringify(payload));
@@ -166,7 +177,7 @@
         $('me-nick').textContent = user.nick;
         $('me-status').textContent = 'в сети';
         $('me-avatar').textContent = initial(user.nick);
-        $('logout-btn').hidden = false;
+        $('logout-btn').hidden = true;
         $('search').disabled = false;
         $('peer-count').textContent = state.online.size + ' онлайн';
     }
@@ -370,6 +381,10 @@
             $('settings-modal').hidden = false;
         });
         $('settings-close').addEventListener('click', () => { $('settings-modal').hidden = true; });
+        $('settings-logout').addEventListener('click', () => {
+            $('settings-modal').hidden = true;
+            $('logout-btn').click();
+        });
 
         $('set-notifications').addEventListener('change', async (event) => {
             let checked = event.target.checked;
@@ -486,7 +501,7 @@
             from: 'system',
             to: peer,
             text,
-            ts: Date.now(),
+            ts: serverNow(),
             kind: 'call',
         });
         saveHistory(peer, list);
@@ -734,7 +749,7 @@
             from: state.me.nick,
             to: state.peer,
             text,
-            ts: Date.now(),
+            ts: serverNow(),
             status: 'sending',
         };
 
@@ -1096,8 +1111,16 @@
         $('remote-video').srcObject = null;
     }
 
-    async function handleSignal(from, data, fromUid) {
+    async function handleSignal(from, data, fromUid, sid) {
         if (!data || !from) return;
+        if (sid) {
+            if (state.seenSignals.has(sid)) return;
+            state.seenSignals.add(sid);
+            if (state.seenSignals.size > 500) {
+                state.seenSignals.clear();
+                state.seenSignals.add(sid);
+            }
+        }
 
         if (data.kind === 'offer') {
             if (call.active) {
@@ -1425,6 +1448,15 @@
         state.sbJwt = jwt;
         state.sbUid = user.uid;
 
+        try {
+            const now = await fetch(SUPABASE.url + '/rest/v1/', {
+                method: 'HEAD',
+                headers: { apikey: SUPABASE.key },
+            });
+            const date = now.headers.get('date');
+            if (date) state.clockOffset = new Date(date).getTime() - Date.now();
+        } catch (e) { /* keep local clock */ }
+
         const client = window.PPS.createClient(SUPABASE.url, SUPABASE.key, {
             global: { headers: { Authorization: 'Bearer ' + jwt } },
             auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -1446,6 +1478,7 @@
         renderChats();
         subscribePresence();
         subscribeSignals();
+        startSignalPoll();
         startAllChatSync();
 
         const add = new URLSearchParams(location.search).get('add');
@@ -1487,7 +1520,7 @@
             .channel('user-' + state.sbUid, { config: { broadcast: { self: false } } })
             .on('broadcast', { event: 'signal' }, ({ payload }) => {
                 if (!payload || !payload.data) return;
-                handleSignal(payload.fromNick || payload.fromUid, payload.data, payload.fromUid);
+                handleSignal(payload.fromNick || payload.fromUid, payload.data, payload.fromUid, payload.sid);
             })
             .on('broadcast', { event: 'message' }, ({ payload }) => {
                 if (!payload || !payload.row || !payload.fromUid) return;
@@ -1796,7 +1829,7 @@
                     sender_id: state.sbUid,
                     body: message.text,
                     client_id: message.id,
-                    created_at: new Date().toISOString(),
+                    created_at: serverNowIso(),
                 },
                 fromUid: state.sbUid,
                 fromNick: state.me.nick,
@@ -1863,14 +1896,50 @@
     }
 
     async function sendSignalTo(uid, data) {
+        const sid = newId();
+        const payload = {
+            fromUid: state.sbUid,
+            fromNick: state.me.nick,
+            data,
+            sid,
+        };
+
         try {
-            await sendUserEvent(uid, 'signal', {
-                fromUid: state.sbUid,
-                fromNick: state.me.nick,
-                data,
-            });
+            await sendUserEvent(uid, 'signal', payload);
         } catch (e) {
-            console.warn('signal', e);
+            /* Broadcast is best-effort; the DB copy below is the fallback. */
+        }
+
+        try {
+            await state.sb.rpc('send_signal', { p_to: uid, p_payload: payload });
+        } catch (e) {
+            /* SQL bridge may not be installed yet; Broadcast already tried. */
+        }
+    }
+
+    function startSignalPoll() {
+        clearInterval(state.signalPollTimer);
+        state.signalPollTimer = setInterval(pollSignals, 1000);
+    }
+
+    async function pollSignals() {
+        if (!state.sb || !state.sbUid) return;
+        try {
+            const { data, error } = await state.sb
+                .from('signals')
+                .select('id,from_id,payload')
+                .eq('to_id', state.sbUid)
+                .order('id', { ascending: true })
+                .limit(20);
+            if (error || !data) return;
+
+            for (const row of data) {
+                try { await state.sb.from('signals').delete().eq('id', row.id); } catch (e) { /* ignore */ }
+                const payload = row.payload || {};
+                handleSignal(payload.fromNick || row.from_id, payload.data, row.from_id, payload.sid);
+            }
+        } catch (e) {
+            /* transient; retry */
         }
     }
 
@@ -1893,6 +1962,8 @@
         localStorage.removeItem('nkse-session');
         localStorage.removeItem(LS.user);
         localStorage.removeItem(LS.token);
+        clearInterval(state.signalPollTimer);
+        state.signalPollTimer = 0;
         state.chats = [];
         state.messages.clear();
         state.peer = null;
