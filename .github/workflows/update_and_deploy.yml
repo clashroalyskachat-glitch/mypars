@@ -114,3 +114,38 @@ jobs:
             --token "$FIREBASE_TOKEN" --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      # Зеркало иногда теряет файлы при заливке. Проверяем живые адреса и,
+      # если что-то отдаёт не 200, перезаливаем полностью.
+      - name: Verify Firebase mirror
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "${FIREBASE_TOKEN}" ]; then
+            echo "FIREBASE_TOKEN не задан — проверка пропущена"
+            exit 0
+          fi
+
+          check() { curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1"; }
+          probe() {
+            echo "$(check https://nkselove.web.app/mypars/) $(check https://nkselove.web.app/mypars/schedule.json)"
+          }
+
+          for i in 1 2 3 4; do
+            read -r index data <<< "$(probe)"
+            if [ "$index" = "200" ] && [ "$data" = "200" ]; then
+              echo "зеркало в порядке: /mypars/=$index, schedule.json=$data"
+              exit 0
+            fi
+            echo "попытка $i: /mypars/=$index, schedule.json=$data"
+            sleep 6
+          done
+
+          echo "::warning::Firebase отдаёт не всё — полная перезаливка"
+          rm -rf .firebase
+          npx --yes firebase-tools@13 deploy --only hosting --project nkselove \
+            --token "$FIREBASE_TOKEN" --non-interactive
+          sleep 5
+          read -r index data <<< "$(probe)"
+          echo "после повтора: /mypars/=$index, schedule.json=$data"
+          [ "$index" = "200" ] && [ "$data" = "200" ]

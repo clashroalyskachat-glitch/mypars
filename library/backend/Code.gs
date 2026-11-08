@@ -201,6 +201,12 @@ function doGet(e) {
             }, e);
         }
 
+        /* Статистика посещений: открывается в браузере как
+           .../exec?action=stats */
+        if (action === 'stats') {
+            return respond_({ ok: true, stats: statsRead_() }, e);
+        }
+
         if (action !== 'list') {
             return respond_({ ok: false, error: 'unknown_action' }, e);
         }
@@ -251,6 +257,11 @@ function doPost(e) {
         /* Push-уведомления: регистрация устройства и отправка. */
         if (String(data.board || '') === 'push') {
             return respond_(pushDispatch_(data), e);
+        }
+
+        /* Статистика посещений: один POST на вкладку. */
+        if (String(data.board || '') === 'stats') {
+            return respond_(statsHit_(data), e);
         }
 
         /* Скрытое поле-ловушка: люди его не видят, боты заполняют. */
@@ -1879,5 +1890,75 @@ function adminSet_(target, id, value) {
     sheet.getRange(found.row, found.index.approved + 1).setValue(approved);
 
     return { ok: true, id: id, approved: approved };
+}
+
+/* ==================================================================
+ *  СТАТИСТИКА ПОСЕЩЕНИЙ
+ *
+ *  Одна строка на визит: время, дата, домен, анонимный id устройства,
+ *  путь. Ники, IP и прочее не пишем — только счётчики.
+ *
+ *  Посмотреть цифры:
+ *    .../exec?action=stats
+ *  или глазами: лист ANALYTICS в той же таблице.
+ * ================================================================== */
+
+var STATS_SHEET = 'ANALYTICS';
+var STATS_HEADERS = ['ts', 'date', 'host', 'vid', 'page'];
+
+function statsSheet_() {
+    var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+    if (!id) throw new Error('Сначала вызови setup()');
+
+    var ss = SpreadsheetApp.openById(id);
+    return authPrepare_(ss, STATS_SHEET, STATS_HEADERS, [150, 110, 150, 150, 220]);
+}
+
+function statsHit_(data) {
+    var now = new Date();
+    var sheet = statsSheet_();
+
+    sheet.appendRow([
+        now,
+        Utilities.formatDate(now, timezone_(), 'yyyy-MM-dd'),
+        limit_(data.host, 40),
+        limit_(data.vid, 40),
+        limit_(data.page, 120)
+    ]);
+
+    return { ok: true };
+}
+
+function statsRead_() {
+    var sheet = statsSheet_();
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return { total: 0, uniques: 0, days: [] };
+
+    var index = headerIndex_(values[0]);
+    var byDay = {};
+    var seen = {};
+
+    for (var row = 1; row < values.length; row++) {
+        var day = String(values[row][index.date] || '');
+        if (!day) continue;
+
+        byDay[day] = byDay[day] || { date: day, hits: 0, uniques: 0 };
+        byDay[day].hits++;
+
+        var key = day + '|' + String(values[row][index.vid] || '');
+        if (!seen[key]) {
+            seen[key] = true;
+            byDay[day].uniques++;
+        }
+    }
+
+    var days = Object.keys(byDay).sort().slice(-30);
+    var total = 0;
+    var list = days.map(function (day) {
+        total += byDay[day].hits;
+        return byDay[day];
+    });
+
+    return { total: total, days: list };
 }
 
