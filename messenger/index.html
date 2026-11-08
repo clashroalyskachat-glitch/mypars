@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="dark light">
     <meta name="theme-color" content="#0e1621">
     <link rel="icon" href="../library/icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=17">
     <script>
         (function () {
             try {
@@ -94,10 +94,11 @@
 
         <div class="side-empty" id="side-empty" hidden>
             <div class="side-empty-orb" aria-hidden="true">?</div>
-            <b>Пока нет чатов</b>
-            <p>Найди друга по нику или отсканируй QR-код.</p>
+            <b>Добро пожаловать</b>
+            <p>Найди друга по нику или отсканируй QR — и начни общение.</p>
             <button class="primary" id="side-empty-search" type="button">Найти по нику</button>
             <button class="ghost" id="side-empty-scan" type="button">Сканировать QR</button>
+            <button class="ghost" id="side-empty-qr" type="button">Мой QR</button>
         </div>
 
         <footer class="side-foot">
@@ -108,6 +109,8 @@
         </footer>
     </aside>
 
+    <div class="sidebar-resizer" id="sidebar-resizer" title="Потяни, чтобы изменить ширину. Двойной клик — свернуть"></div>
+
     <main class="chat" id="chat">
         <div class="empty" id="empty">
             <div class="empty-orb" aria-hidden="true">
@@ -116,8 +119,8 @@
                     <path d="M12 17.4h.01"/>
                 </svg>
             </div>
-            <h1>Пока нет чатов</h1>
-            <p>Найди друга по нику или поделись своим QR-кодом.</p>
+            <h1>Добро пожаловать</h1>
+            <p>Найди друга по нику или отсканируй QR — и начни общение.</p>
             <div class="empty-actions">
                 <button class="primary" id="empty-search" type="button">Найти по нику</button>
                 <button class="ghost" id="empty-qr" type="button">Мой QR</button>
@@ -159,6 +162,18 @@
             <button class="scroll-bottom" id="scroll-bottom" type="button" aria-label="Вниз" hidden>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
             </button>
+
+            <div class="attach-preview" id="attach-preview" hidden>
+                <div class="attach-media" id="attach-media"></div>
+                <div class="attach-body">
+                    <b id="attach-name">Файл</b>
+                    <input id="attach-caption" type="text" maxlength="200" placeholder="Подпись…">
+                </div>
+                <div class="attach-actions">
+                    <button class="attach-send" id="attach-send" type="button">Отправить</button>
+                    <button class="attach-cancel" id="attach-cancel" type="button" aria-label="Убрать">×</button>
+                </div>
+            </div>
 
             <form class="composer" id="composer">
                 <button class="emoji-btn" id="file-btn" type="button" aria-label="Прикрепить файл">
@@ -345,9 +360,14 @@
             <button class="call-btn hangup" id="call-hangup" type="button" hidden>Завершить</button>
             <button class="call-btn mute" id="call-mute" type="button" hidden>Микрофон</button>
             <button class="call-btn mute" id="call-camera" type="button" hidden>Камера</button>
+            <button class="call-btn" id="call-fullscreen" type="button" hidden>На весь экран</button>
             <label class="call-volume" id="call-volume-wrap" hidden>
                 <span>Звук</span>
                 <input id="call-volume" type="range" min="0" max="100" value="100">
+            </label>
+            <label class="call-volume" id="call-zoom-wrap" hidden>
+                <span>Масштаб</span>
+                <input id="call-zoom" type="range" min="100" max="200" value="100">
             </label>
         </div>
     </div>
@@ -406,8 +426,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=7"></script>
-<script src="qrcode.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="config.js?v=17"></script>
+<script src="qrcode.js?v=17"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

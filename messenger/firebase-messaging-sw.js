@@ -34,7 +34,8 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     const data = event.notification.data || {};
     const nick = data.nick || '';
-    const target = '/mypars/messenger/' + (nick ? '?add=' + encodeURIComponent(nick) : '');
+    const target = '/mypars/messenger/' + (nick ? '?add=' + encodeURIComponent(nick) : '') +
+        (data.type === 'call' ? (nick ? '&call=1' : '?call=1') : '');
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {

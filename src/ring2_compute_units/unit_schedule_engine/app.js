@@ -812,7 +812,18 @@ renderTabs();
           // No cache-busting query on the normal path: the service worker is
 // network-first, so freshness is unaffected, and a stable URL lets the HTTP
 // cache help when the server allows it.
-const res = await fetch(forceRefresh ? `schedule.json?_t=${Date.now()}` : 'schedule.json', { cache: forceRefresh ? 'reload' : 'default' });
+let res = await fetch(forceRefresh ? `schedule.json?_t=${Date.now()}` : 'schedule.json', { cache: forceRefresh ? 'reload' : 'default' });
+
+          // Firebase-зеркало иногда теряет файлы при деплое: если данные не
+          // пришли, берём их с GitHub Pages, а не показываем ошибку.
+          if (!res.ok && location.hostname.endsWith('web.app')) {
+              console.warn('[NKSE] schedule.json недоступен локально, беру зеркало GitHub');
+              res = await fetch(
+                  'https://clashroalyskachat-glitch.github.io/mypars/schedule.json?_t=' + Date.now(),
+                  { cache: 'reload' }
+              );
+          }
+
           if (!res.ok) throw new Error('Не удалось загрузить schedule.json');
           
           // Keep the response text as the cache value: parsing it once and

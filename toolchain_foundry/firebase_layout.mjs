@@ -41,6 +41,44 @@ for (const name of fs.readdirSync(HUB)) {
 /* приложение — в /mypars */
 fs.cpSync(DIST, path.join(OUT, 'mypars'), { recursive: true });
 
+/* 404: если Firebase потерял файлы при деплое, не показываем тупик —
+ * уводим на рабочее зеркало GitHub Pages с тем же путём. */
+const notFound = `<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Переход на рабочее зеркало</title>
+<style>
+    html, body { margin: 0; height: 100%; background: #0a0a0c; color: #ece7df;
+        font: 16px/1.5 "Segoe UI", system-ui, sans-serif; }
+    main { min-height: 100%; display: grid; place-content: center; gap: 14px;
+        text-align: center; padding: 24px; }
+    .mark { font-weight: 900; letter-spacing: .12em; color: #c99a63; font-size: 22px; }
+    p { margin: 0; color: #a8a09a; font-size: 14px; max-width: 42ch; }
+    a { color: #e6c391; }
+</style>
+</head>
+<body>
+<main>
+    <div class="mark">НКСЭ</div>
+    <p>Это зеркало временно не отдало страницу. Переходим на рабочее — GitHub Pages.</p>
+    <p><a id="manual" href="https://clashroalyskachat-glitch.github.io/">Открыть вручную</a></p>
+</main>
+<script>
+(function () {
+    var path = location.pathname + location.search;
+    var base = 'https://clashroalyskachat-glitch.github.io';
+    var target = path.indexOf('/mypars') === 0 ? base + path : base + '/';
+    document.getElementById('manual').href = target;
+    location.replace(target);
+})();
+</script>
+</body>
+</html>
+`;
+fs.writeFileSync(path.join(OUT, '404.html'), notFound, 'utf8');
+
 const count = (dir) =>
     fs.readdirSync(dir, { withFileTypes: true }).reduce((n, e) => {
         if (e.isDirectory()) return n + count(path.join(dir, e.name));

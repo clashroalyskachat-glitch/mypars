@@ -39,6 +39,9 @@
         signalOut: new Map(),
         sb: null,
         sbJwt: '',
+        sbJwtExp: 0,
+        refreshing: false,
+        tokenTimer: 0,
         sbUid: '',
         chatMeta: readJson('pps.chatmeta', {}) || {},
         hiddenChats: readJson('pps.hidden', {}) || {},
@@ -72,12 +75,17 @@
         wakeLock: null,
         callStartedAt: 0,
         chatLastTs: '',
+        chatOldestTs: '',
+        loadingOlder: false,
         messages: new Map(),
         online: new Set(),
         statuses: {},
         unread: new Map(),
         search: [],
         searchLoading: false,
+        welcomeFocused: false,
+        pendingFile: null,
+        pendingPreview: '',
         searchTimer: 0,
         authMode: 'login',
         retry: 0,
@@ -553,21 +561,7 @@
             removeMessageLocal(peer, message.id);
             let ok = false;
 
-            try {
-                const session = readNkseSession();
-                const result = await appsScriptCall({
-                    board: 'messages',
-                    op: 'delete',
-                    token: session.token,
-                    id: message.dbId || '',
-                    clientId: message.id || '',
-                });
-                ok = !!(result && result.ok);
-            } catch (e) {
-                ok = false;
-            }
-
-            if (!ok && state.sb) {
+            if (state.sb) {
                 try {
                     const patch = {
                         deleted_at: new Date().toISOString(),
@@ -580,6 +574,22 @@
                         : query.eq('client_id', message.id).eq('sender_id', state.sbUid);
                     const { error } = await query;
                     ok = !error;
+                } catch (e) {
+                    ok = false;
+                }
+            }
+
+            if (!ok) {
+                try {
+                    const session = readNkseSession();
+                    const result = await appsScriptCall({
+                        board: 'messages',
+                        op: 'delete',
+                        token: session.token,
+                        id: message.dbId || '',
+                        clientId: message.id || '',
+                    });
+                    ok = !!(result && result.ok);
                 } catch (e) {
                     ok = false;
                 }
@@ -669,6 +679,89 @@
         });
     }
 
+    function initSidebarResize() {
+        const app = $('app');
+        const sidebar = document.querySelector('.sidebar');
+        const resizer = $('sidebar-resizer');
+        if (!app || !sidebar || !resizer) return;
+
+        const isMobile = () => window.matchMedia('(max-width: 760px)').matches;
+        const savedWidth = () => Number(localStorage.getItem('pps.sidebarWidth')) || 340;
+
+        const applyWidth = () => {
+            if (isMobile()) {
+                sidebar.style.width = '';
+                sidebar.style.flexBasis = '';
+                return;
+            }
+            if (app.classList.contains('is-collapsed')) return;
+            const width = savedWidth();
+            sidebar.style.width = width + 'px';
+            sidebar.style.flexBasis = width + 'px';
+        };
+
+        if (localStorage.getItem('pps.sidebarCollapsed') === '1') {
+            app.classList.add('is-collapsed');
+        }
+        applyWidth();
+        window.addEventListener('resize', applyWidth);
+
+        let dragging = false;
+        let startX = 0;
+        let startW = 0;
+
+        const onMove = (event) => {
+            if (!dragging) return;
+            const width = Math.max(220, Math.min(560, startW + event.clientX - startX));
+            if (width < 260) {
+                app.classList.add('is-collapsed');
+                sidebar.style.width = '';
+                sidebar.style.flexBasis = '';
+            } else {
+                app.classList.remove('is-collapsed');
+                sidebar.style.width = width + 'px';
+                sidebar.style.flexBasis = width + 'px';
+            }
+        };
+
+        const onUp = () => {
+            if (!dragging) return;
+            dragging = false;
+            resizer.classList.remove('is-dragging');
+            document.body.classList.remove('is-resizing');
+            const collapsed = app.classList.contains('is-collapsed');
+            localStorage.setItem('pps.sidebarCollapsed', collapsed ? '1' : '0');
+            if (!collapsed) {
+                localStorage.setItem('pps.sidebarWidth', String(Math.round(sidebar.getBoundingClientRect().width)));
+            }
+        };
+
+        resizer.addEventListener('pointerdown', (event) => {
+            if (isMobile()) return;
+            dragging = true;
+            startX = event.clientX;
+            startW = sidebar.getBoundingClientRect().width;
+            resizer.classList.add('is-dragging');
+            document.body.classList.add('is-resizing');
+            try { resizer.setPointerCapture(event.pointerId); } catch (e) { /* ignore */ }
+        });
+        resizer.addEventListener('pointermove', onMove);
+        resizer.addEventListener('pointerup', onUp);
+        resizer.addEventListener('pointercancel', onUp);
+        resizer.addEventListener('dblclick', () => {
+            const collapsed = app.classList.toggle('is-collapsed');
+            if (collapsed) {
+                sidebar.style.width = '';
+                sidebar.style.flexBasis = '';
+            } else {
+                const width = savedWidth();
+                sidebar.style.width = width + 'px';
+                sidebar.style.flexBasis = width + 'px';
+            }
+            localStorage.setItem('pps.sidebarCollapsed', collapsed ? '1' : '0');
+        });
+    }
+
     function initSettings() {
         $('settings-btn').addEventListener('click', () => {
             applySettingsUI();
@@ -683,7 +776,7 @@
         document.querySelectorAll('[data-accent-choice]').forEach((button) => {
             button.addEventListener('click', () => applyAccent(button.dataset.accentChoice));
         });
-        applyAccent(localStorage.getItem('pps.accent') || 'blue');
+        applyAccent(localStorage.getItem('pps.accent') || 'amber');
 
         $('set-notifications').addEventListener('change', async (event) => {
             let checked = event.target.checked;
@@ -904,25 +997,94 @@
         }
     }
 
-    function logCall(peer, media, status, duration) {
-        if (!peer) return;
-        const label = media === 'video' ? 'Видеозвонок' : 'Аудиозвонок';
-        let text = label + ' · ' + status;
-        if (duration > 0) {
-            const minutes = Math.floor(duration / 60);
-            const seconds = duration % 60;
-            text += ' · ' + minutes + ':' + String(seconds).padStart(2, '0');
-        }
-        const list = loadHistory(peer);
-        list.push({
+    async function sendCallLog(peer, media, status, duration) {
+        if (!peer || !state.me) return;
+
+        const marker = '[[call:' + (media === 'video' ? 'video' : 'audio') + '|' +
+            encodeURIComponent(status || 'завершён') + '|' + (duration || 0) + ']]';
+        const message = {
             id: newId(),
-            from: 'system',
+            from: state.me.nick,
             to: peer,
-            text,
+            text: marker,
             ts: serverNow(),
+            status: 'sending',
             kind: 'call',
-        });
+        };
+
+        const list = loadHistory(peer);
+        list.push(message);
         saveHistory(peer, list);
+        if (state.peer === peer) renderMessages();
+        renderChats();
+
+        if (!USE_SUPABASE) {
+            if (send({ type: 'message', to: peer, text: marker, id: message.id })) {
+                message.status = 'sent';
+                saveHistory(peer, loadHistory(peer));
+                renderMessages();
+            }
+            return;
+        }
+
+        if (!state.sb || !state.sbUid) return;
+
+        let uid = state.peer === peer
+            ? state.peerUid
+            : (state.chats.find((chat) => chat.nick === peer) || {}).uid;
+        if (!uid) {
+            try { uid = await uidForNick(peer); } catch (e) { uid = ''; }
+        }
+        if (!uid) return;
+
+        let chatId = state.peer === peer
+            ? state.chatId
+            : (state.chats.find((chat) => chat.nick === peer) || {}).chatId;
+        if (!chatId) {
+            try {
+                const { data } = await state.sb.rpc('create_direct_chat', { other_id: uid });
+                chatId = data;
+                const chat = state.chats.find((item) => item.nick === peer);
+                if (chat) chat.chatId = chatId;
+            } catch (e) {
+                chatId = '';
+            }
+        }
+        if (!chatId) return;
+
+        const { data, error } = await state.sb
+            .from('messages')
+            .insert({
+                chat_id: chatId,
+                sender_id: state.sbUid,
+                body: marker,
+                client_id: message.id,
+            })
+            .select('*')
+            .single();
+
+        if (error || !data) {
+            message.status = 'failed';
+            saveHistory(peer, loadHistory(peer));
+            if (state.peer === peer) renderMessages();
+            return;
+        }
+
+        message.status = 'sent';
+        message.dbId = data.id;
+        message.ts = Date.parse(data.created_at) || message.ts;
+        saveHistory(peer, loadHistory(peer));
+
+        if (state.chatId === chatId && state.chatChannel) {
+            state.chatChannel.send({ type: 'broadcast', event: 'message', payload: data }).catch(() => {});
+        }
+        sendUserEvent(uid, 'message', {
+            row: data,
+            fromUid: state.sbUid,
+            fromNick: state.me.nick,
+            chatId,
+        }).catch(() => {});
+
         if (state.peer === peer) renderMessages();
         renderChats();
     }
@@ -998,6 +1160,7 @@
             return;
         }
 
+        clearPendingFile();
         unhideChat(target.nick);
         addChat(target.nick, target.uid);
         state.peer = target.nick;
@@ -1005,6 +1168,7 @@
         state.unread.delete(target.nick);
         state.chatId = null;
         state.chatLastTs = '';
+        state.chatOldestTs = '';
         applyChatMeta(target.nick);
         $('chat-view').hidden = false;
         $('empty').hidden = true;
@@ -1033,6 +1197,7 @@
     }
 
     function closeChat() {
+        clearPendingFile();
         state.peer = null;
         state.peerUid = null;
         state.chatId = null;
@@ -1096,6 +1261,10 @@
         const empty = state.chats.length === 0;
         document.querySelector('.sidebar').classList.toggle('is-empty', empty);
         $('side-empty').hidden = !empty;
+        if (empty && !state.welcomeFocused) {
+            state.welcomeFocused = true;
+            setTimeout(() => { const search = $('search'); if (search) search.focus(); }, 400);
+        }
         updatePeerCount();
     }
 
@@ -1144,16 +1313,23 @@
         return /^https:\/\//i.test(match[1]) ? match[1] : '';
     }
 
-    function imageUrl(text) {
-        const match = /^\[\[img:([^\]]+)\]\]$/.exec(String(text || '').trim());
-        if (!match) return '';
-        return /^https:\/\//i.test(match[1]) ? match[1] : '';
+    function imageInfo(text) {
+        const match = /^\[\[img:([^|\]]+)(?:\|([^\]]*))?\]\]$/.exec(String(text || '').trim());
+        if (!match || !/^https:\/\//i.test(match[1])) return null;
+        return {
+            url: match[1],
+            caption: match[2] ? decodeURIComponent(match[2]) : '',
+        };
     }
 
     function fileInfo(text) {
-        const match = /^\[\[file:([^|\]]+)\|([^\]]*)\]\]$/.exec(String(text || '').trim());
+        const match = /^\[\[file:([^|\]]+)\|([^|]*)(?:\|([^\]]*))?\]\]$/.exec(String(text || '').trim());
         if (!match || !/^https:\/\//i.test(match[1])) return null;
-        return { url: match[1], name: match[2] || 'Файл' };
+        return {
+            url: match[1],
+            name: match[2] || 'Файл',
+            caption: match[3] ? decodeURIComponent(match[3]) : '',
+        };
     }
 
     function driveImageUrl(url) {
@@ -1163,10 +1339,26 @@
         return value;
     }
 
+    function callLogInfo(text) {
+        const match = /^\[\[call:([^|]*)\|([^|]*)\|([^\]]*)\]\]$/.exec(String(text || '').trim());
+        if (!match) return null;
+        const media = match[1] === 'video' ? 'Видеозвонок' : 'Аудиозвонок';
+        const status = decodeURIComponent(match[2] || '');
+        const duration = Number(match[3]) || 0;
+        let label = media + ' · ' + status;
+        if (duration > 0) {
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            label += ' · ' + minutes + ':' + String(seconds).padStart(2, '0');
+        }
+        return { text: label, media: match[1], status, duration };
+    }
+
     function previewText(text) {
         if (stickerUrl(text)) return 'Стикер';
-        if (imageUrl(text)) return 'Фото';
+        if (imageInfo(text)) return 'Фото';
         if (fileInfo(text)) return 'Файл';
+        if (callLogInfo(text)) return 'Звонок';
         return String(text || '');
     }
 
@@ -1190,12 +1382,13 @@
                 box.append(separator);
             }
 
-            if (message.kind === 'call' || message.from === 'system') {
+            const callLog = callLogInfo(message.text);
+            if (message.kind === 'call' || message.from === 'system' || callLog) {
                 const callRow = document.createElement('div');
                 callRow.className = 'msg call-log';
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
-                bubble.textContent = message.text;
+                bubble.textContent = callLog ? callLog.text : message.text;
                 callRow.append(bubble);
                 box.append(callRow);
                 continue;
@@ -1209,16 +1402,22 @@
 
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
-            const image = imageUrl(message.text);
+            const image = imageInfo(message.text);
             const file = fileInfo(message.text);
             const sticker = stickerUrl(message.text);
             if (image) {
                 bubble.classList.add('is-image');
                 const img = document.createElement('img');
-                img.src = driveImageUrl(image);
+                img.src = driveImageUrl(image.url);
                 img.alt = 'фото';
                 img.loading = 'lazy';
                 bubble.append(img);
+                if (image.caption) {
+                    const caption = document.createElement('div');
+                    caption.className = 'msg-caption';
+                    caption.textContent = image.caption;
+                    bubble.append(caption);
+                }
             } else if (file) {
                 bubble.classList.add('is-file');
                 const link = document.createElement('a');
@@ -1233,6 +1432,12 @@
                 label.textContent = file.name;
                 link.append(icon, label);
                 bubble.append(link);
+                if (file.caption) {
+                    const caption = document.createElement('div');
+                    caption.className = 'msg-caption';
+                    caption.textContent = file.caption;
+                    bubble.append(caption);
+                }
             } else if (sticker) {
                 bubble.classList.add('is-sticker');
                 const img = document.createElement('img');
@@ -1331,6 +1536,15 @@
         }
     }
 
+    function testDelay() {
+        const params = new URLSearchParams(location.search);
+        const lag = Number(params.get('lag')) || 0;
+        const jitter = Number(params.get('jitter')) || 0;
+        if (!lag && !jitter) return Promise.resolve();
+        const ms = Math.max(0, lag + (jitter ? (Math.random() * 2 - 1) * jitter : 0));
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
     function blobToBase64(blob) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -1343,12 +1557,9 @@
         });
     }
 
-    async function uploadFile(file) {
-        if (!file || !state.peer) return;
-        if (file.size > 8 * 1024 * 1024) {
-            showToast('Файл больше 8 МБ');
-            return;
-        }
+    async function prepareUpload(file) {
+        if (!file) throw new Error('empty');
+        if (file.size > 8 * 1024 * 1024) throw new Error('too_big');
 
         let blob = file;
         let name = file.name || 'file';
@@ -1374,28 +1585,82 @@
             } catch (e) { /* keep original */ }
         }
 
-        if (blob.size > 8 * 1024 * 1024) {
-            showToast('Файл слишком большой');
-            return;
+        if (blob.size > 8 * 1024 * 1024) throw new Error('too_big');
+        return { blob, name, mime };
+    }
+
+    async function uploadPrepared(prepared) {
+        const data = await blobToBase64(prepared.blob);
+        const session = readNkseSession();
+        const result = await appsScriptCall({
+            board: 'media',
+            op: 'upload',
+            token: session.token,
+            name: prepared.name,
+            mime: prepared.mime,
+            data,
+        });
+        if (!result || !result.ok || !result.url) {
+            throw new Error(result && result.error ? result.error : 'upload');
+        }
+        return result;
+    }
+
+    function setPendingFile(file) {
+        if (!file) return;
+        if (state.pendingPreview) URL.revokeObjectURL(state.pendingPreview);
+        state.pendingFile = file;
+        state.pendingPreview = '';
+
+        const media = $('attach-media');
+        media.replaceChildren();
+        if ((file.type || '').indexOf('image/') === 0) {
+            const url = URL.createObjectURL(file);
+            state.pendingPreview = url;
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '';
+            media.append(img);
+        } else {
+            media.textContent = '📎';
         }
 
-        showToast('Загружаю…');
+        $('attach-name').textContent = file.name || 'Файл';
+        $('attach-caption').value = '';
+        $('attach-preview').hidden = false;
+        $('attach-send').disabled = false;
+        $('attach-send').textContent = 'Отправить';
+        setTimeout(() => $('attach-caption').focus(), 50);
+    }
+
+    function clearPendingFile() {
+        if (state.pendingPreview) URL.revokeObjectURL(state.pendingPreview);
+        state.pendingFile = null;
+        state.pendingPreview = '';
+        $('attach-preview').hidden = true;
+        $('attach-media').replaceChildren();
+        $('attach-caption').value = '';
+        $('file-input').value = '';
+    }
+
+    async function sendPendingAttachment() {
+        const file = state.pendingFile;
+        if (!file) return;
+        const caption = $('attach-caption').value.trim();
+        $('attach-send').disabled = true;
+        $('attach-send').textContent = 'Загружаю…';
+
         try {
-            const data = await blobToBase64(blob);
-            const session = readNkseSession();
-            const result = await appsScriptCall({
-                board: 'media',
-                op: 'upload',
-                token: session.token,
-                name,
-                mime,
-                data,
-            });
-            if (!result || !result.ok || !result.url) {
-                throw new Error(result && result.error ? result.error : 'upload');
+            const prepared = await prepareUpload(file);
+            const result = await uploadPrepared(prepared);
+            const suffix = caption ? '|' + encodeURIComponent(caption) : '';
+            if (prepared.mime.indexOf('image/') === 0) {
+                sendText('[[img:' + (result.thumb || result.url) + suffix + ']]');
+            } else {
+                const name = prepared.name.replace(/[|\]]/g, '');
+                sendText('[[file:' + (result.view || result.url) + '|' + name + suffix + ']]');
             }
-            if (mime.indexOf('image/') === 0) sendText('[[img:' + (result.thumb || result.url) + ']]');
-            else sendText('[[file:' + (result.view || result.url) + '|' + name.replace(/[|\]]/g, '') + ']]');
+            clearPendingFile();
         } catch (e) {
             const code = e && e.message ? e.message : '';
             const text = code === 'no_session' ? 'Сессия истекла, войди заново'
@@ -1403,6 +1668,8 @@
                     : code === 'unknown_action' ? 'Сервер не обновлён — переразверни Apps Script'
                         : 'Не удалось загрузить файл';
             showToast(text);
+            $('attach-send').disabled = false;
+            $('attach-send').textContent = 'Отправить';
         }
     }
 
@@ -1698,7 +1965,7 @@
         state.scanLoading = true;
         return new Promise((resolve) => {
             const script = document.createElement('script');
-            script.src = 'jsqr.min.js?v=7';
+            script.src = 'jsqr.min.js?v=17';
             script.onload = () => {
                 state.scanLoading = false;
                 resolve(window.jsQR || null);
@@ -1881,6 +2148,7 @@
         $('call-nick').textContent = peer;
         paintAvatar($('call-avatar'), peer);
         $('call-modal').hidden = false;
+        $('call-modal').classList.remove('is-fullscreen');
         requestWakeLock();
         $('videos').classList.toggle('on', media === 'video');
         $('call-accept').hidden = !incoming;
@@ -1888,8 +2156,15 @@
         $('call-hangup').hidden = !!incoming;
         $('call-mute').hidden = !!incoming;
         $('call-mute').textContent = 'Микрофон';
-        $('call-camera').hidden = media !== 'video' || !!incoming;
-        $('call-camera').textContent = 'Камера';
+        $('call-mute').classList.remove('is-off');
+        $('call-camera').hidden = !!incoming;
+        $('call-camera').textContent = media === 'video' ? 'Камера' : 'Включить камеру';
+        $('call-camera').classList.remove('is-off');
+        $('call-fullscreen').hidden = media !== 'video' || !!incoming;
+        $('call-fullscreen').textContent = 'На весь экран';
+        $('call-zoom-wrap').hidden = media !== 'video' || !!incoming;
+        $('call-zoom').value = 100;
+        $('remote-video').style.transform = '';
         $('call-volume-wrap').hidden = !!incoming;
         $('call-volume').value = 100;
         $('remote-audio').volume = 1;
@@ -1922,8 +2197,12 @@
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
+                    sampleRate: 48000,
+                    channelCount: 1,
                 },
-                video: media === 'video',
+                video: media === 'video'
+                    ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+                    : false,
             });
         } catch (error) {
             if (media !== 'video') throw error;
@@ -1933,6 +2212,8 @@
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
+                    sampleRate: 48000,
+                    channelCount: 1,
                 },
                 video: false,
             });
@@ -1943,24 +2224,91 @@
         $('local-video').srcObject = stream;
         const noVideo = media === 'video' && stream.getVideoTracks().length === 0;
         $('video-note').hidden = !noVideo;
-        if (noVideo) $('video-note').textContent = 'Камера недоступна — только звук';
+        if (noVideo) $('video-note').textContent = 'Ваша камера недоступна — вас не видно';
         return stream;
+    }
+
+    function addCallTracks(pc) {
+        for (const track of call.local.getTracks()) {
+            const sender = pc.addTrack(track, call.local);
+            if (track.kind === 'video') {
+                try {
+                    const params = sender.getParameters();
+                    params.encodings = params.encodings || [{}];
+                    params.encodings[0].maxBitrate = 1500000;
+                    sender.setParameters(params).catch(() => {});
+                } catch (e) { /* ignore */ }
+            }
+        }
+    }
+
+    async function enableCamera() {
+        if (!call.pc || !call.local) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+                audio: false,
+            });
+            const track = stream.getVideoTracks()[0];
+            if (!track) throw new Error('no camera');
+
+            call.local.addTrack(track);
+            $('local-video').srcObject = call.local;
+            const sender = call.pc.addTrack(track, call.local);
+            try {
+                const params = sender.getParameters();
+                params.encodings = params.encodings || [{}];
+                params.encodings[0].maxBitrate = 1500000;
+                sender.setParameters(params).catch(() => {});
+            } catch (e) { /* ignore */ }
+
+            call.media = 'video';
+            $('videos').classList.add('on');
+            $('video-note').hidden = true;
+            $('call-fullscreen').hidden = false;
+            $('call-zoom-wrap').hidden = false;
+            $('call-camera').textContent = 'Камера';
+            $('call-camera').classList.remove('is-off');
+
+            const offer = await call.pc.createOffer();
+            await call.pc.setLocalDescription(offer);
+            signal({ kind: 'renegotiate', sdp: call.pc.localDescription.sdp });
+        } catch (e) {
+            showToast('Камера недоступна');
+        }
     }
 
     function createPc() {
         const pc = new RTCPeerConnection(ICE);
         call.pc = pc;
+        window.__ppsPc = pc;
+        window.__ppsCall = call;
         call.candidates = [];
 
         pc.onicecandidate = (event) => {
             if (event.candidate) signal({ kind: 'ice', candidate: event.candidate });
         };
         pc.ontrack = (event) => {
-            const stream = event.streams[0] || new MediaStream([event.track]);
-            $('remote-video').srcObject = stream;
-            const audio = $('remote-audio');
-            audio.srcObject = stream;
-            audio.play().catch(() => {});
+            if (event.track.kind === 'video') {
+                const current = $('remote-video').srcObject;
+                const stream = new MediaStream();
+                if (current) {
+                    current.getVideoTracks().forEach((track) => {
+                        if (track !== event.track) stream.addTrack(track);
+                    });
+                }
+                stream.addTrack(event.track);
+                $('remote-video').srcObject = stream;
+                $('videos').classList.add('on');
+                $('video-note').hidden = true;
+                $('call-fullscreen').hidden = false;
+                $('call-zoom-wrap').hidden = false;
+            } else {
+                const audioStream = event.streams[0] || new MediaStream([event.track]);
+                const audio = $('remote-audio');
+                audio.srcObject = audioStream;
+                audio.play().catch(() => {});
+            }
         };
         pc.onconnectionstatechange = () => {
             if (pc.connectionState === 'connected') {
@@ -1974,6 +2322,7 @@
             if (pc.connectionState === 'failed') {
                 setCallStatus('связь потеряна');
                 const peer = call.peer;
+                signal({ kind: 'end' });
                 setTimeout(() => {
                     if (call.peer === peer) cleanupCall('связь потеряна');
                 }, 800);
@@ -2008,7 +2357,7 @@
         try {
             await mediaFor(media);
             const pc = createPc();
-            for (const track of call.local.getTracks()) pc.addTrack(track, call.local);
+            addCallTracks(pc);
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             signal({ kind: 'offer', media, sdp: pc.localDescription.sdp });
@@ -2018,6 +2367,7 @@
             state.callTimeout = setTimeout(() => {
                 if (call.active && !state.callStartedAt) {
                     setCallStatus('нет ответа');
+                    signal({ kind: 'end' });
                     cleanupCall('пропущен');
                 }
             }, 30000);
@@ -2036,14 +2386,17 @@
         $('call-reject').hidden = true;
         $('call-hangup').hidden = false;
         $('call-mute').hidden = false;
-        $('call-camera').hidden = call.media !== 'video';
+        $('call-camera').hidden = false;
+        $('call-camera').textContent = call.media === 'video' ? 'Камера' : 'Включить камеру';
+        $('call-fullscreen').hidden = call.media !== 'video';
+        $('call-zoom-wrap').hidden = call.media !== 'video';
         $('call-volume-wrap').hidden = false;
         setCallStatus('подключаемся…');
 
         try {
             await mediaFor(call.media);
             const pc = createPc();
-            for (const track of call.local.getTracks()) pc.addTrack(track, call.local);
+            addCallTracks(pc);
             await pc.setRemoteDescription({ type: 'offer', sdp: call.incoming.sdp });
             for (const candidate of call.incoming.candidates || []) {
                 try { await pc.addIceCandidate(candidate); } catch (e) { /* ignore */ }
@@ -2051,7 +2404,15 @@
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             signal({ kind: 'answer', sdp: pc.localDescription.sdp });
-            setCallStatus('в звонке');
+            setCallStatus('подключаемся…');
+            clearTimeout(state.callTimeout);
+            state.callTimeout = setTimeout(() => {
+                if (call.active && !state.callStartedAt) {
+                    setCallStatus('не удалось соединиться');
+                    signal({ kind: 'end' });
+                    cleanupCall('не удалось');
+                }
+            }, 20000);
         } catch (e) {
             setCallStatus(e.message || 'не удалось принять звонок');
             setTimeout(() => cleanupCall('не удалось'), 1200);
@@ -2072,6 +2433,7 @@
     function cleanupCall(reason) {
         const peer = call.peer;
         const media = call.media;
+        const wasIncoming = !!call.incoming;
         const duration = state.callStartedAt
             ? Math.round((Date.now() - state.callStartedAt) / 1000)
             : 0;
@@ -2082,13 +2444,18 @@
         releaseWakeLock();
 
         $('call-modal').hidden = true;
+        $('call-modal').classList.remove('is-fullscreen');
+        $('videos').classList.remove('on');
         $('video-note').hidden = true;
+        $('call-fullscreen').hidden = true;
+        $('call-zoom-wrap').hidden = true;
+        $('remote-video').style.transform = '';
 
         if (peer) {
             addChat(peer, state.peerUid);
-            try {
-                logCall(peer, media, reason || 'завершён', duration);
-            } catch (e) { /* history must never block cleanup */ }
+            if (!wasIncoming) {
+                sendCallLog(peer, media, reason || 'завершён', duration).catch(() => {});
+            }
             showToast(
                 reason === 'отклонён' ? 'Звонок отклонён'
                     : reason === 'пропущен' ? 'Пропущенный звонок'
@@ -2149,7 +2516,25 @@
                 for (const candidate of call.candidates.splice(0)) {
                     try { await call.pc.addIceCandidate(candidate); } catch (e) { /* ignore */ }
                 }
-                setCallStatus('в звонке');
+                setCallStatus('подключаемся…');
+            }
+            return;
+        }
+
+        if (data.kind === 'renegotiate') {
+            if (!call.pc) return;
+            try {
+                await call.pc.setRemoteDescription({ type: 'offer', sdp: data.sdp });
+                const answer = await call.pc.createAnswer();
+                await call.pc.setLocalDescription(answer);
+                signal({ kind: 'renegotiate-answer', sdp: call.pc.localDescription.sdp });
+            } catch (e) { /* ignore */ }
+            return;
+        }
+
+        if (data.kind === 'renegotiate-answer') {
+            if (call.pc && call.pc.signalingState !== 'stable') {
+                try { await call.pc.setRemoteDescription({ type: 'answer', sdp: data.sdp }); } catch (e) { /* ignore */ }
             }
             return;
         }
@@ -2206,6 +2591,11 @@
                 const data = event.data || {};
                 if (data.type === 'pps-open' && data.nick) {
                     openChat({ nick: data.nick, uid: null });
+                    if (data.call) {
+                        setTimeout(() => {
+                            if (!call.incoming && !call.active) showToast('Звонок уже завершён');
+                        }, 1500);
+                    }
                 }
             });
         }
@@ -2222,6 +2612,7 @@
             $('search').select();
         });
         $('side-empty-scan').addEventListener('click', openScanner);
+        $('side-empty-qr').addEventListener('click', openQr);
         $('qr-close').addEventListener('click', () => { $('qr-modal').hidden = true; });
         $('qr-copy').addEventListener('click', async () => {
             try {
@@ -2341,7 +2732,15 @@
         $('file-input').addEventListener('change', (event) => {
             const file = event.target.files[0];
             event.target.value = '';
-            uploadFile(file);
+            setPendingFile(file);
+        });
+        $('attach-send').addEventListener('click', sendPendingAttachment);
+        $('attach-cancel').addEventListener('click', clearPendingFile);
+        $('attach-caption').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendPendingAttachment();
+            }
         });
         $('emoji-btn').addEventListener('click', (event) => {
             event.stopPropagation();
@@ -2367,7 +2766,10 @@
             if (event.target === $('pack-modal')) $('pack-modal').hidden = true;
         });
         $('back-btn').addEventListener('click', closeChat);
-        $('messages').addEventListener('scroll', updateScrollButton);
+        $('messages').addEventListener('scroll', () => {
+            updateScrollButton();
+            if ($('messages').scrollTop < 60) loadOlderMessages();
+        });
         $('messages').addEventListener('click', (event) => {
             const status = event.target.closest('.status.retry');
             if (!status) return;
@@ -2469,13 +2871,21 @@
 
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
+                if (state.sbJwtExp && Date.now() > state.sbJwtExp - 10 * 60 * 1000) {
+                    refreshSupabaseToken();
+                }
                 supabaseSyncChat();
                 supabaseSyncAllChats();
+                pollSignals();
             }
         });
         window.addEventListener('online', () => {
+            if (state.sbJwtExp && Date.now() > state.sbJwtExp - 10 * 60 * 1000) {
+                refreshSupabaseToken();
+            }
             supabaseSyncChat();
             supabaseSyncAllChats();
+            pollSignals();
         });
 
         $('audio-call').addEventListener('click', () => startCall('audio'));
@@ -2488,18 +2898,31 @@
             const audio = call.local.getAudioTracks()[0];
             if (!audio) return;
             audio.enabled = !audio.enabled;
-            $('call-mute').textContent = audio.enabled ? 'Микрофон' : 'Включить микрофон';
+            $('call-mute').textContent = audio.enabled ? 'Микрофон' : 'Микрофон выкл';
+            $('call-mute').classList.toggle('is-off', !audio.enabled);
         });
 
         $('call-camera').addEventListener('click', () => {
             if (!call.local) return;
             const video = call.local.getVideoTracks()[0];
             if (!video) {
-                showToast('Камера недоступна');
+                enableCamera();
                 return;
             }
             video.enabled = !video.enabled;
             $('call-camera').textContent = video.enabled ? 'Камера' : 'Включить камеру';
+            $('call-camera').classList.toggle('is-off', !video.enabled);
+        });
+
+        $('call-fullscreen').addEventListener('click', () => {
+            const on = !$('call-modal').classList.contains('is-fullscreen');
+            $('call-modal').classList.toggle('is-fullscreen', on);
+            $('call-fullscreen').textContent = on ? 'Свернуть' : 'На весь экран';
+        });
+
+        $('call-zoom').addEventListener('input', (event) => {
+            const scale = Number(event.target.value) / 100;
+            $('remote-video').style.transform = 'scale(' + scale + ')';
         });
 
         $('call-volume').addEventListener('input', (event) => {
@@ -2512,6 +2935,7 @@
             if (call.active) signal({ kind: 'end' });
         });
 
+        initSidebarResize();
         initSettings();
     }
 
@@ -2604,6 +3028,31 @@
         await initSupabase(data.token, { uid, nick });
     }
 
+    async function refreshSupabaseToken() {
+        if (state.refreshing) return;
+        const session = readNkseSession();
+        if (!session.token) return;
+
+        state.refreshing = true;
+        try {
+            const data = await appsScriptCall({ board: 'auth', op: 'supabase', token: session.token });
+            if (!data || !data.ok || !data.token) return;
+
+            const payload = decodeJwt(data.token);
+            state.sbJwt = data.token;
+            state.sbJwtExp = (payload.exp || 0) * 1000;
+
+            if (state.sb) {
+                state.sb.headers.Authorization = 'Bearer ' + data.token;
+                state.sb.realtime.setAuth(data.token);
+            }
+        } catch (e) {
+            /* keep the old token; the next tick retries */
+        } finally {
+            state.refreshing = false;
+        }
+    }
+
     async function bootSupabase() {
         if (isLocal) {
             const testJwt = localStorage.getItem('pps.test.jwt');
@@ -2640,6 +3089,7 @@
 
     async function initSupabase(jwt, user) {
         state.sbJwt = jwt;
+        state.sbJwtExp = (decodeJwt(jwt).exp || 0) * 1000;
         state.sbUid = user.uid;
 
         const client = window.PPS.createClient(SUPABASE.url, SUPABASE.key, {
@@ -2648,6 +3098,14 @@
         });
         state.sb = client;
         client.realtime.setAuth(jwt);
+
+        state.chats = state.chats.filter((chat) => chat && chat.nick && chat.nick !== user.nick);
+        for (const chat of state.chats) {
+            chat.uid = null;
+            chat.chatId = null;
+            chat.lastTs = '';
+        }
+        writeJson(LS.chats, state.chats);
 
         setMe({ nick: user.nick, uid: user.uid });
         hideAuth();
@@ -2669,6 +3127,19 @@
         startSignalPoll();
         startAllChatSync();
         if (state.settings.notifications) initPush();
+
+        clearInterval(state.tokenTimer);
+        state.tokenTimer = setInterval(() => {
+            if (state.sbJwtExp && Date.now() > state.sbJwtExp - 15 * 60 * 1000) {
+                refreshSupabaseToken();
+            }
+        }, 5 * 60 * 1000);
+
+        if (new URLSearchParams(location.search).get('call')) {
+            setTimeout(() => {
+                if (!call.incoming && !call.active) showToast('Звонок уже завершён');
+            }, 3500);
+        }
 
         const add = new URLSearchParams(location.search).get('add');
         if (add) openChat({ nick: add, uid: null });
@@ -2805,16 +3276,16 @@
     async function supabaseOpenChat(peer) {
         if (!state.sb) return;        try {
             let uid = peer.uid;
-            if (!uid) {
-                const { data } = await state.sb.from('profiles').select('id').eq('nick', peer.nick).maybeSingle();
-                if (!data) {
-                    $('peer-status').textContent = 'ник не найден';
-                    return;
-                }
-                uid = data.id;
+            const { data: profile } = await state.sb.from('profiles').select('id').eq('nick', peer.nick).maybeSingle();
+            if (profile && profile.id) {
+                uid = profile.id;
                 peer.uid = uid;
                 state.peerUid = uid;
                 addChat(peer.nick, uid);
+            }
+            if (!uid) {
+                $('peer-status').textContent = 'ник не найден';
+                return;
             }
 
             const { data: chatId, error } = await state.sb.rpc('create_direct_chat', { other_id: uid });
@@ -2827,16 +3298,18 @@
             state.chatId = chatId;
             const chatRecord = state.chats.find((item) => item.nick === peer.nick);
             if (chatRecord) chatRecord.chatId = chatId;
-            const { data: rows, error: loadError } = await state.sb
+            const { data: dataRows, error: loadError } = await state.sb
                 .from('messages')
                 .select('*')
                 .eq('chat_id', chatId)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: false })
                 .limit(200);
             if (loadError) console.warn('messages', loadError);
 
-            const mapped = (rows || []).map((row) => rowToMessage(row, peer.nick));
-            state.chatLastTs = rows && rows.length
+            const rows = (dataRows || []).slice().reverse();
+            const mapped = rows.map((row) => rowToMessage(row, peer.nick));
+            state.chatOldestTs = rows.length ? rows[0].created_at : '';
+            state.chatLastTs = rows.length
                 ? rows[rows.length - 1].created_at
                 : new Date(0).toISOString();
             if (chatRecord && state.chatLastTs) chatRecord.lastTs = state.chatLastTs;
@@ -2860,6 +3333,39 @@
 
     window.__ppsOpenChat = supabaseOpenChat;
 
+    async function loadOlderMessages() {
+        if (!state.sb || !state.chatId || !state.peer || !state.chatOldestTs || state.loadingOlder) return;
+        state.loadingOlder = true;
+        const box = $('messages');
+        const prevHeight = box.scrollHeight;
+        const prevTop = box.scrollTop;
+        const chatId = state.chatId;
+        const peer = state.peer;
+        const oldest = state.chatOldestTs;
+
+        try {
+            const { data } = await state.sb
+                .from('messages')
+                .select('*')
+                .eq('chat_id', chatId)
+                .lt('created_at', oldest)
+                .order('created_at', { ascending: false })
+                .limit(100);
+            const rows = (data || []).slice().reverse();
+            if (rows.length && state.chatId === chatId && state.peer === peer) {
+                state.chatOldestTs = rows[0].created_at;
+                const mapped = rows.map((row) => rowToMessage(row, peer));
+                saveHistory(peer, mergeMessages(loadHistory(peer), mapped));
+                renderMessages();
+                box.scrollTop = box.scrollHeight - prevHeight + prevTop;
+            }
+        } catch (e) {
+            /* transient */
+        } finally {
+            state.loadingOlder = false;
+        }
+    }
+
     function subscribeChat(chatId, peerNick) {
         if (!state.sb) return;
         if (state.chatChannel) {
@@ -2877,6 +3383,22 @@
             .on('broadcast', { event: 'chat-deleted' }, ({ payload }) => {
                 handleChatDeleted(payload);
             })
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: 'chat_id=eq.' + chatId,
+            }, (payload) => {
+                if (payload && payload.new) handleIncomingRow(payload.new, peerNick);
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'messages',
+                filter: 'chat_id=eq.' + chatId,
+            }, (payload) => {
+                if (payload && payload.new) handleIncomingRow(payload.new, peerNick);
+            })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') supabaseSyncChat();
             });
@@ -2884,7 +3406,7 @@
 
     function startChatSync() {
         clearInterval(state.syncTimer);
-        state.syncTimer = setInterval(supabaseSyncChat, 1000);
+        state.syncTimer = setInterval(supabaseSyncChat, 15000);
     }
 
     async function supabaseSyncChat() {
@@ -2961,7 +3483,7 @@
     }
     function startAllChatSync() {
         clearInterval(state.syncAllTimer);
-        state.syncAllTimer = setInterval(supabaseSyncAllChats, 1500);
+        state.syncAllTimer = setInterval(supabaseSyncAllChats, 30000);
     }
 
     async function supabaseSyncAllChats() {
@@ -3057,7 +3579,7 @@
         if (state.peer === peerNick) renderMessages();
         else if (isNew) {
             state.unread.set(peerNick, (state.unread.get(peerNick) || 0) + 1);
-            if (message.from !== state.me.nick) {
+            if (message.from !== state.me.nick && !callLogInfo(message.text)) {
                 notify('pps · ' + peerNick, previewText(message.text), 'msg-' + peerNick, peerNick);
                 if (document.visibilityState !== 'visible' || !document.hasFocus()) beep(520, 0.07);
             }
@@ -3079,6 +3601,10 @@
     }
 
     async function supabaseSend(message) {
+        if (state.sbJwtExp && Date.now() > state.sbJwtExp - 60 * 1000) {
+            await refreshSupabaseToken();
+        }
+        await testDelay();
         if (!state.sb || !state.chatId) {
             message.status = 'failed';
             saveHistory(state.peer, loadHistory(state.peer));
@@ -3086,23 +3612,7 @@
             return;
         }
 
-        /* Optimistic personal broadcast: the recipient should see the message
-           even if the REST insert is slow. The real row dedupes by client_id. */
-        if (state.peerUid) {
-            sendUserEvent(state.peerUid, 'message', {
-                row: {
-                    id: null,
-                    sender_id: state.sbUid,
-                    body: message.text,
-                    client_id: message.id,
-                    created_at: serverNowIso(),
-                },
-                fromUid: state.sbUid,
-                fromNick: state.me.nick,
-                chatId: state.chatId,
-            }).catch(() => {});
-        }
-        message.status = 'sent';
+        message.status = 'sending';
         saveHistory(state.peer, loadHistory(state.peer));
         renderMessages();
 
@@ -3184,6 +3694,7 @@
     }
 
     async function sendSignalTo(uid, data) {
+        await testDelay();
         const sid = newId();
         const payload = {
             fromUid: state.sbUid,
@@ -3211,10 +3722,11 @@
 
     function startSignalPoll() {
         clearInterval(state.signalPollTimer);
-        state.signalPollTimer = setInterval(pollSignals, 1000);
+        state.signalPollTimer = setInterval(pollSignals, 5000);
     }
 
     async function pollSignals() {
+        if (document.hidden) return;
         if (!state.sb || !state.sbUid) return;
         try {
             const { data, error } = await state.sb
@@ -3236,6 +3748,9 @@
     }
 
     async function supabaseSignal(data) {
+        if (state.sbJwtExp && Date.now() > state.sbJwtExp - 60 * 1000) {
+            await refreshSupabaseToken();
+        }
         if (!state.peerUid && call.peer) {
             try { state.peerUid = await uidForNick(call.peer); } catch (e) { /* ignore */ }
         }

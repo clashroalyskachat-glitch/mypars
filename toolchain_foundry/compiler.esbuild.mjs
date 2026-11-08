@@ -144,6 +144,7 @@ async function main() {
         'messenger/dev-smoke.mjs',
         'messenger/README.md',
         'messenger/UX_RESEARCH.md',
+        'messenger/ARCHITECTURE.md',
     ]) {
         await fsp.rm(path.join(DIST, rel), { force: true });
     }
