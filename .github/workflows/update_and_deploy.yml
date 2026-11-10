@@ -128,16 +128,19 @@ jobs:
 
           check() { curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1"; }
           probe() {
-            echo "$(check https://nkselove.web.app/mypars/) $(check https://nkselove.web.app/mypars/schedule.json)"
+            echo "$(check https://nkselove.web.app/mypars/) $(check https://nkselove.web.app/mypars/index.html) $(check https://nkselove.web.app/mypars/schedule.json) $(check https://nkselove.web.app/404.html)"
           }
 
+          # даём CDN секунды на переключение версии, иначе проверка видит старую
+          sleep 10
+
           for i in 1 2 3 4; do
-            read -r index data <<< "$(probe)"
-            if [ "$index" = "200" ] && [ "$data" = "200" ]; then
-              echo "зеркало в порядке: /mypars/=$index, schedule.json=$data"
+            read -r index shell data page404 <<< "$(probe)"
+            if [ "$index" = "200" ] && [ "$shell" = "200" ] && [ "$data" = "200" ] && [ "$page404" = "200" ]; then
+              echo "зеркало в порядке"
               exit 0
             fi
-            echo "попытка $i: /mypars/=$index, schedule.json=$data"
+            echo "попытка $i: /mypars/=$index index.html=$shell schedule.json=$data 404.html=$page404"
             sleep 6
           done
 
@@ -145,7 +148,7 @@ jobs:
           rm -rf .firebase
           npx --yes firebase-tools@13 deploy --only hosting --project nkselove \
             --token "$FIREBASE_TOKEN" --non-interactive
-          sleep 5
-          read -r index data <<< "$(probe)"
-          echo "после повтора: /mypars/=$index, schedule.json=$data"
-          [ "$index" = "200" ] && [ "$data" = "200" ]
+          sleep 10
+          read -r index shell data page404 <<< "$(probe)"
+          echo "после повтора: /mypars/=$index index.html=$shell schedule.json=$data 404.html=$page404"
+          [ "$index" = "200" ] && [ "$shell" = "200" ] && [ "$data" = "200" ] && [ "$page404" = "200" ]

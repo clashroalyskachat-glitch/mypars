@@ -8,7 +8,9 @@
     <meta name="color-scheme" content="dark light">
     <meta name="theme-color" content="#0e1621">
     <link rel="icon" href="../library/icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=17">
+    <link rel="preconnect" href="https://ddlbctrydkaazyitipup.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://script.google.com">
+    <link rel="stylesheet" href="styles.css?v=32">
     <script>
         (function () {
             try {
@@ -55,6 +57,11 @@
                         <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
                     </svg>
                 </button>
+                <button class="icon-btn" id="help-btn-main" type="button" title="Как пользоваться" aria-label="Как пользоваться">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.6"/><path d="M12 16.6h.01"/>
+                    </svg>
+                </button>
                 <button class="icon-btn" id="settings-btn" type="button" title="Настройки" aria-label="Настройки">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="3.2"/>
@@ -86,6 +93,11 @@
         </div>
 
         <div class="search-results" id="search-results" hidden></div>
+        <div class="chat-tabs" role="tablist" aria-label="Фильтр чатов">
+            <button class="chat-tab is-active" data-chat-tab="all" type="button" role="tab" aria-selected="true">Все</button>
+            <button class="chat-tab" data-chat-tab="unread" type="button" role="tab" aria-selected="false">Непрочитанные</button>
+            <button class="chat-tab" data-chat-tab="online" type="button" role="tab" aria-selected="false">В сети</button>
+        </div>
         <div class="chat-list" id="chat-list">
             <div class="skeleton-row"><span class="skeleton-avatar"></span><span class="skeleton-lines"><i></i><i></i></span></div>
             <div class="skeleton-row"><span class="skeleton-avatar"></span><span class="skeleton-lines"><i></i><i></i></span></div>
@@ -100,6 +112,13 @@
             <button class="ghost" id="side-empty-scan" type="button">Сканировать QR</button>
             <button class="ghost" id="side-empty-qr" type="button">Мой QR</button>
         </div>
+
+        <button class="compose-btn" id="compose-btn" type="button" title="Новый чат" aria-label="Новый чат">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/>
+                <path d="M13.5 6.5l4 4"/>
+            </svg>
+        </button>
 
         <footer class="side-foot">
             <span class="status-pill">
@@ -126,6 +145,8 @@
                 <button class="ghost" id="empty-qr" type="button">Мой QR</button>
                 <button class="ghost" id="empty-scan" type="button">Сканировать</button>
             </div>
+            <p class="empty-hint">Сначала нажми «Найти по нику» — потом выбери друга.</p>
+            <button class="link-btn" id="empty-help" type="button">Как пользоваться</button>
         </div>
 
         <section class="chat-view" id="chat-view" hidden>
@@ -144,6 +165,11 @@
                 </button>
                 <button class="icon-btn" id="video-call" type="button" title="Видеозвонок" aria-label="Видеозвонок">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2.5"/><path d="M15 10.5l6-3.5v10l-6-3.5"/></svg>
+                </button>
+                <button class="icon-btn" id="chat-info-btn" type="button" title="Информация о чате" aria-label="Информация о чате">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>
+                    </svg>
                 </button>
                 <button class="icon-btn" id="chat-menu-btn" type="button" title="Настройки чата" aria-label="Настройки чата" aria-haspopup="menu" aria-expanded="false">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
@@ -164,14 +190,18 @@
             </button>
 
             <div class="attach-preview" id="attach-preview" hidden>
-                <div class="attach-media" id="attach-media"></div>
-                <div class="attach-body">
-                    <b id="attach-name">Файл</b>
-                    <input id="attach-caption" type="text" maxlength="200" placeholder="Подпись…">
-                </div>
-                <div class="attach-actions">
-                    <button class="attach-send" id="attach-send" type="button">Отправить</button>
-                    <button class="attach-cancel" id="attach-cancel" type="button" aria-label="Убрать">×</button>
+                <div class="attach-card">
+                    <div class="attach-media" id="attach-media"></div>
+                    <div class="attach-body">
+                        <b id="attach-name">Файл</b>
+                        <small class="attach-hint">Подпись — в поле ниже</small>
+                    </div>
+                    <div class="attach-actions">
+                        <button class="attach-send" id="attach-send" type="button" title="Отправить" aria-label="Отправить">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5M21 3l-7 18-3.5-7.5L3 10z"/></svg>
+                        </button>
+                        <button class="attach-cancel" id="attach-cancel" type="button" aria-label="Убрать">×</button>
+                    </div>
                 </div>
             </div>
 
@@ -179,11 +209,11 @@
                 <button class="emoji-btn" id="file-btn" type="button" aria-label="Прикрепить файл">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></svg>
                 </button>
-                <input id="file-input" type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" hidden>
+                <input id="file-input" type="file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" hidden>
                 <button class="emoji-btn" id="emoji-btn" type="button" aria-label="Эмодзи" aria-expanded="false">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.4c.9 1.2 2.1 1.9 3.5 1.9s2.6-.7 3.5-1.9"/><path d="M9 9.7h.01M15 9.7h.01"/></svg>
                 </button>
-                <input id="text" type="text" maxlength="4000" autocomplete="off" placeholder="Сообщение…" aria-label="Сообщение">
+                <input id="text" type="text" maxlength="4000" autocomplete="off" placeholder="Напиши сообщение…" aria-label="Сообщение">
                 <button class="send" type="submit" aria-label="Отправить">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5M21 3l-7 18-3.5-7.5L3 10z"/></svg>
                 </button>
@@ -199,6 +229,18 @@
             </div>
         </section>
     </main>
+
+    <aside class="profile-panel" id="profile-panel" hidden>
+        <button class="icon-btn profile-close" id="profile-close" type="button" aria-label="Закрыть">×</button>
+        <span class="avatar profile-avatar" id="profile-avatar">?</span>
+        <h2 id="profile-nick">—</h2>
+        <p id="profile-status">не в сети</p>
+        <div class="profile-actions">
+            <button type="button" data-profile-action="mute">Без звука</button>
+            <button type="button" data-profile-action="block">Заблокировать</button>
+            <button type="button" data-profile-action="delete" class="danger">Удалить чат</button>
+        </div>
+    </aside>
 </div>
 
 <div class="message-menu" id="message-menu" hidden role="menu">
@@ -407,6 +449,8 @@
             <input type="checkbox" id="set-notifications">
         </label>
         <button class="push-test" id="push-test" type="button">Проверить уведомление</button>
+        <a class="push-test diag-link" href="speed.html" target="_blank" rel="noopener">Диагностика скорости</a>
+        <button class="push-test" id="help-btn" type="button">Как пользоваться</button>
         <label class="switch-row">
             <span>Не беспокоить</span>
             <input type="checkbox" id="set-dnd">
@@ -420,14 +464,38 @@
             <input type="checkbox" id="set-contacts">
         </label>
         <p class="settings-note">«Не беспокоить» отключает звук и уведомления, но сообщения продолжают приходить.</p>
+        <p class="settings-version">Версия 31 · <button class="link-btn" id="hard-refresh" type="button">Обновить приложение</button></p>
         <button class="danger-button" id="settings-logout" type="button">Выйти из аккаунта</button>
+    </div>
+</div>
+
+<!-- Help -->
+<div class="modal" id="help-modal" hidden>
+    <div class="modal-card help-card">
+        <button class="modal-close" id="help-close" type="button" aria-label="Закрыть">×</button>
+        <h2>Как пользоваться</h2>
+        <p class="help-sub">Три простых шага — и всё.</p>
+        <div class="help-step">
+            <span>1</span>
+            <div><b>Найди друга</b><p>Введи его ник в поиске сверху и нажми на него.</p></div>
+        </div>
+        <div class="help-step">
+            <span>2</span>
+            <div><b>Напиши сообщение</b><p>Пиши в поле внизу и жми самолётик. Фото и файлы — скрепка.</p></div>
+        </div>
+        <div class="help-step">
+            <span>3</span>
+            <div><b>Позвони</b><p>В чате нажми на телефон или камеру.</p></div>
+        </div>
+        <button class="primary wide" id="help-ok" type="button">Понятно</button>
+        <button class="help-skip" id="help-skip" type="button">Пропустить</button>
     </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="config.js?v=17"></script>
-<script src="qrcode.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="config.js?v=32"></script>
+<script src="qrcode.js?v=32"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Диагностика скорости — pps</title>
+    <meta name="color-scheme" content="dark light">
+    <link rel="icon" href="../library/icon.svg" type="image/svg+xml">
+    <style>
+        :root {
+            --bg: #08080a;
+            --panel: #101116;
+            --panel-2: #16171d;
+            --ink: #ece7df;
+            --muted: #8f8982;
+            --line: #26242a;
+            --accent: #c99a63;
+            --ok: #6fbf8f;
+            --warn: #d8b25e;
+            --bad: #d97b6c;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 16px 48px;
+            background:
+                radial-gradient(80% 50% at 50% 0%, #1a1712, transparent 65%),
+                var(--bg);
+            color: var(--ink);
+            font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .wrap { max-width: 760px; margin: 0 auto; }
+        header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+        h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .sub { color: var(--muted); font-size: 12px; margin: 0 0 18px; }
+        .card {
+            background: color-mix(in srgb, var(--panel) 92%, transparent);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; }
+        .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+        .row:last-child { border-bottom: 0; }
+        .row span { color: var(--muted); }
+        .row b { font-variant-numeric: tabular-nums; font-weight: 600; }
+        .ok { color: var(--ok); }
+        .warn { color: var(--warn); }
+        .bad { color: var(--bad); }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+        button {
+            padding: 10px 16px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel-2);
+            color: var(--ink);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        button:hover { border-color: var(--accent); }
+        button.primary { background: var(--accent); color: #1a1208; border-color: var(--accent); font-weight: 700; }
+        button:disabled { opacity: .5; cursor: default; }
+        .verdict { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; }
+        .note { color: var(--muted); font-size: 12px; line-height: 1.6; margin-top: 18px; }
+        .bar { height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; margin-top: 8px; }
+        .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>Диагностика скорости</h1>
+        <a href="./">← В мессенджер</a>
+    </header>
+    <p class="sub">Запусти на ПК и телефоне, на Wi-Fi и на мобильном интернете. Так видно, где именно теряется время.</p>
+
+    <div class="actions">
+        <button class="primary" id="run" type="button">Запустить тест</button>
+        <button id="copy" type="button" disabled>Скопировать отчёт</button>
+    </div>
+
+    <div class="card">
+        <h2>Сеть</h2>
+        <div class="row"><span>Ближайший узел Cloudflare</span><b id="colo">—</b></div>
+        <div class="row"><span>RTT до Supabase (медиана)</span><b id="sb">—</b></div>
+        <div class="row"><span>RTT до Supabase (минимум)</span><b id="sbmin">—</b></div>
+        <div class="row"><span>RTT до хостинга</span><b id="host">—</b></div>
+        <div class="row"><span>Обмен JWT через Apps Script</span><b id="gas">—</b></div>
+        <div class="bar"><i id="bar"></i></div>
+    </div>
+
+    <div class="card">
+        <h2>Двоичный протокол</h2>
+        <div class="row"><span>JSON на сообщение</span><b id="jsonSize">—</b></div>
+        <div class="row"><span>Binary на сообщение</span><b id="binSize">—</b></div>
+        <div class="row"><span>JSON encode+decode, 10k</span><b id="jsonTime">—</b></div>
+        <div class="row"><span>Binary encode+decode, 10k</span><b id="binTime">—</b></div>
+        <div class="row"><span>Экономия на сообщении</span><b id="binSave">—</b></div>
+    </div>
+
+    <div class="card">
+        <h2>Браузер и устройство</h2>
+        <div class="row"><span>WebTransport (HTTP/3)</span><b id="wt">—</b></div>
+        <div class="row"><span>WebRTC</span><b id="rtc">—</b></div>
+        <div class="row"><span>Service Worker</span><b id="sw">—</b></div>
+        <div class="row"><span>Сеть браузера</span><b id="conn">—</b></div>
+        <div class="row"><span>Экран</span><b id="screen">—</b></div>
+        <div class="row"><span>Платформа</span><b id="ua" class="mono">—</b></div>
+    </div>
+
+    <div class="verdict" id="verdict">Нажми «Запустить тест».</div>
+
+    <p class="note">
+        Как читать: до 80 мс — уже близко к физическому пределу для базы в Европе.
+        80–150 мс — можно выиграть краем или релеем. Больше 150 мс — база далеко,
+        нужен ближайший регион или локальный релей. Apps Script в 2–3 секунды —
+        нормально для него; он не должен участвовать в отправке сообщений.
+    </p>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    var SB = (window.PPS_SUPABASE && window.PPS_SUPABASE.url) || 'https://ddlbctrydkaazyitipup.supabase.co';
+    var KEY = (window.PPS_SUPABASE && window.PPS_SUPABASE.key) || 'anon';
+    var report = [];
+    var textEncoder = new TextEncoder();
+    var textDecoder = new TextDecoder();
+
+    function $(id) { return document.getElementById(id); }
+
+    function set(id, text, cls) {
+        var el = $(id);
+        el.textContent = text;
+        el.className = cls || '';
+    }
+
+    function ms(value) {
+        return value < 0 ? 'ошибка' : value + ' мс';
+    }
+
+    function tone(value) {
+        if (value < 0) return 'bad';
+        if (value < 80) return 'ok';
+        if (value < 150) return 'warn';
+        return 'bad';
+    }
+
+    async function timed(url, options) {
+        var t = performance.now();
+        try {
+            var response = await fetch(url, Object.assign({ cache: 'no-store', mode: 'cors' }, options || {}));
+            await response.text();
+            return Math.round(performance.now() - t);
+        } catch (e) {
+            return -1;
+        }
+    }
+
+    function median(values) {
+        var list = values.filter(function (v) { return v >= 0; }).sort(function (a, b) { return a - b; });
+        if (!list.length) return -1;
+        return list[Math.floor(list.length / 2)];
+    }
+
+    function uuidToBytes(uuid) {
+        var hex = String(uuid).replace(/-/g, '');
+        var out = new Uint8Array(16);
+        for (var i = 0; i < 16; i += 1) out[i] = parseInt(hex.substr(i * 2, 2), 16) || 0;
+        return out;
+    }
+
+    function bytesToUuid(bytes) {
+        var hex = '';
+        for (var i = 0; i < bytes.length; i += 1) hex += bytes[i].toString(16).padStart(2, '0');
+        return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) +
+            '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+    }
+
+    /* 1 byte type + 16 bytes client id + 8 bytes timestamp + UTF-8 body. */
+    function encodeBinary(message) {
+        var body = textEncoder.encode(message.body);
+        var out = new Uint8Array(1 + 16 + 8 + body.length);
+        out[0] = 1;
+        out.set(uuidToBytes(message.clientId), 1);
+        new DataView(out.buffer).setFloat64(17, message.createdAt, true);
+        out.set(body, 25);
+        return out;
+    }
+
+    function decodeBinary(buffer) {
+        var view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+        return {
+            type: buffer[0],
+            clientId: bytesToUuid(buffer.slice(1, 17)),
+            createdAt: view.getFloat64(17, true),
+            body: textDecoder.decode(buffer.slice(25)),
+        };
+    }
+
+    function benchBinary() {
+        var sample = {
+            clientId: '123e4567-e89b-12d3-a456-426614174000',
+            body: 'Привет, как дела? Проверка двоичного протокола.',
+            createdAt: Date.now(),
+        };
+        var json = JSON.stringify(sample);
+        var binary = encodeBinary(sample);
+        var jsonSize = textEncoder.encode(json).length;
+        var binSize = binary.length;
+
+        var i;
+        var t0 = performance.now();
+        for (i = 0; i < 10000; i += 1) JSON.parse(JSON.stringify(sample));
+        var jsonTime = performance.now() - t0;
+
+        t0 = performance.now();
+        for (i = 0; i < 10000; i += 1) decodeBinary(encodeBinary(sample));
+        var binTime = performance.now() - t0;
+
+        set('jsonSize', jsonSize + ' Б');
+        set('binSize', binSize + ' Б', 'ok');
+        set('jsonTime', Math.round(jsonTime) + ' мс');
+        set('binTime', Math.round(binTime) + ' мс', binTime < jsonTime ? 'ok' : 'warn');
+        var save = Math.round((1 - binSize / jsonSize) * 100);
+        set('binSave', save + '%', 'ok');
+        return { jsonSize: jsonSize, binSize: binSize, jsonTime: Math.round(jsonTime), binTime: Math.round(binTime), save: save };
+    }
+
+    async function run() {
+        var button = $('run');
+        button.disabled = true;
+        button.textContent = 'Проверяю…';
+        report = [];
+
+        var jwt = '';
+        try { jwt = localStorage.getItem('pps.sbJwt') || ''; } catch (e) { /* ignore */ }
+        var sbHeaders = { apikey: KEY };
+        if (jwt) sbHeaders.Authorization = 'Bearer ' + jwt;
+
+        var sbRuns = [];
+        for (var i = 0; i < 5; i++) {
+            sbRuns.push(await timed(SB + '/rest/v1/profiles?select=id&limit=1', {
+                method: 'GET',
+                headers: sbHeaders,
+            }));
+        }
+        var sbMedian = median(sbRuns);
+        var sbMin = Math.min.apply(null, sbRuns.filter(function (v) { return v >= 0; }));
+        set('sb', ms(sbMedian), tone(sbMedian));
+        set('sbmin', ms(sbMin), tone(sbMin));
+        $('bar').style.width = Math.max(2, Math.min(100, sbMedian / 2)) + '%';
+
+        var isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+        var host = -1;
+        if (!isLocal) {
+            var hostRuns = [];
+            for (var j = 0; j < 3; j++) {
+                hostRuns.push(await timed(location.origin + '/mypars/messenger/index.html?cb=' + Math.random(), { method: 'HEAD' }));
+            }
+            host = median(hostRuns);
+        }
+        set('host', isLocal ? 'локально' : ms(host), isLocal ? '' : tone(host));
+
+        var colo = '—';
+        try {
+            var trace = await (await fetch('https://cloudflare.com/cdn-cgi/trace?cb=' + Math.random(), { cache: 'no-store' })).text();
+            var match = /colo=(\w+)/.exec(trace);
+            if (match) colo = match[1];
+        } catch (e) { /* ignore */ }
+        set('colo', colo);
+
+        var session = null;
+        try { session = JSON.parse(localStorage.getItem('nkse-session') || 'null'); } catch (e) { /* ignore */ }
+        var sessionToken = session && (session.token || session.t);
+        if (sessionToken && window.PPS_AUTH_API) {
+            var t = performance.now();
+            try {
+                await fetch(window.PPS_AUTH_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ board: 'auth', op: 'supabase', token: sessionToken }),
+                    redirect: 'follow',
+                });
+                var gas = Math.round(performance.now() - t);
+                set('gas', ms(gas), gas > 2000 ? 'warn' : 'ok');
+            } catch (e) {
+                set('gas', 'ошибка', 'bad');
+            }
+        } else {
+            set('gas', 'нет сессии', '');
+        }
+
+        set('wt', 'WebTransport' in window ? 'есть' : 'нет', 'WebTransport' in window ? 'ok' : 'warn');
+        set('rtc', !!window.RTCPeerConnection ? 'есть' : 'нет', window.RTCPeerConnection ? 'ok' : 'bad');
+        set('sw', 'serviceWorker' in navigator ? 'есть' : 'нет', 'serviceWorker' in navigator ? 'ok' : 'warn');
+
+        var conn = navigator.connection || {};
+        var connText = [conn.effectiveType, conn.downlink ? conn.downlink + ' Мбит/с' : '', conn.rtt ? 'RTT ' + conn.rtt + ' мс' : '']
+            .filter(Boolean).join(' · ') || 'недоступно';
+        set('conn', connText);
+        set('screen', window.screen.width + '×' + window.screen.height + ' @' + (window.devicePixelRatio || 1));
+        set('ua', navigator.platform + ' · ' + (navigator.userAgent.match(/(Chrome|Firefox|Safari|Edg)\/[\d.]+/) || [''])[0]);
+
+        var binaryResult = benchBinary();
+
+        var verdict;
+        if (sbMedian < 0) verdict = 'Supabase недоступен из этой сети. Проверь блокировки или VPN.';
+        else if (sbMedian < 80) verdict = 'База уже рядом: ' + sbMedian + ' мс. Дальше выигрыш только за счёт записи на краю (Durable Objects / P2P).';
+        else if (sbMedian < 150) verdict = 'База в Европе, но далековато: ' + sbMedian + ' мс. Поможет релей ближе к пользователю или запись на краю.';
+        else verdict = 'База очень далеко: ' + sbMedian + ' мс. Нужен ближайший регион или локальный релей, иначе потолок скорости — этот RTT.';
+        $('verdict').textContent = verdict;
+
+        report = [
+            'pps speed report',
+            'date=' + new Date().toISOString(),
+            'colo=' + colo,
+            'supabase_median=' + sbMedian + 'ms',
+            'supabase_min=' + sbMin + 'ms',
+            'hosting=' + host + 'ms',
+            'apps_script=' + $('gas').textContent,
+            'binary=' + binaryResult.binSize + 'B vs json=' + binaryResult.jsonSize + 'B',
+            'webtransport=' + ('WebTransport' in window),
+            'webrtc=' + !!window.RTCPeerConnection,
+            'connection=' + connText,
+            'screen=' + window.screen.width + 'x' + window.screen.height,
+            'ua=' + navigator.userAgent,
+        ].join('\n');
+
+        $('copy').disabled = false;
+        button.disabled = false;
+        button.textContent = 'Повторить';
+    }
+
+    $('run').addEventListener('click', run);
+    $('copy').addEventListener('click', async function () {
+        try {
+            await navigator.clipboard.writeText(report);
+            $('copy').textContent = 'Скопировано';
+            setTimeout(function () { $('copy').textContent = 'Скопировать отчёт'; }, 1500);
+        } catch (e) {
+            $('copy').textContent = 'Не удалось';
+        }
+    });
+
+    run();
+})();
+</script>
+</body>
+</html>

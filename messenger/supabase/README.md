@@ -44,6 +44,19 @@ It creates:
 If a `alter publication` line says the table is already in the publication,
 ignore that line; the rest is idempotent except policies are recreated.
 
+## 3b. Speed pack
+
+After the schema, run [`speed.sql`](speed.sql) once. It is idempotent and adds:
+
+- soft delete for messages (`deleted_at`, `deleted_for_all`) + update policy;
+- `delete_direct_chat(other_id)` for deleting a chat for both;
+- Storage bucket `media` (public read, owner-only write);
+- `pg_trgm` index for nick search;
+- a `(chat_id, created_at)` index and Realtime publication.
+
+Without it the messenger still works, but deletes go through Apps Script (~3 s),
+chat deletion for both is unavailable, and files go to Google Drive.
+
 ## 4. JWT bridge in Apps Script
 
 The existing college auth lives in `library/backend/Code.gs` and stores sessions

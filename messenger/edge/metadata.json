@@ -1,0 +1,21 @@
+{
+  "main_module": "index.js",
+  "compatibility_date": "2026-11-01",
+  "bindings": [
+    {
+      "type": "durable_object_namespace",
+      "name": "CHAT_ROOM",
+      "class_name": "ChatRoom"
+    },
+    {
+      "type": "plain_text",
+      "name": "SUPABASE_URL",
+      "text": "https://ddlbctrydkaazyitipup.supabase.co"
+    },
+    {
+      "type": "plain_text",
+      "name": "SUPABASE_ANON_KEY",
+      "text": "sb_publishable_ib6_aOSMcEZIQwlwuJjXog_2lgTXWDk"
+    }
+  ]
+}

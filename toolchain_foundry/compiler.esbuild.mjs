@@ -145,10 +145,16 @@ async function main() {
         'messenger/README.md',
         'messenger/UX_RESEARCH.md',
         'messenger/ARCHITECTURE.md',
+        'messenger/SPEED.md',
+        'messenger/WORLD_STACK.md',
+        'messenger/MAX_SPEED.md',
+        'messenger/ONBOARDING_RESEARCH.md',
+        'messenger/UX_500.md',
     ]) {
         await fsp.rm(path.join(DIST, rel), { force: true });
     }
     await fsp.rm(path.join(DIST, 'messenger', 'supabase'), { recursive: true, force: true });
+    await fsp.rm(path.join(DIST, 'messenger', 'edge'), { recursive: true, force: true });
 
     /* --- service worker: manifest is baked in at build time --- */
     const precache = [

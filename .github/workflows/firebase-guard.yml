@@ -1,0 +1,80 @@
+# Firebase guard.
+#
+# Зеркало периодически теряет файлы: кто-то (или какой-то процесс) заливает
+# старую firebase-dist, и сайт начинает отдавать 404 на index.html и бандлы.
+# Этот workflow раз в 15 минут проверяет живые адреса и, если чего-то нет,
+# пересобирает layout из исходников и перезаливает полностью.
+
+name: Firebase guard
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install build tools
+        run: npm ci
+
+      - name: Build dist
+        run: npm run build
+
+      - name: Checkout menu (hub)
+        uses: actions/checkout@v4
+        with:
+          repository: clashroalyskachat-glitch/clashroalyskachat-glitch.github.io
+          path: hub-src
+
+      - name: Compose Firebase layout
+        run: HUB_DIR=hub-src node toolchain_foundry/firebase_layout.mjs
+
+      - name: Check and heal
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "${FIREBASE_TOKEN}" ]; then
+            echo "FIREBASE_TOKEN не задан — лечить нечем"
+            exit 0
+          fi
+
+          check() { curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1"; }
+
+          broken=0
+          for path in "/mypars/" "/mypars/index.html" "/mypars/schedule.json" "/mypars/sw.js" "/404.html"; do
+            code=$(check "https://nkselove.web.app${path}")
+            echo "$path -> $code"
+            [ "$code" = "200" ] || broken=1
+          done
+
+          if [ "$broken" = "0" ]; then
+            echo "зеркало в порядке"
+            exit 0
+          fi
+
+          echo "::warning::Firebase отдаёт не всё — полная перезаливка"
+          rm -rf .firebase
+          npx --yes firebase-tools@13 deploy --only hosting --project nkselove \
+            --token "$FIREBASE_TOKEN" --non-interactive
+
+          sleep 10
+
+          for path in "/mypars/" "/mypars/schedule.json" "/404.html"; do
+            code=$(check "https://nkselove.web.app${path}")
+            echo "после перезаливки: $path -> $code"
+            [ "$code" = "200" ] || exit 1
+          done

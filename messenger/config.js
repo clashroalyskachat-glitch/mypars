@@ -17,6 +17,11 @@
     /* Existing college auth endpoint (same one used by the wishes board). */
     window.PPS_AUTH_API = 'https://script.google.com/macros/s/AKfycbyLgfwIeyM6irptQU_4I3giVfX2AO0wPCnkGtMRa_GrKBHGdUu9n23u0YEnOA7WtG1z/exec';
 
+    /* Optional edge relay (Cloudflare Worker + Durable Object).
+       Leave empty to use Supabase Realtime only. After `wrangler deploy`
+       put the wss:// URL here: it cuts delivery to the nearest edge. */
+    window.PPS_RELAY_URL = '';
+
     /* Public Firebase config. The VAPID key is public by design. */
     window.PPS_FIREBASE = {
         apiKey: 'AIzaSyAjRgRf0_tJu5LpsGBWecGYxvh3w2aPZvk',

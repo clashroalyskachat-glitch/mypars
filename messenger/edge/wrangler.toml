@@ -1,0 +1,16 @@
+name = "nkselove-relay"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+SUPABASE_URL = "https://ddlbctrydkaazyitipup.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_ib6_aOSMcEZIQwlwuJjXog_2lgTXWDk"
+
+# Durable Objects with the SQLite backend are available on the Workers Free plan.
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]

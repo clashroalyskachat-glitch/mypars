@@ -77,6 +77,17 @@
         chatLastTs: '',
         chatOldestTs: '',
         loadingOlder: false,
+        prefetching: new Set(),
+        prefetchSeen: new Map(),
+        storageReady: null,
+        batchSync: false,
+        relay: null,
+        relayRetry: 0,
+        chatObserver: null,
+        signalRowChannel: null,
+        relayPeer: '',
+        relayReady: false,
+        relayQueue: [],
         messages: new Map(),
         online: new Set(),
         statuses: {},
@@ -84,8 +95,9 @@
         search: [],
         searchLoading: false,
         welcomeFocused: false,
-        pendingFile: null,
-        pendingPreview: '',
+        chatTab: 'all',
+        pendingFiles: [],
+        pendingPreviews: [],
         searchTimer: 0,
         authMode: 'login',
         retry: 0,
@@ -173,7 +185,7 @@
 
     function saveHistory(nick, list) {
         const sorted = list.slice().sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
-        state.messages.set(nick, sorted.slice(-300));
+        state.messages.set(nick, sorted.slice(-600));
         writeJson(historyKey(nick), state.messages.get(nick));
     }
 
@@ -225,6 +237,26 @@
         } catch (e) {
             return '';
         }
+    }
+
+    function buildTime(message, own) {
+        const time = document.createElement('time');
+        time.textContent = fmtTime(message.ts);
+        if (own && message.status === 'sending') {
+            const status = document.createElement('span');
+            status.className = 'status';
+            status.textContent = '· отправка';
+            time.append(status);
+        }
+        if (own && message.status === 'failed') {
+            const status = document.createElement('span');
+            status.className = 'status retry';
+            status.dataset.retry = message.id;
+            status.title = 'Нажми, чтобы отправить снова';
+            status.textContent = '· не отправлено';
+            time.append(status);
+        }
+        return time;
     }
 
     function dayLabel(ts) {
@@ -285,19 +317,35 @@
             $('auth-error').textContent = message;
             $('auth-error').hidden = false;
         }
-        setTimeout(() => $('auth-nick').focus(), 30);
+        let lastNick = '';
+        try { lastNick = localStorage.getItem('pps.lastNick') || ''; } catch (e) { /* private mode */ }
+        if (lastNick && !$('auth-nick').value) $('auth-nick').value = lastNick;
+        setTimeout(() => (lastNick ? $('auth-pass') : $('auth-nick')).focus(), 30);
     }
 
     function hideAuth() {
         document.body.classList.remove('auth-locked');
         $('auth-modal').hidden = true;
         $('auth-error').hidden = true;
+        try {
+            if (!localStorage.getItem('pps.onboarded')) setTimeout(showHelp, 700);
+        } catch (e) { /* private mode */ }
+    }
+
+    function showHelp() {
+        $('help-modal').hidden = false;
+    }
+
+    function hideHelp() {
+        $('help-modal').hidden = true;
+        try { localStorage.setItem('pps.onboarded', '1'); } catch (e) { /* private mode */ }
     }
 
     function setMe(user) {
         state.me = user;
         state.sbUid = user.uid || state.sbUid;
         writeJson(LS.user, user);
+        try { localStorage.setItem('pps.lastNick', user.nick || ''); } catch (e) { /* private mode */ }
         $('me-bar').hidden = false;
         $('me-nick').textContent = user.nick;
         $('me-avatar').textContent = initial(user.nick);
@@ -451,15 +499,22 @@
 
     /* --------------------------------------------------------------- chats */
 
+    function saveChats() {
+        writeJson(LS.chats, state.chats);
+    }
+
     function addChat(nick, uid) {
         if (!nick || (state.me && nick === state.me.nick)) return;
         const existing = state.chats.find((chat) => chat.nick === nick);
         if (existing) {
-            if (uid) existing.uid = uid;
+            if (uid && existing.uid !== uid) {
+                existing.uid = uid;
+                saveChats();
+            }
             return;
         }
         state.chats.push({ nick, uid: uid || null, chatId: null, lastTs: '' });
-        writeJson(LS.chats, state.chats);
+        saveChats();
     }
 
     function metaFor(nick) {
@@ -572,8 +627,8 @@
                     query = message.dbId
                         ? query.eq('id', message.dbId)
                         : query.eq('client_id', message.id).eq('sender_id', state.sbUid);
-                    const { error } = await query;
-                    ok = !error;
+                    const { data: updated, error } = await query.select('id');
+                    ok = !error && Array.isArray(updated) && updated.length > 0;
                 } catch (e) {
                     ok = false;
                 }
@@ -640,13 +695,30 @@
         const meta = metaFor(nick);
         const input = $('text');
         input.disabled = !!meta.blocked;
-        input.placeholder = meta.blocked ? 'Пользователь заблокирован' : 'Сообщение…';
+        input.placeholder = meta.blocked ? 'Пользователь заблокирован' : 'Напиши сообщение…';
         $('chat-banner').hidden = !meta.blocked;
         $('chat-banner').textContent = meta.blocked ? 'Пользователь заблокирован. Сообщения не отправляются.' : '';
         const mute = document.querySelector('[data-action="mute"]');
         const block = document.querySelector('[data-action="block"]');
         if (mute) mute.textContent = meta.muted ? 'Включить звук' : 'Без звука';
         if (block) block.textContent = meta.blocked ? 'Разблокировать' : 'Заблокировать';
+        const profileMute = document.querySelector('[data-profile-action="mute"]');
+        const profileBlock = document.querySelector('[data-profile-action="block"]');
+        if (profileMute) profileMute.textContent = meta.muted ? 'Включить звук' : 'Без звука';
+        if (profileBlock) profileBlock.textContent = meta.blocked ? 'Разблокировать' : 'Заблокировать';
+    }
+
+    function openProfile() {
+        if (!state.peer) return;
+        $('profile-nick').textContent = state.peer;
+        paintAvatar($('profile-avatar'), state.peer);
+        $('profile-status').textContent = presenceText(state.peer);
+        applyChatMeta(state.peer);
+        $('profile-panel').hidden = false;
+    }
+
+    function closeProfile() {
+        $('profile-panel').hidden = true;
     }
 
     function saveSettings() {
@@ -768,6 +840,24 @@
             $('settings-modal').hidden = false;
         });
         $('settings-close').addEventListener('click', () => { $('settings-modal').hidden = true; });
+        $('hard-refresh').addEventListener('click', async () => {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map((reg) => reg.unregister()));
+                }
+                if (window.caches) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map((key) => caches.delete(key)));
+                }
+            } catch (e) { /* ignore */ }
+            location.replace(location.pathname + '?v=' + Date.now());
+        });
+        $('help-btn').addEventListener('click', showHelp);
+        $('help-btn-main').addEventListener('click', showHelp);
+        $('help-close').addEventListener('click', hideHelp);
+        $('help-ok').addEventListener('click', hideHelp);
+        $('help-skip').addEventListener('click', hideHelp);
         $('settings-logout').addEventListener('click', () => {
             $('settings-modal').hidden = true;
             $('logout-btn').click();
@@ -776,6 +866,13 @@
         document.querySelectorAll('[data-accent-choice]').forEach((button) => {
             button.addEventListener('click', () => applyAccent(button.dataset.accentChoice));
         });
+        try {
+            if (!localStorage.getItem('pps.goldV1')) {
+                localStorage.setItem('pps.goldV1', '1');
+                localStorage.setItem('pps.accent', 'amber');
+                document.documentElement.setAttribute('data-accent', 'amber');
+            }
+        } catch (e) { /* private mode */ }
         applyAccent(localStorage.getItem('pps.accent') || 'amber');
 
         $('set-notifications').addEventListener('change', async (event) => {
@@ -1161,6 +1258,7 @@
         }
 
         clearPendingFile();
+        closeProfile();
         unhideChat(target.nick);
         addChat(target.nick, target.uid);
         state.peer = target.nick;
@@ -1198,6 +1296,8 @@
 
     function closeChat() {
         clearPendingFile();
+        relayClose();
+        closeProfile();
         state.peer = null;
         state.peerUid = null;
         state.chatId = null;
@@ -1212,7 +1312,13 @@
         const list = $('chat-list');
         list.replaceChildren();
 
-        const sorted = [...state.chats].sort((a, b) => {
+        let visible = [...state.chats];
+        if (state.chatTab === 'unread') {
+            visible = visible.filter((chat) => (state.unread.get(chat.nick) || 0) > 0);
+        } else if (state.chatTab === 'online') {
+            visible = visible.filter((chat) => isOnline(chat.nick));
+        }
+        const sorted = visible.sort((a, b) => {
             const am = lastMessage(a.nick);
             const bm = lastMessage(b.nick);
             return (bm ? bm.ts : 0) - (am ? am.ts : 0);
@@ -1223,6 +1329,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'chat-item' + (state.peer === nick ? ' is-active' : '');
+            button.dataset.nick = nick;
             button.addEventListener('click', () => openChat(chat));
 
             const avatar = document.createElement('span');
@@ -1256,6 +1363,16 @@
             }
 
             list.append(button);
+            if (state.chatObserver) state.chatObserver.observe(button);
+        }
+
+        if (!sorted.length && state.chats.length) {
+            const note = document.createElement('div');
+            note.className = 'chat-tab-empty';
+            note.textContent = state.chatTab === 'unread'
+                ? 'Нет непрочитанных. Всё прочитано.'
+                : 'Сейчас никого нет в сети.';
+            list.append(note);
         }
 
         const empty = state.chats.length === 0;
@@ -1322,6 +1439,19 @@
         };
     }
 
+    function albumInfo(text) {
+        const match = /^\[\[album:([^\]]+)\]\]$/.exec(String(text || '').trim());
+        if (!match) return null;
+        const parts = match[1].split('|');
+        let caption = '';
+        if (parts.length && !/^https:\/\//i.test(parts[parts.length - 1])) {
+            caption = decodeURIComponent(parts.pop());
+        }
+        const urls = parts.filter((url) => /^https:\/\//i.test(url));
+        if (urls.length < 2) return null;
+        return { urls, caption };
+    }
+
     function fileInfo(text) {
         const match = /^\[\[file:([^|\]]+)\|([^|]*)(?:\|([^\]]*))?\]\]$/.exec(String(text || '').trim());
         if (!match || !/^https:\/\//i.test(match[1])) return null;
@@ -1356,6 +1486,8 @@
 
     function previewText(text) {
         if (stickerUrl(text)) return 'Стикер';
+        const album = albumInfo(text);
+        if (album) return album.urls.length + ' фото';
         if (imageInfo(text)) return 'Фото';
         if (fileInfo(text)) return 'Файл';
         if (callLogInfo(text)) return 'Звонок';
@@ -1370,12 +1502,22 @@
         const ordered = loadHistory(state.peer)
             .slice()
             .sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
+        if (!ordered.length) {
+            const hint = document.createElement('div');
+            hint.className = 'chat-empty';
+            hint.innerHTML = '<span>👋</span><b>Напиши первое сообщение</b><small>Поле ввода — внизу</small>';
+            box.append(hint);
+        }
         let lastDay = '';
+        let lastFrom = '';
+        let lastTs = 0;
         for (const message of ordered) {
             if (isLocallyDeleted(state.peer, message.id)) continue;
             const day = dayLabel(message.ts);
             if (day !== lastDay) {
                 lastDay = day;
+                lastFrom = '';
+                lastTs = 0;
                 const separator = document.createElement('div');
                 separator.className = 'day-sep';
                 separator.textContent = day;
@@ -1391,33 +1533,81 @@
                 bubble.textContent = callLog ? callLog.text : message.text;
                 callRow.append(bubble);
                 box.append(callRow);
+                lastFrom = '';
+                lastTs = 0;
                 continue;
             }
 
             const own = state.me && message.from === state.me.nick;
+            const grouped = message.from === lastFrom && (message.ts - lastTs) < 120000;
             const row = document.createElement('div');
-            row.className = 'msg' + (own ? ' own' : '');
+            row.className = 'msg' + (own ? ' own' : '') + (grouped ? ' is-grouped' : '');
             row.dataset.id = message.id;
             row._message = message;
 
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
+            const album = albumInfo(message.text);
             const image = imageInfo(message.text);
             const file = fileInfo(message.text);
             const sticker = stickerUrl(message.text);
-            if (image) {
+            let time = null;
+            let timeInside = false;
+
+            if (album) {
+                bubble.classList.add('is-album');
+                const grid = document.createElement('div');
+                grid.className = 'album-grid' + (album.urls.length === 3 ? ' is-three' : '');
+                album.urls.forEach((url) => {
+                    const src = driveImageUrl(url);
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = 'фото';
+                    img.loading = 'lazy';
+                    img.addEventListener('click', () => window.open(src, '_blank', 'noopener'));
+                    grid.append(img);
+                });
+                bubble.append(grid);
+                if (album.caption) {
+                    const caption = document.createElement('div');
+                    caption.className = 'msg-caption';
+                    const text = document.createElement('span');
+                    text.className = 'caption-text';
+                    text.textContent = album.caption;
+                    time = buildTime(message, own);
+                    time.classList.add('caption-time');
+                    caption.append(text, time);
+                    bubble.append(caption);
+                } else {
+                    time = buildTime(message, own);
+                    time.classList.add('msg-time-overlay');
+                    bubble.append(time);
+                }
+                timeInside = true;
+            } else if (image) {
                 bubble.classList.add('is-image');
                 const img = document.createElement('img');
                 img.src = driveImageUrl(image.url);
                 img.alt = 'фото';
                 img.loading = 'lazy';
+                img.addEventListener('click', () => window.open(img.src, '_blank', 'noopener'));
                 bubble.append(img);
                 if (image.caption) {
                     const caption = document.createElement('div');
                     caption.className = 'msg-caption';
-                    caption.textContent = image.caption;
+                    const text = document.createElement('span');
+                    text.className = 'caption-text';
+                    text.textContent = image.caption;
+                    time = buildTime(message, own);
+                    time.classList.add('caption-time');
+                    caption.append(text, time);
                     bubble.append(caption);
+                } else {
+                    time = buildTime(message, own);
+                    time.classList.add('msg-time-overlay');
+                    bubble.append(time);
                 }
+                timeInside = true;
             } else if (file) {
                 bubble.classList.add('is-file');
                 const link = document.createElement('a');
@@ -1469,6 +1659,8 @@
 
             row.append(bubble, time);
             box.append(row);
+            lastFrom = message.from;
+            lastTs = message.ts;
         }
         if (stick) box.scrollTop = box.scrollHeight;
         updateScrollButton();
@@ -1515,6 +1707,10 @@
 
     function submitMessage(event) {
         event.preventDefault();
+        if (state.pendingFiles.length) {
+            sendPendingAttachment();
+            return;
+        }
         const input = $('text');
         sendText(input.value);
         input.value = '';
@@ -1606,60 +1802,153 @@
         return result;
     }
 
-    function setPendingFile(file) {
-        if (!file) return;
-        if (state.pendingPreview) URL.revokeObjectURL(state.pendingPreview);
-        state.pendingFile = file;
-        state.pendingPreview = '';
+    function fileExtension(name, mime) {
+        const match = /\.([a-z0-9]{1,5})$/i.exec(String(name || ''));
+        if (match) return match[1].toLowerCase();
+        if (mime === 'image/jpeg') return 'jpg';
+        if (mime === 'image/png') return 'png';
+        if (mime === 'image/webp') return 'webp';
+        if (mime === 'image/gif') return 'gif';
+        return 'bin';
+    }
+
+    /* Direct upload to Supabase Storage: CDN delivery, no Apps Script.
+       Falls back to Drive automatically while the bucket is not created. */
+    async function uploadToStorage(prepared) {
+        if (!state.sb || !state.sbUid) throw new Error('no_sb');
+        const ext = fileExtension(prepared.name, prepared.mime);
+        const path = state.sbUid + '/' + Date.now() + '-' +
+            Math.random().toString(36).slice(2, 8) + '.' + ext;
+        const { error } = await state.sb.storage.from('media').upload(path, prepared.blob, {
+            contentType: prepared.mime,
+            upsert: false,
+            cacheControl: '31536000',
+        });
+        if (error) throw error;
+        const { data } = state.sb.storage.from('media').getPublicUrl(path);
+        const url = data && data.publicUrl;
+        if (!url) throw new Error('no_url');
+        return {
+            ok: true,
+            url,
+            view: url,
+            thumb: prepared.mime.indexOf('image/') === 0 ? url : '',
+        };
+    }
+
+    function setPendingFiles(files) {
+        const list = Array.from(files || []).slice(0, 10);
+        if (!list.length) return;
+        clearPendingFile();
+        state.pendingFiles = list;
+        state.pendingPreviews = [];
 
         const media = $('attach-media');
         media.replaceChildren();
-        if ((file.type || '').indexOf('image/') === 0) {
-            const url = URL.createObjectURL(file);
-            state.pendingPreview = url;
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = '';
-            media.append(img);
+        const images = list.filter((file) => (file.type || '').indexOf('image/') === 0);
+        if (images.length) {
+            images.slice(0, 3).forEach((file) => {
+                const url = URL.createObjectURL(file);
+                state.pendingPreviews.push(url);
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = '';
+                media.append(img);
+            });
+            if (images.length > 3) {
+                const more = document.createElement('span');
+                more.className = 'attach-more';
+                more.textContent = '+' + (images.length - 3);
+                media.append(more);
+            }
         } else {
-            media.textContent = '📎';
+            const icon = document.createElement('span');
+            icon.className = 'attach-file-icon';
+            icon.textContent = '📎';
+            media.append(icon);
         }
 
-        $('attach-name').textContent = file.name || 'Файл';
-        $('attach-caption').value = '';
+        let name = list[0].name || 'Файл';
+        if (list.length > 1) {
+            name = images.length === list.length ? list.length + ' фото' : list.length + ' файла';
+        }
+        $('attach-name').textContent = name;
         $('attach-preview').hidden = false;
         $('attach-send').disabled = false;
-        $('attach-send').textContent = 'Отправить';
-        setTimeout(() => $('attach-caption').focus(), 50);
+        $('attach-send').classList.remove('is-loading');
+        $('text').placeholder = images.length ? 'Подпись к фото…' : 'Подпись к файлу…';
+        setTimeout(() => $('text').focus(), 50);
     }
 
     function clearPendingFile() {
-        if (state.pendingPreview) URL.revokeObjectURL(state.pendingPreview);
-        state.pendingFile = null;
-        state.pendingPreview = '';
+        state.pendingPreviews.forEach((url) => {
+            try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
+        });
+        state.pendingFiles = [];
+        state.pendingPreviews = [];
         $('attach-preview').hidden = true;
         $('attach-media').replaceChildren();
-        $('attach-caption').value = '';
         $('file-input').value = '';
+        $('attach-send').disabled = false;
+        $('attach-send').classList.remove('is-loading');
+        $('text').placeholder = 'Напиши сообщение…';
+    }
+
+    async function uploadOne(prepared) {
+        if (state.storageReady !== false) {
+            try {
+                const result = await uploadToStorage(prepared);
+                state.storageReady = true;
+                return result;
+            } catch (e) {
+                state.storageReady = false;
+            }
+        }
+        return uploadPrepared(prepared);
     }
 
     async function sendPendingAttachment() {
-        const file = state.pendingFile;
-        if (!file) return;
-        const caption = $('attach-caption').value.trim();
+        const files = state.pendingFiles.slice();
+        if (!files.length) return;
+        const caption = $('text').value.trim();
         $('attach-send').disabled = true;
-        $('attach-send').textContent = 'Загружаю…';
+        $('attach-send').classList.add('is-loading');
 
         try {
-            const prepared = await prepareUpload(file);
-            const result = await uploadPrepared(prepared);
-            const suffix = caption ? '|' + encodeURIComponent(caption) : '';
-            if (prepared.mime.indexOf('image/') === 0) {
-                sendText('[[img:' + (result.thumb || result.url) + suffix + ']]');
-            } else {
-                const name = prepared.name.replace(/[|\]]/g, '');
-                sendText('[[file:' + (result.view || result.url) + '|' + name + suffix + ']]');
+            const uploadAll = async (file) => {
+                const prepared = await prepareUpload(file);
+                const result = await uploadOne(prepared);
+                return { prepared, result };
+            };
+            /* Up to 3 files upload in parallel; more go sequentially to keep
+               memory sane on phones. */
+            const uploaded = files.length <= 3
+                ? await Promise.all(files.map(uploadAll))
+                : await (async () => {
+                    const list = [];
+                    for (const file of files) list.push(await uploadAll(file));
+                    return list;
+                })();
+
+            const images = uploaded.filter((item) => item.prepared.mime.indexOf('image/') === 0);
+            const others = uploaded.filter((item) => item.prepared.mime.indexOf('image/') !== 0);
+
+            if (images.length > 1) {
+                const urls = images.map((item) => item.result.thumb || item.result.url);
+                const suffix = caption ? '|' + encodeURIComponent(caption) : '';
+                sendText('[[album:' + urls.join('|') + suffix + ']]');
+            } else if (images.length === 1) {
+                const suffix = caption ? '|' + encodeURIComponent(caption) : '';
+                sendText('[[img:' + (images[0].result.thumb || images[0].result.url) + suffix + ']]');
             }
+
+            others.forEach((item, index) => {
+                const name = item.prepared.name.replace(/[|\]]/g, '');
+                const suffix = caption && index === 0 && !images.length ? '|' + encodeURIComponent(caption) : '';
+                sendText('[[file:' + (item.result.view || item.result.url) + '|' + name + suffix + ']]');
+            });
+
+            $('text').value = '';
             clearPendingFile();
         } catch (e) {
             const code = e && e.message ? e.message : '';
@@ -1669,7 +1958,7 @@
                         : 'Не удалось загрузить файл';
             showToast(text);
             $('attach-send').disabled = false;
-            $('attach-send').textContent = 'Отправить';
+            $('attach-send').classList.remove('is-loading');
         }
     }
 
@@ -1965,7 +2254,7 @@
         state.scanLoading = true;
         return new Promise((resolve) => {
             const script = document.createElement('script');
-            script.src = 'jsqr.min.js?v=17';
+            script.src = 'jsqr.min.js?v=32';
             script.onload = () => {
                 state.scanLoading = false;
                 resolve(window.jsQR || null);
@@ -2607,6 +2896,23 @@
             $('search').focus();
             $('search').select();
         });
+        $('empty-help').addEventListener('click', showHelp);
+        document.querySelectorAll('[data-chat-tab]').forEach((button) => {
+            button.addEventListener('click', () => {
+                state.chatTab = button.dataset.chatTab;
+                document.querySelectorAll('[data-chat-tab]').forEach((item) => {
+                    const active = item === button;
+                    item.classList.toggle('is-active', active);
+                    item.setAttribute('aria-selected', String(active));
+                });
+                renderChats();
+            });
+        });
+        $('compose-btn').addEventListener('click', () => {
+            $('search').focus();
+            $('search').select();
+            $('chat-list').scrollTop = 0;
+        });
         $('side-empty-search').addEventListener('click', () => {
             $('search').focus();
             $('search').select();
@@ -2730,18 +3036,12 @@
         $('composer').addEventListener('submit', submitMessage);
         $('file-btn').addEventListener('click', () => $('file-input').click());
         $('file-input').addEventListener('change', (event) => {
-            const file = event.target.files[0];
+            const files = Array.from(event.target.files || []);
             event.target.value = '';
-            setPendingFile(file);
+            setPendingFiles(files);
         });
         $('attach-send').addEventListener('click', sendPendingAttachment);
         $('attach-cancel').addEventListener('click', clearPendingFile);
-        $('attach-caption').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                sendPendingAttachment();
-            }
-        });
         $('emoji-btn').addEventListener('click', (event) => {
             event.stopPropagation();
             const panel = $('emoji-panel');
@@ -2844,6 +3144,18 @@
             }
         });
 
+        $('chat-info-btn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            openProfile();
+        });
+        $('profile-close').addEventListener('click', closeProfile);
+        $('profile-panel').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-profile-action]');
+            if (!button) return;
+            event.stopPropagation();
+            chatAction(button.dataset.profileAction);
+            closeProfile();
+        });
         $('chat-menu-btn').addEventListener('click', (event) => {
             event.stopPropagation();
             if (!state.peer) return;
@@ -2877,6 +3189,7 @@
                 supabaseSyncChat();
                 supabaseSyncAllChats();
                 pollSignals();
+                if (state.peerUid) relayConnect(state.peerUid);
             }
         });
         window.addEventListener('online', () => {
@@ -2936,6 +3249,7 @@
         });
 
         initSidebarResize();
+        initPrefetch();
         initSettings();
     }
 
@@ -3041,6 +3355,7 @@
             const payload = decodeJwt(data.token);
             state.sbJwt = data.token;
             state.sbJwtExp = (payload.exp || 0) * 1000;
+            try { localStorage.setItem('pps.sbJwt', data.token); } catch (e) { /* private mode */ }
 
             if (state.sb) {
                 state.sb.headers.Authorization = 'Bearer ' + data.token;
@@ -3074,6 +3389,30 @@
             renderChats();
             $('settings-status').textContent = 'подключение…';
         }
+        /* Reuse the signed JWT while it is valid: returning users skip the
+           3-second Apps Script round trip on every app start. */
+        if (cachedUser && session.token) {
+            let cachedJwt = '';
+            try { cachedJwt = localStorage.getItem('pps.sbJwt') || ''; } catch (e) { /* private mode */ }
+            if (cachedJwt) {
+                const payload = decodeJwt(cachedJwt);
+                const exp = (payload.exp || 0) * 1000;
+                if (exp > Date.now() + 5 * 60 * 1000
+                    && payload.sub === cachedUser.uid
+                    && payload.nick === cachedUser.nick) {
+                    try {
+                        await initSupabase(cachedJwt, cachedUser);
+                        if (exp < Date.now() + 60 * 60 * 1000) {
+                            refreshSupabaseToken().catch(() => {});
+                        }
+                        return;
+                    } catch (e) {
+                        console.warn('cached jwt', e);
+                    }
+                }
+            }
+        }
+
         if (session.token) {
             hideAuth();
             $('me-status').textContent = 'подключение…';
@@ -3091,6 +3430,7 @@
         state.sbJwt = jwt;
         state.sbJwtExp = (decodeJwt(jwt).exp || 0) * 1000;
         state.sbUid = user.uid;
+        try { localStorage.setItem('pps.sbJwt', jwt); } catch (e) { /* private mode */ }
 
         const client = window.PPS.createClient(SUPABASE.url, SUPABASE.key, {
             global: { headers: { Authorization: 'Bearer ' + jwt } },
@@ -3099,13 +3439,12 @@
         state.sb = client;
         client.realtime.setAuth(jwt);
 
+        let chatsOwner = '';
+        try { chatsOwner = localStorage.getItem('pps.chatsOwner') || ''; } catch (e) { /* private mode */ }
+        if (chatsOwner && chatsOwner !== user.nick) state.chats = [];
         state.chats = state.chats.filter((chat) => chat && chat.nick && chat.nick !== user.nick);
-        for (const chat of state.chats) {
-            chat.uid = null;
-            chat.chatId = null;
-            chat.lastTs = '';
-        }
-        writeJson(LS.chats, state.chats);
+        try { localStorage.setItem('pps.chatsOwner', user.nick); } catch (e) { /* private mode */ }
+        saveChats();
 
         setMe({ nick: user.nick, uid: user.uid });
         hideAuth();
@@ -3115,17 +3454,24 @@
 
         /* These must not delay the first paint. */
         syncServerClock().catch(() => {});
-        client.from('profiles').upsert(
-            { id: user.uid, nick: user.nick, last_seen: new Date().toISOString() },
-            { onConflict: 'id' }
-        ).then(({ error }) => {
-            if (error) console.warn('profile upsert', error);
-        });
+        let lastSeenAt = 0;
+        try { lastSeenAt = Number(localStorage.getItem('pps.lastSeenAt')) || 0; } catch (e) { /* private mode */ }
+        if (Date.now() - lastSeenAt > 5 * 60 * 1000) {
+            try { localStorage.setItem('pps.lastSeenAt', String(Date.now())); } catch (e) { /* private mode */ }
+            client.from('profiles').upsert(
+                { id: user.uid, nick: user.nick, last_seen: new Date().toISOString() },
+                { onConflict: 'id' }
+            ).then(({ error }) => {
+                if (error) console.warn('profile upsert', error);
+            });
+        }
 
         subscribePresence();
         subscribeSignals();
+        subscribeSignalRows();
         startSignalPoll();
         startAllChatSync();
+        relayPrewarm();
         if (state.settings.notifications) initPush();
 
         clearInterval(state.tokenTimer);
@@ -3214,12 +3560,47 @@
                     if (payload.row.created_at) chat.lastTs = payload.row.created_at;
                 }
                 handleIncomingRow(payload.row, payload.fromNick);
+
+                /* A pending broadcast that never gets a durable row (sender
+                   crashed, insert failed silently) must not stay forever. */
+                if (payload.pending && payload.row.client_id) {
+                    schedulePendingCleanup(payload.fromNick, payload.row.client_id);
+                }
             })
             .on('broadcast', { event: 'message-deleted' }, ({ payload }) => {
                 handleDeleted(payload);
             })
+            .on('broadcast', { event: 'message-failed' }, ({ payload }) => {
+                if (payload && payload.clientId) handleDeleted({ clientId: payload.clientId });
+            })
             .on('broadcast', { event: 'chat-deleted' }, ({ payload }) => {
                 handleChatDeleted(payload);
+            })
+            .subscribe();
+    }
+
+    function subscribeSignalRows() {
+        if (!state.sb || !state.sbUid) return;
+        if (state.signalRowChannel) {
+            try { state.sb.removeChannel(state.signalRowChannel); } catch (e) { /* ignore */ }
+        }
+        state.signalRowChannel = state.sb
+            .channel('signals-' + state.sbUid)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'signals',
+                filter: 'to_id=eq.' + state.sbUid,
+            }, ({ new: row }) => {
+                if (!row || !row.payload) return;
+                const payload = row.payload;
+                state.sb.from('signals').delete().eq('id', row.id).catch(() => {});
+                handleSignal(
+                    payload.fromNick || row.from_id,
+                    payload.data,
+                    row.from_id,
+                    payload.sid,
+                );
             })
             .subscribe();
     }
@@ -3274,53 +3655,128 @@
     }
 
     async function supabaseOpenChat(peer) {
-        if (!state.sb) return;        try {
-            let uid = peer.uid;
-            const { data: profile } = await state.sb.from('profiles').select('id').eq('nick', peer.nick).maybeSingle();
-            if (profile && profile.id) {
-                uid = profile.id;
+        if (!state.sb) return;
+        try {
+            const chatRecord = state.chats.find((item) => item.nick === peer.nick);
+            let uid = peer.uid || (chatRecord && chatRecord.uid) || null;
+            let chatId = (chatRecord && chatRecord.chatId) || null;
+
+            /* A fresh uid from search wins over the cached one. If they differ,
+               the cached chat belongs to someone else: drop it. */
+            if (peer.uid && chatRecord && chatRecord.uid && peer.uid !== chatRecord.uid) {
+                chatId = null;
+                chatRecord.chatId = null;
+                chatRecord.lastTs = '';
+                saveChats();
+            }
+
+            if (!uid) {
+                const { data: profile } = await state.sb
+                    .from('profiles')
+                    .select('id')
+                    .eq('nick', peer.nick)
+                    .maybeSingle();
+                if (profile && profile.id) uid = profile.id;
+            }
+            if (uid) {
                 peer.uid = uid;
                 state.peerUid = uid;
                 addChat(peer.nick, uid);
+                /* Warm the outgoing sockets so the first message is instant. */
+                signalChannelFor(uid).ready.catch(() => {});
+                relayConnect(uid);
             }
             if (!uid) {
                 $('peer-status').textContent = 'ник не найден';
                 return;
             }
 
-            const { data: chatId, error } = await state.sb.rpc('create_direct_chat', { other_id: uid });
-            if (error) {
-                console.warn('create_direct_chat', error);
-                $('peer-status').textContent = 'не удалось открыть чат';
-                return;
+            if (!chatId) {
+                const { data, error } = await state.sb.rpc('create_direct_chat', { other_id: uid });
+                if (error) {
+                    console.warn('create_direct_chat', error);
+                    $('peer-status').textContent = 'не удалось открыть чат';
+                    return;
+                }
+                chatId = data;
             }
 
             state.chatId = chatId;
-            const chatRecord = state.chats.find((item) => item.nick === peer.nick);
-            if (chatRecord) chatRecord.chatId = chatId;
-            const { data: dataRows, error: loadError } = await state.sb
-                .from('messages')
-                .select('*')
-                .eq('chat_id', chatId)
-                .order('created_at', { ascending: false })
-                .limit(200);
-            if (loadError) console.warn('messages', loadError);
+            if (chatRecord) {
+                chatRecord.chatId = chatId;
+                chatRecord.uid = uid;
+                saveChats();
+            }
 
-            const rows = (dataRows || []).slice().reverse();
-            const mapped = rows.map((row) => rowToMessage(row, peer.nick));
-            state.chatOldestTs = rows.length ? rows[0].created_at : '';
-            state.chatLastTs = rows.length
-                ? rows[rows.length - 1].created_at
-                : new Date(0).toISOString();
-            if (chatRecord && state.chatLastTs) chatRecord.lastTs = state.chatLastTs;
+            /* Known chat: ask only for what is new. One request instead of three. */
+            let since = (chatRecord && chatRecord.lastTs) || '';
             const local = loadHistory(peer.nick);
-            const dbIds = new Set((rows || []).map((row) => row.id));
-            const keep = local.filter((message) => {
-                if (message.status === 'sending' || message.status === 'failed') return true;
-                if (!message.dbId) return true;
-                return dbIds.has(message.dbId);
-            });
-            saveHistory(peer.nick, mergeMessages(keep, mapped));
+
+            const fetchRows = async (after) => {
+                let query = state.sb
+                    .from('messages')
+                    .select('*')
+                    .eq('chat_id', chatId);
+                if (after) query = query.gt('created_at', after);
+                const { data, error } = await query
+                    .order('created_at', { ascending: false })
+                    .limit(after ? 100 : 200);
+                if (error) console.warn('messages', error);
+                return (data || []).filter((row) => !row.deleted_for_all).slice().reverse();
+            };
+
+            let rows = await fetchRows(since);
+
+            /* No local base (new device or cleared cache): load the chat
+               fresh. If the cached chat is gone, rebuild it first. */
+            if (since && !local.length) {
+                const { data, error } = await state.sb.rpc('create_direct_chat', { other_id: uid });
+                if (!error && data) {
+                    if (data !== chatId) {
+                        chatId = data;
+                        state.chatId = chatId;
+                        if (chatRecord) chatRecord.chatId = chatId;
+                        saveChats();
+                    }
+                    since = '';
+                    rows = await fetchRows('');
+                }
+            }
+
+            if (since) {
+                if (rows.length) {
+                    const mapped = rows.map((row) => rowToMessage(row, peer.nick));
+                    saveHistory(peer.nick, mergeMessages(local, mapped));
+                    state.chatLastTs = rows[rows.length - 1].created_at;
+                    if (!state.chatOldestTs && local.length) {
+                        state.chatOldestTs = new Date(local[0].ts).toISOString();
+                    }
+                } else {
+                    state.chatLastTs = since;
+                    if (!state.chatOldestTs && local.length) {
+                        state.chatOldestTs = new Date(local[0].ts).toISOString();
+                    }
+                }
+            } else {
+                const mapped = rows.map((row) => rowToMessage(row, peer.nick));
+                state.chatOldestTs = rows.length ? rows[0].created_at : '';
+                state.chatLastTs = rows.length
+                    ? rows[rows.length - 1].created_at
+                    : new Date(0).toISOString();
+                const dbIds = new Set(rows.map((row) => row.id));
+                const keep = local.filter((message) => {
+                    if (message.status === 'sending' || message.status === 'failed') return true;
+                    if (!message.dbId) return true;
+                    return dbIds.has(message.dbId);
+                });
+                saveHistory(peer.nick, mergeMessages(keep, mapped));
+            }
+
+            if (chatRecord) {
+                if (state.chatLastTs) chatRecord.lastTs = state.chatLastTs;
+                chatRecord.syncedAt = Date.now();
+            }
+            saveChats();
             renderMessages();
             renderChats();
             subscribeChat(chatId, peer.nick);
@@ -3329,6 +3785,112 @@
             console.warn(e);
             $('peer-status').textContent = 'ошибка чата';
         }
+    }
+
+    async function prefetchChat(nick) {
+        if (!state.sb || !state.me || !nick || nick === state.me.nick) return;
+        if (state.peer === nick) return;
+        if (state.prefetching.has(nick)) return;
+        if (Date.now() - (state.prefetchSeen.get(nick) || 0) < 60000) return;
+        const chat = state.chats.find((item) => item.nick === nick);
+        if (!chat) return;
+        if (chat.syncedAt && Date.now() - chat.syncedAt < 60000) return;
+
+        state.prefetchSeen.set(nick, Date.now());
+        state.prefetching.add(nick);
+        try {
+            if (!chat.uid) {
+                const { data } = await state.sb
+                    .from('profiles')
+                    .select('id')
+                    .eq('nick', nick)
+                    .maybeSingle();
+                if (data && data.id) {
+                    chat.uid = data.id;
+                    saveChats();
+                }
+            }
+            if (!chat.uid) return;
+
+            if (!chat.chatId) {
+                const { data, error } = await state.sb.rpc('create_direct_chat', { other_id: chat.uid });
+                if (error || !data) return;
+                chat.chatId = data;
+                saveChats();
+            }
+
+            const since = chat.lastTs || '';
+            let query = state.sb
+                .from('messages')
+                .select('*')
+                .eq('chat_id', chat.chatId);
+            if (since) query = query.gt('created_at', since);
+            const { data: rows } = await query
+                .order('created_at', { ascending: false })
+                .limit(since ? 30 : 40);
+
+            if (rows && rows.length) {
+                const mapped = rows
+                    .filter((row) => !row.deleted_for_all)
+                    .slice()
+                    .reverse()
+                    .map((row) => rowToMessage(row, nick));
+                if (mapped.length) {
+                    saveHistory(nick, mergeMessages(loadHistory(nick), mapped));
+                }
+                const newest = rows[0];
+                if (newest && newest.created_at && (!chat.lastTs || newest.created_at > chat.lastTs)) {
+                    chat.lastTs = newest.created_at;
+                }
+                saveChats();
+                if (state.peer === nick) renderMessages();
+                renderChats();
+            }
+            chat.prefetchedAt = Date.now();
+            chat.syncedAt = Date.now();
+            saveChats();
+        } catch (e) {
+            /* prefetch is best-effort */
+        } finally {
+            state.prefetching.delete(nick);
+        }
+    }
+
+    function initPrefetch() {
+        const list = $('chat-list');
+        if (!list) return;
+
+        /* Mobile: preload the chats that scroll into view. */
+        if ('IntersectionObserver' in window) {
+            state.chatObserver = new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    const name = entry.target.dataset.nick;
+                    if (!name) continue;
+                    setTimeout(() => prefetchChat(name), 700);
+                }
+            }, { root: list, rootMargin: '160px' });
+            list.querySelectorAll('.chat-item').forEach((item) => state.chatObserver.observe(item));
+        }
+
+        let timer = 0;
+        let nick = '';
+        list.addEventListener('pointerover', (event) => {
+            const item = event.target && event.target.closest
+                ? event.target.closest('.chat-item')
+                : null;
+            if (!item || !item.dataset.nick) return;
+            nick = item.dataset.nick;
+            if (nick === state.peer) return;
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (nick) prefetchChat(nick);
+            }, 180);
+        });
+        list.addEventListener('pointerout', () => {
+            clearTimeout(timer);
+            nick = '';
+        });
     }
 
     window.__ppsOpenChat = supabaseOpenChat;
@@ -3351,7 +3913,7 @@
                 .lt('created_at', oldest)
                 .order('created_at', { ascending: false })
                 .limit(100);
-            const rows = (data || []).slice().reverse();
+            const rows = (data || []).filter((row) => !row.deleted_for_all).slice().reverse();
             if (rows.length && state.chatId === chatId && state.peer === peer) {
                 state.chatOldestTs = rows[0].created_at;
                 const mapped = rows.map((row) => rowToMessage(row, peer));
@@ -3455,35 +4017,43 @@
         }
 
         const known = new Set(state.chats.map((chat) => chat.chatId).filter(Boolean));
-        for (const row of data) {
-            const chatId = row.chat_id;
-            if (!chatId || known.has(chatId)) continue;
+        const unknown = data
+            .map((row) => row.chat_id)
+            .filter((chatId) => chatId && !known.has(chatId));
+        if (!unknown.length) return;
 
-            const { data: others } = await state.sb
-                .from('chat_members')
-                .select('user_id')
-                .eq('chat_id', chatId)
-                .neq('user_id', state.sbUid)
-                .limit(1);
-            const other = others && others[0];
-            if (!other) continue;
+        /* Two requests for all unknown chats instead of two per chat. */
+        const { data: others } = await state.sb
+            .from('chat_members')
+            .select('chat_id,user_id')
+            .in('chat_id', unknown)
+            .neq('user_id', state.sbUid);
+        const peerByChat = new Map();
+        for (const row of others || []) {
+            if (!peerByChat.has(row.chat_id)) peerByChat.set(row.chat_id, row.user_id);
+        }
 
-            const { data: profile } = await state.sb
-                .from('profiles')
-                .select('nick')
-                .eq('id', other.user_id)
-                .maybeSingle();
-            if (!profile || !profile.nick) continue;
-            if (state.hiddenChats[profile.nick]) continue;
+        const uids = [...new Set(peerByChat.values())];
+        if (!uids.length) return;
+        const { data: profiles } = await state.sb
+            .from('profiles')
+            .select('id,nick')
+            .in('id', uids);
+        const nickById = new Map((profiles || []).map((row) => [row.id, row.nick]));
 
-            addChat(profile.nick, other.user_id);
-            const chat = state.chats.find((item) => item.nick === profile.nick);
+        for (const [chatId, uid] of peerByChat) {
+            const nick = nickById.get(uid);
+            if (!nick || state.hiddenChats[nick]) continue;
+            addChat(nick, uid);
+            const chat = state.chats.find((item) => item.nick === nick);
             if (chat) chat.chatId = chatId;
         }
+        saveChats();
     }
     function startAllChatSync() {
         clearInterval(state.syncAllTimer);
         state.syncAllTimer = setInterval(supabaseSyncAllChats, 30000);
+        supabaseSyncAllChats().catch(() => {});
     }
 
     async function supabaseSyncAllChats() {
@@ -3493,6 +4063,7 @@
         try {
             await discoverChats();
 
+            const active = [];
             for (const chat of [...state.chats]) {
                 if (!chat.uid || chat.nick === state.me.nick) continue;
 
@@ -3500,25 +4071,53 @@
                     const { data, error } = await state.sb.rpc('create_direct_chat', { other_id: chat.uid });
                     if (!error && data) chat.chatId = data;
                 }
-                if (!chat.chatId) continue;
+                if (chat.chatId) active.push(chat);
+            }
 
-                const since = chat.lastTs || new Date(0).toISOString();
-                const { data, error } = await state.sb
-                    .from('messages')
-                    .select('*')
-                    .eq('chat_id', chat.chatId)
-                    .gt('created_at', since)
-                    .order('created_at', { ascending: true })
-                    .limit(50);
+            if (active.length) {
+                const ids = active.map((chat) => chat.chatId);
+                const since = active.reduce((min, chat) => {
+                    if (!chat.lastTs) return min;
+                    return !min || chat.lastTs < min ? chat.lastTs : min;
+                }, '');
+                const byChat = new Map(active.map((chat) => [chat.chatId, chat]));
 
-                if (!error && data) {
-                    for (const row of data) {
-                        if (row.created_at) chat.lastTs = row.created_at;
-                        handleIncomingRow(row, chat.nick);
+                /* One request for all chats instead of N sequential ones. */
+                let query = state.sb.from('messages').select('*').in('chat_id', ids);
+                if (since) query = query.gt('created_at', since);
+                const { data, error } = await query
+                    .order('created_at', { ascending: since ? true : false })
+                    .limit(300);
+
+                if (!error && data && data.length) {
+                    state.batchSync = true;
+                    try {
+                        for (const row of data) {
+                            const chat = byChat.get(row.chat_id);
+                            if (!chat) continue;
+                            if (row.created_at && (!chat.lastTs || row.created_at > chat.lastTs)) {
+                                chat.lastTs = row.created_at;
+                            }
+                            handleIncomingRow(row, chat.nick);
+                        }
+                    } finally {
+                        state.batchSync = false;
+                    }
+                    renderChats();
+                    if (state.peer) renderMessages();
+                }
+
+                /* Empty chats should not force a full re-fetch every 30 s. */
+                if (!error) {
+                    const nowIso = new Date().toISOString();
+                    const syncedAt = Date.now();
+                    for (const chat of active) {
+                        if (!chat.lastTs) chat.lastTs = nowIso;
+                        chat.syncedAt = syncedAt;
                     }
                 }
             }
-            writeJson(LS.chats, state.chats);
+            saveChats();
         } catch (e) {
             /* transient; retry */
         } finally {
@@ -3532,6 +4131,13 @@
         if (isLocallyDeleted(peerNick, messageId)) return;
         if (row.deleted_for_all) {
             removeMessageLocal(peerNick, messageId);
+            const chat = state.chats.find((item) => item.nick === peerNick);
+            if (chat && row.created_at && (!chat.lastTs || row.created_at > chat.lastTs)) {
+                chat.lastTs = row.created_at;
+            }
+            if (peerNick === state.peer && row.created_at && (!state.chatLastTs || row.created_at > state.chatLastTs)) {
+                state.chatLastTs = row.created_at;
+            }
             return;
         }
         const hiddenAt = state.hiddenChats[peerNick];
@@ -3559,7 +4165,7 @@
                 found.status = 'sent';
                 found.ts = Date.parse(row.created_at) || found.ts;
                 saveHistory(peerNick, list);
-                if (state.peer === peerNick) renderMessages();
+                if (!state.batchSync && state.peer === peerNick) renderMessages();
             }
             return;
         }
@@ -3570,21 +4176,24 @@
         if (existing) {
             existing.ts = Date.parse(row.created_at) || existing.ts;
             existing.text = row.body || existing.text;
+            if (row.id) existing.dbId = row.id;
+            existing.status = 'sent';
             saveHistory(peerNick, list);
         } else {
             list.push(message);
             saveHistory(peerNick, list.sort((a, b) => a.ts - b.ts));
             isNew = true;
         }
-        if (state.peer === peerNick) renderMessages();
-        else if (isNew) {
+        if (state.peer === peerNick) {
+            if (!state.batchSync) renderMessages();
+        } else if (isNew) {
             state.unread.set(peerNick, (state.unread.get(peerNick) || 0) + 1);
-            if (message.from !== state.me.nick && !callLogInfo(message.text)) {
+            if (!state.batchSync && message.from !== state.me.nick && !callLogInfo(message.text)) {
                 notify('pps · ' + peerNick, previewText(message.text), 'msg-' + peerNick, peerNick);
                 if (document.visibilityState !== 'visible' || !document.hasFocus()) beep(520, 0.07);
             }
         }
-        renderChats();
+        if (!state.batchSync) renderChats();
     }
 
     function rowToMessage(row, peerNick) {
@@ -3601,8 +4210,12 @@
     }
 
     async function supabaseSend(message) {
-        if (state.sbJwtExp && Date.now() > state.sbJwtExp - 60 * 1000) {
-            await refreshSupabaseToken();
+        if (state.sbJwtExp) {
+            const left = state.sbJwtExp - Date.now();
+            /* Never block a message on an Apps Script call: refresh in the
+               background while the current token is still valid. */
+            if (left < 0) await refreshSupabaseToken();
+            else if (left < 60 * 1000) refreshSupabaseToken().catch(() => {});
         }
         await testDelay();
         if (!state.sb || !state.chatId) {
@@ -3616,6 +4229,26 @@
         saveHistory(state.peer, loadHistory(state.peer));
         renderMessages();
 
+        /* Turbo path: the recipient sees the message over the already-open
+           socket while the durable row is being written. If the write fails,
+           message-failed removes it on the other side. */
+        const relayed = relaySend(message);
+        if (!relayed && state.peerUid) {
+            sendUserEvent(state.peerUid, 'message', {
+                row: {
+                    id: null,
+                    sender_id: state.sbUid,
+                    body: message.text,
+                    client_id: message.id,
+                    created_at: serverNowIso(),
+                },
+                fromUid: state.sbUid,
+                fromNick: state.me.nick,
+                chatId: state.chatId,
+                pending: true,
+            }).catch(() => {});
+        }
+
         const { data, error } = await state.sb
             .from('messages')
             .insert({
@@ -3626,6 +4259,21 @@
             })
             .select('*')
             .single();
+
+        if (error && !message.retried && (error.code === '42501' || error.code === '23503') && state.peerUid) {
+            message.retried = true;
+            const { data: fresh } = await state.sb.rpc('create_direct_chat', { other_id: state.peerUid });
+            if (fresh) {
+                state.chatId = fresh;
+                const chat = state.chats.find((item) => item.nick === state.peer);
+                if (chat) {
+                    chat.chatId = fresh;
+                    chat.lastTs = '';
+                    saveChats();
+                }
+                return supabaseSend(message);
+            }
+        }
 
         if (error && error.code === '23505') {
             const { data: existing } = await state.sb
@@ -3647,6 +4295,12 @@
         message.status = error ? 'failed' : 'sent';
         if (error) {
             console.warn('send message', error);
+            if (state.peerUid) {
+                sendUserEvent(state.peerUid, 'message-failed', {
+                    clientId: message.id,
+                    fromNick: state.me.nick,
+                }).catch(() => {});
+            }
             showToast('Не отправлено: ' + (error.message || error.code || 'ошибка'));
         }
         if (!error && data) {
@@ -3669,6 +4323,130 @@
         }
         saveHistory(state.peer, loadHistory(state.peer));
         renderMessages();
+    }
+
+    function schedulePendingCleanup(nick, clientId) {
+        if (!nick || !clientId) return;
+        setTimeout(() => {
+            const list = loadHistory(nick);
+            const pending = list.find((message) => message.id === clientId);
+            if (!pending || pending.dbId) return;
+            saveHistory(nick, list.filter((message) => message.id !== clientId));
+            if (state.peer === nick) renderMessages();
+            else if (state.unread.get(nick)) {
+                state.unread.set(nick, Math.max(0, state.unread.get(nick) - 1));
+            }
+            renderChats();
+        }, 15000);
+    }
+
+    function relayEnabled() {
+        return !!(window.PPS_RELAY_URL && state.sbJwt && state.sbUid);
+    }
+
+    /* Warm DNS + TLS to the edge before the first chat is opened. */
+    function relayPrewarm() {
+        if (!window.PPS_RELAY_URL || !state.sbJwt) return;
+        const base = String(window.PPS_RELAY_URL)
+            .replace(/^ws/, 'http')
+            .replace(/\/+$/, '');
+        fetch(base + '/?cb=' + Math.random(), {
+            cache: 'no-store',
+            mode: 'no-cors',
+        }).catch(() => {});
+    }
+
+    function relayClose() {
+        if (state.relay) {
+            try { state.relay.close(); } catch (e) { /* ignore */ }
+        }
+        state.relay = null;
+        state.relayPeer = '';
+        state.relayReady = false;
+        state.relayQueue = [];
+    }
+
+    function relayConnect(peerUid) {
+        if (!relayEnabled() || !peerUid) return;
+        if (state.relay && state.relayPeer === peerUid && state.relay.readyState <= 1) return;
+        if (state.relayPeer !== peerUid) state.relayRetry = 0;
+        relayClose();
+
+        const base = String(window.PPS_RELAY_URL).replace(/\/+$/, '');
+        const url = base + '/ws?token=' + encodeURIComponent(state.sbJwt) +
+            '&peer=' + encodeURIComponent(peerUid);
+        let socket;
+        try { socket = new WebSocket(url); } catch (e) { return; }
+
+        state.relay = socket;
+        state.relayPeer = peerUid;
+
+        socket.onopen = () => {
+            state.relayReady = true;
+            state.relayRetry = 0;
+            const queue = state.relayQueue.splice(0);
+            for (const item of queue) {
+                try { socket.send(item); } catch (e) { /* ignore */ }
+            }
+        };
+        socket.onclose = () => {
+            if (state.relay === socket) {
+                state.relayReady = false;
+                state.relay = null;
+                /* A cold edge or a network blip should not kill the relay. */
+                if (state.relayPeer === peerUid && state.relayRetry < 3) {
+                    const attempt = state.relayRetry + 1;
+                    state.relayRetry = attempt;
+                    setTimeout(() => {
+                        if (state.relayPeer === peerUid && !state.relay) relayConnect(peerUid);
+                    }, 800 * attempt);
+                }
+            }
+        };
+        socket.onerror = () => {
+            if (state.relay === socket) state.relayReady = false;
+        };
+        socket.onmessage = (event) => {
+            let data;
+            try { data = JSON.parse(event.data); } catch (e) { return; }
+            if (!data || !data.clientId) return;
+
+            if (data.type === 'msg') {
+                const nick = data.fromNick || state.peer;
+                if (!nick || !data.fromUid) return;
+                if (!state.chats.some((chat) => chat.nick === nick)) addChat(nick, data.fromUid);
+                handleIncomingRow({
+                    id: null,
+                    sender_id: data.fromUid,
+                    body: String(data.body || '').slice(0, 8000),
+                    client_id: data.clientId,
+                    created_at: data.createdAt || new Date().toISOString(),
+                }, nick);
+                schedulePendingCleanup(nick, data.clientId);
+            } else if (data.type === 'failed') {
+                handleDeleted({ clientId: data.clientId });
+            }
+        };
+    }
+
+    function relaySend(message) {
+        if (!relayEnabled() || !state.relay) return false;
+        const payload = JSON.stringify({
+            type: 'msg',
+            clientId: message.id,
+            body: message.text,
+            createdAt: serverNowIso(),
+        });
+        if (state.relay.readyState === 1) {
+            try {
+                state.relay.send(payload);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        state.relayQueue.push(payload);
+        return true;
     }
 
     function signalChannelFor(uid) {
@@ -3763,15 +4541,21 @@
     }
 
     function supabaseLogout() {
+        relayClose();
         if (state.presenceChannel && state.sb) {
             try { state.sb.removeChannel(state.presenceChannel); } catch (e) { /* ignore */ }
         }
         if (state.chatChannel && state.sb) {
             try { state.sb.removeChannel(state.chatChannel); } catch (e) { /* ignore */ }
         }
+        if (state.signalRowChannel && state.sb) {
+            try { state.sb.removeChannel(state.signalRowChannel); } catch (e) { /* ignore */ }
+        }
         localStorage.removeItem('nkse-session');
         localStorage.removeItem(LS.user);
         localStorage.removeItem(LS.token);
+        localStorage.removeItem('pps.sbJwt');
+        localStorage.removeItem('pps.chatsOwner');
         clearInterval(state.signalPollTimer);
         state.signalPollTimer = 0;
         state.chats = [];
