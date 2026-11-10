@@ -7,7 +7,7 @@
     "build:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o src/css_architecture/00_structural.css --minify",
     "watch:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o app.css --watch",
     "build": "node toolchain_foundry/compiler.esbuild.mjs",
-    "build:firebase": "node toolchain_foundry/firebase_layout.mjs",
+    "build:firebase": "npm run build && node toolchain_foundry/firebase_layout.mjs",
     "dev:messenger": "node messenger/dev-server.mjs",
     "deploy:firebase": "npm run build && node toolchain_foundry/firebase_layout.mjs && firebase deploy --only hosting --project nkselove --non-interactive"
   },
