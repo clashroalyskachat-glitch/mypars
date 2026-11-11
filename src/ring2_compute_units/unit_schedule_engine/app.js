@@ -1,6 +1,9 @@
 // Логика приложения для расписания НКСЭ (все группы)
 
 let allGroupsData = {};
+/* Firebase-версия не хранит расписание: данные всегда берутся с GitHub Pages.
+ * Локальный schedule.json остаётся только офлайн-фолбэком. */
+const REMOTE_SCHEDULE = 'https://clashroalyskachat-glitch.github.io/mypars/schedule.json';
 let currentGroup = localStorage.getItem('selected_group') || 'СЗ-13-26';
 let currentDayFilter = 'all';
 let lastModTime = null;
@@ -724,10 +727,14 @@ function syncHeaderOffset() {
 let _versionPromise = null;
 function fetchScheduleVersion() {
     if (!_versionPromise) {
-        _versionPromise = fetch('/api/schedule-version')
-            .then((res) => (res.ok ? res.json() : null))
+        _versionPromise = fetch(REMOTE_SCHEDULE, { method: 'HEAD', cache: 'no-store' })
+            .then((res) => {
+                if (!res.ok) return null;
+                const lastModified = res.headers.get('Last-Modified');
+                return lastModified ? { mod_time: Date.parse(lastModified) } : null;
+            })
             .catch(() => null);
-        // let a later poll ask the server again
+        // let a later poll ask GitHub again
         setTimeout(() => { _versionPromise = null; }, 60 * 1000);
     }
     return _versionPromise;
@@ -848,15 +855,18 @@ renderTabs();
           // No cache-busting query on the normal path: the service worker is
 // network-first, so freshness is unaffected, and a stable URL lets the HTTP
 // cache help when the server allows it.
-let res = await fetch(forceRefresh ? `schedule.json?_t=${Date.now()}` : 'schedule.json', { cache: forceRefresh ? 'reload' : 'default' });
-
-          // Firebase-зеркало иногда теряет файлы при деплое: если данные не
-          // пришли, берём их с GitHub Pages, а не показываем ошибку.
-          if (!res.ok && location.hostname.endsWith('web.app')) {
-              console.warn('[NKSE] schedule.json недоступен локально, беру зеркало GitHub');
+// Данные всегда берём с GitHub Pages: Firebase-версия сайта не хранит
+// расписание, поэтому обновление таблицы не требует деплоя Firebase.
+          let res;
+          try {
+              const remoteUrl = forceRefresh ? REMOTE_SCHEDULE + '?_t=' + Date.now() : REMOTE_SCHEDULE;
+              res = await fetch(remoteUrl, { cache: forceRefresh ? 'reload' : 'default' });
+              if (!res.ok) throw new Error('remote');
+          } catch (e) {
+              console.warn('[NKSE] GitHub недоступен, беру локальный schedule.json');
               res = await fetch(
-                  'https://clashroalyskachat-glitch.github.io/mypars/schedule.json?_t=' + Date.now(),
-                  { cache: 'reload' }
+                  forceRefresh ? `schedule.json?_t=${Date.now()}` : 'schedule.json',
+                  { cache: forceRefresh ? 'reload' : 'default' }
               );
           }
 

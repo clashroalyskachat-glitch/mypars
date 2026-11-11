@@ -9,7 +9,8 @@
     "build": "node toolchain_foundry/compiler.esbuild.mjs",
     "build:firebase": "npm run build && node toolchain_foundry/firebase_layout.mjs",
     "dev:messenger": "node messenger/dev-server.mjs",
-    "deploy:firebase": "npm run build && node toolchain_foundry/firebase_layout.mjs && firebase deploy --only hosting --project nkselove --non-interactive"
+    "deploy": "node toolchain_foundry/deploy.mjs",
+    "deploy:firebase": "node toolchain_foundry/deploy.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

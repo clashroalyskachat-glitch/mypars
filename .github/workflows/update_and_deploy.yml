@@ -95,15 +95,18 @@ jobs:
       # ---- Firebase mirror: меню в корне + приложение в /mypars/ ----
       # Dormant until the FIREBASE_TOKEN secret exists (firebase login:ci).
       - name: Checkout menu (hub)
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v4
         with:
           repository: clashroalyskachat-glitch/clashroalyskachat-glitch.github.io
           path: hub-src
 
       - name: Compose Firebase layout
+        if: github.event_name == 'workflow_dispatch'
         run: HUB_DIR=hub-src node toolchain_foundry/firebase_layout.mjs
 
       - name: Deploy to Firebase
+        if: github.event_name == 'workflow_dispatch'
         # secrets в if использовать нельзя — проверяем переменную внутри шага
         run: |
           if [ -z "${FIREBASE_TOKEN}" ]; then
@@ -118,6 +121,7 @@ jobs:
       # Зеркало иногда теряет файлы при заливке. Проверяем живые адреса и,
       # если что-то отдаёт не 200, перезаливаем полностью.
       - name: Verify Firebase mirror
+        if: github.event_name == 'workflow_dispatch'
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |

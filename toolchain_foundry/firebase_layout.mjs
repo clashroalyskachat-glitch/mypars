@@ -79,6 +79,30 @@ const notFound = `<!doctype html>
 `;
 fs.writeFileSync(path.join(OUT, '404.html'), notFound, 'utf8');
 
+/* Жёсткая проверка: неполный layout не должен доехать до Firebase. */
+for (const rel of [
+    'index.html',
+    '404.html',
+    'mypars/index.html',
+    'mypars/schedule.json',
+    'mypars/messenger/index.html',
+]) {
+    if (!fs.existsSync(path.join(OUT, rel))) {
+        die('в firebase-dist нет обязательного файла: ' + rel);
+    }
+}
+const scheduleHtml = fs.readFileSync(path.join(OUT, 'mypars', 'index.html'), 'utf8');
+if (!scheduleHtml.includes('<title>')) die('mypars/index.html пустой или битый');
+const messengerHtml = fs.readFileSync(path.join(OUT, 'mypars', 'messenger', 'index.html'), 'utf8');
+const appMatch = messengerHtml.match(/src="(app[^"]+\.js)"/);
+const cssMatch = messengerHtml.match(/href="(styles[^"]+\.css)"/);
+if (!appMatch || !fs.existsSync(path.join(OUT, 'mypars', 'messenger', appMatch[1]))) {
+    die('нет JS-файла мессенджера: ' + (appMatch ? appMatch[1] : 'ссылка не найдена'));
+}
+if (!cssMatch || !fs.existsSync(path.join(OUT, 'mypars', 'messenger', cssMatch[1]))) {
+    die('нет CSS-файла мессенджера: ' + (cssMatch ? cssMatch[1] : 'ссылка не найдена'));
+}
+
 const count = (dir) =>
     fs.readdirSync(dir, { withFileTypes: true }).reduce((n, e) => {
         if (e.isDirectory()) return n + count(path.join(dir, e.name));

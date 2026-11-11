@@ -1571,6 +1571,7 @@
                 if (album.caption) {
                     const caption = document.createElement('div');
                     caption.className = 'msg-caption';
+                    if (album.caption.length <= 24 && !album.caption.includes('\n')) caption.classList.add('is-short');
                     const text = document.createElement('span');
                     text.className = 'caption-text';
                     text.textContent = album.caption;
@@ -1595,6 +1596,7 @@
                 if (image.caption) {
                     const caption = document.createElement('div');
                     caption.className = 'msg-caption';
+                    if (image.caption.length <= 24 && !image.caption.includes('\n')) caption.classList.add('is-short');
                     const text = document.createElement('span');
                     text.className = 'caption-text';
                     text.textContent = image.caption;
@@ -1640,24 +1642,9 @@
                 if (isEmojiOnly(message.text)) bubble.classList.add('is-emoji');
             }
 
-            const time = document.createElement('time');
-            time.textContent = fmtTime(message.ts);
-            if (own && message.status === 'sending') {
-                const status = document.createElement('span');
-                status.className = 'status';
-                status.textContent = '· отправка';
-                time.append(status);
-            }
-            if (own && message.status === 'failed') {
-                const status = document.createElement('span');
-                status.className = 'status retry';
-                status.dataset.retry = message.id;
-                status.title = 'Нажми, чтобы отправить снова';
-                status.textContent = '· не отправлено';
-                time.append(status);
-            }
-
-            row.append(bubble, time);
+            if (!time) time = buildTime(message, own);
+            row.append(bubble);
+            if (!timeInside) row.append(time);
             box.append(row);
             lastFrom = message.from;
             lastTs = message.ts;
@@ -2254,7 +2241,7 @@
         state.scanLoading = true;
         return new Promise((resolve) => {
             const script = document.createElement('script');
-            script.src = 'jsqr.min.js?v=32';
+            script.src = 'jsqr.min.js?v=35';
             script.onload = () => {
                 state.scanLoading = false;
                 resolve(window.jsQR || null);
