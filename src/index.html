@@ -1296,6 +1296,45 @@
             .schedule-card, .day-card { animation: none !important; opacity: 1 !important; }
             .chip, .room-btn, .quick-btn { border-color: #999 !important; }
         }
+        /* ---- apology banner: in-flow, dismissible, never covers the schedule ---- */
+        .service-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-bottom: var(--gap-soft);
+            padding: 0.7rem 0.9rem;
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: var(--radius-sm);
+            background: rgba(168, 85, 247, 0.08);
+            font-size: var(--fs-meta);
+            line-height: 1.4;
+        }
+        .service-note[hidden] { display: none; }
+        .service-note p { margin: 0; flex: 1 1 auto; min-width: 0; }
+        .service-note b { font-weight: 800; }
+        .service-note-icon { flex: 0 0 auto; font-size: 1.1em; line-height: 1.2; }
+        .service-note-close {
+            flex: 0 0 auto;
+            width: 1.9em;
+            height: 1.9em;
+            margin: -0.15em -0.25em 0 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
+            color: inherit;
+            opacity: .55;
+            cursor: pointer;
+            font-size: 1.1em;
+            line-height: 1;
+        }
+        .service-note-close:hover { opacity: 1; background: rgba(168, 85, 247, 0.14); }
+        [data-theme="dark"] .service-note {
+            background: rgba(168, 85, 247, 0.12);
+            border-color: rgba(168, 85, 247, 0.45);
+        }
     </style>
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="motion.css">
@@ -1364,6 +1403,13 @@
     <!-- Main Content -->
     <main class="shell flex-grow">
 
+        <!-- Apology note: in-flow, dismissible, never covers the schedule -->
+        <div class="service-note" id="service-note" role="status">
+            <span class="service-note-icon" aria-hidden="true">🙏</span>
+            <p><b>Извините за перебои.</b> Сервис временно не работал — я болел. Сейчас всё в порядке, расписание снова доступно.</p>
+            <button class="service-note-close" id="service-note-close" type="button" aria-label="Скрыть сообщение">×</button>
+        </div>
+
         <!-- Что идёт прямо сейчас -->
         <div id="now-bar" class="now-bar" hidden></div>
 
@@ -1413,5 +1459,23 @@
 <script src="app.js"></script>
 <script src="settings.js"></script>
 <script src="motion.js"></script>
+<script>
+(function () {
+    var note = document.getElementById('service-note');
+    if (!note) return;
+    var key = 'nkse-apology-2026-11';
+    try {
+        if (localStorage.getItem(key) === '1') {
+            note.hidden = true;
+            return;
+        }
+    } catch (e) { /* private mode */ }
+    var close = document.getElementById('service-note-close');
+    if (close) close.addEventListener('click', function () {
+        note.hidden = true;
+        try { localStorage.setItem(key, '1'); } catch (e) { /* private mode */ }
+    });
+})();
+</script>
 </body>
 </html>
