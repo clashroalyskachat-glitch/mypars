@@ -383,10 +383,21 @@
             var c = T.getPresetColors(p.id);
             return (
                 '<button type="button" class="preset-card' + (s.preset === p.id ? ' is-active' : '') + '" data-preset="' + esc(p.id) + '">' +
-                    '<span class="preset-swatch" style="--sw-bg:' + esc(c.bg) + ';--sw-surface:' + esc(c.surface) + '"></span>' +
-                    '<span class="preset-name">' + esc(p.name) + '</span>' +
-                    '<span class="preset-share" data-share="' + esc(p.id) + '" title="Поделиться кодом">↗</span>' +
-                    (p.builtin ? '' : '<span class="preset-del" data-del="' + esc(p.id) + '" title="Удалить">×</span>') +
+                    '<span class="preset-preview" style="--p-bg:' + esc(c.bg) +
+                        ';--p-surface:' + esc(c.surface) +
+                        ';--p-accent:' + esc(c.accent) +
+                        ';--p-text:' + esc(c.text) + '">' +
+                        '<span class="pp-accent"></span>' +
+                        '<span class="pp-card">' +
+                            '<span class="pp-line"></span>' +
+                            '<span class="pp-line is-short"></span>' +
+                        '</span>' +
+                    '</span>' +
+                    '<span class="preset-foot">' +
+                        '<span class="preset-name">' + esc(p.name) + '</span>' +
+                        '<span class="preset-share" data-share="' + esc(p.id) + '" title="Поделиться кодом">↗</span>' +
+                        (p.builtin ? '' : '<span class="preset-del" data-del="' + esc(p.id) + '" title="Удалить">×</span>') +
+                    '</span>' +
                 '</button>'
             );
         }).join('');

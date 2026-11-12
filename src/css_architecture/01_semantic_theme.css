@@ -819,12 +819,13 @@ html[data-theme] #settings-panel .preset-card.is-active {
     cursor: pointer;
     border: 1px solid var(--t-soft-border);
     border-radius: var(--radius-xs);
-    padding: 0.5rem 0.55rem;
+    padding: 0.45rem;
     background: transparent;
     color: var(--t-text);
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
     min-width: 0;
 }
 
@@ -837,13 +838,63 @@ html[data-theme] #settings-panel .preset-card.is-active {
     box-shadow: 0 0 0 1px var(--t-accent) inset;
 }
 
-.preset-swatch {
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    flex: 0 0 auto;
-    border: 1px solid var(--t-soft-border);
-    background: linear-gradient(135deg, var(--sw-bg, #000) 0 50%, var(--sw-surface, #111) 50% 100%);
+/* Мини-превью темы: фон + карточка пары + акцентная полоса + строки текста.
+   Сразу видно характер темы, а не белый кружок. */
+.preset-preview {
+    position: relative;
+    display: block;
+    height: 3.4rem;
+    border-radius: calc(var(--radius-sm) * 0.55);
+    background: var(--p-bg, #111111);
+    border: 1px solid rgba(127, 127, 127, 0.22);
+    overflow: hidden;
+}
+
+.pp-accent {
+    position: absolute;
+    left: 0.45rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 0.3rem;
+    border-radius: 999px;
+    background: var(--p-accent, #c99a63);
+}
+
+.pp-card {
+    position: absolute;
+    left: 1.05rem;
+    right: 0.45rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.28rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.35rem;
+    background: var(--p-surface, #1a1a1a);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.pp-line {
+    display: block;
+    width: 68%;
+    height: 0.22rem;
+    border-radius: 999px;
+    background: var(--p-text, #ffffff);
+    opacity: 0.55;
+}
+
+.pp-line.is-short {
+    width: 42%;
+    opacity: 0.28;
+}
+
+.preset-foot {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
 }
 
 .preset-name {
@@ -1056,21 +1107,27 @@ html[data-style="hub"][data-theme="light"] {
 
 html[data-style="hub"][data-theme][data-bg="none"] body.app-body {
     background-color: var(--t-bg) !important;
+    /* Тёплый вечерний свет: мягкое янтарное пятно сверху, прохладный
+       отблеск снизу и деликатное затемнение по краям — уютнее, чем
+       просто чёрный фон. */
     background-image:
-        radial-gradient(138% 108% at 50% 32%, transparent 40%, rgba(0, 0, 0, .66) 100%),
-        radial-gradient(118% 92% at 88% -12%, rgba(158, 88, 40, .38), transparent 56%),
-        radial-gradient(102% 84% at 5% 108%, rgba(50, 72, 110, .26), transparent 62%),
-        linear-gradient(178deg, #0a0a0d 0%, #08080a 48%, #060608 100%) !important;
+        radial-gradient(120% 80% at 50% -18%, rgba(214, 168, 110, .10), transparent 62%),
+        radial-gradient(110% 85% at 86% 2%, rgba(190, 118, 58, .24), transparent 58%),
+        radial-gradient(95% 75% at 8% 104%, rgba(72, 92, 128, .20), transparent 62%),
+        radial-gradient(140% 110% at 50% 38%, transparent 42%, rgba(0, 0, 0, .58) 100%),
+        linear-gradient(178deg, #0d0b0a 0%, #0a0908 48%, #070606 100%) !important;
     background-size: cover !important;
     background-attachment: fixed !important;
 }
 
 html[data-style="hub"][data-theme="light"][data-bg="none"] body.app-body {
+    /* Светлая тема: тёплая бумага с персиковым светом и лёгкой прохладой. */
     background-image:
-        radial-gradient(138% 108% at 50% 32%, transparent 44%, rgba(70, 50, 28, .18) 100%),
-        radial-gradient(118% 92% at 88% -12%, rgba(198, 148, 94, .34), transparent 56%),
-        radial-gradient(102% 84% at 5% 108%, rgba(108, 128, 164, .22), transparent 62%),
-        linear-gradient(178deg, #f3efe8 0%, #ece7de 48%, #e5dfd5 100%) !important;
+        radial-gradient(120% 80% at 50% -18%, rgba(255, 255, 255, .55), transparent 60%),
+        radial-gradient(110% 85% at 86% 2%, rgba(212, 160, 104, .26), transparent 58%),
+        radial-gradient(95% 75% at 8% 104%, rgba(118, 138, 172, .16), transparent 62%),
+        radial-gradient(140% 110% at 50% 38%, transparent 52%, rgba(92, 70, 44, .10) 100%),
+        linear-gradient(178deg, #f7f3ec 0%, #f0eae0 48%, #e9e2d6 100%) !important;
 }
 
 /* медленный тёплый отсвет поверх полотна — как на стартовой странице */
