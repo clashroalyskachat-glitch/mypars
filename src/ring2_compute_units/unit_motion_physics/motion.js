@@ -150,7 +150,9 @@
     'use strict';
 
     if (typeof window === 'undefined' || !window.requestAnimationFrame) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Только точный указатель (мышь). Телефоны/планшеты не трогаем.
+    // prefers-reduced-motion здесь намеренно не проверяем: это не декоративная
+    // анимация, а короткое (≈200 мс) сглаживание прямого управления скроллом.
     if (!(window.matchMedia && window.matchMedia('(pointer: fine)').matches)) return;
 
     var SCROLLERS = '.group-list, #search-results, .settings-body, #days-tabs';
