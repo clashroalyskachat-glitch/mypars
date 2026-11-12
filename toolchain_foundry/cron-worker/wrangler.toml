@@ -1,0 +1,12 @@
+name = "nkse-schedule-cron"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# Публичный маршрут не нужен: Worker работает только по таймеру.
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+REPO = "clashroalyskachat-glitch/mypars"
+WORKFLOW = "update_and_deploy.yml"
+REF = "main"

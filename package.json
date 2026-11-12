@@ -6,7 +6,7 @@
   "scripts": {
     "build:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o src/css_architecture/00_structural.css --minify",
     "watch:css": "tailwindcss -c tailwind.config.js -i tailwind.src.css -o app.css --watch",
-    "build": "node toolchain_foundry/compiler.esbuild.mjs",
+    "build": "node toolchain_foundry/compiler.esbuild.mjs && node toolchain_foundry/schedule_meta.mjs",
     "build:firebase": "npm run build && node toolchain_foundry/firebase_layout.mjs",
     "dev:messenger": "node messenger/dev-server.mjs",
     "deploy": "node toolchain_foundry/deploy.mjs",
