@@ -718,11 +718,17 @@ function initUI() {
     syncPickerModes();
 
     syncHeaderOffset();
-    window.addEventListener('resize', syncHeaderOffset);
+    // ResizeObserver уже ловит изменение высоты шапки (в т.ч. при ресайзе
+    // окна и загрузке шрифта) — отдельный resize-слушатель только зря читал
+    // layout на каждое движение окна.
     if (typeof ResizeObserver === 'function') {
         new ResizeObserver(syncHeaderOffset).observe(document.querySelector('header'));
     }
 }
+
+/* Последняя отрисованная полоса дней: фоновые обновления расписания не должны
+ * пересобирать те же 7 кнопок (и сбрасывать золотую капсулу). */
+let _tabsHtml = '';
 
  function renderTabs() {
      const tabsContainer = document.getElementById('days-tabs');
@@ -731,12 +737,16 @@ function initUI() {
      var activeText = isDark ? 'text-purple-400 border-purple-400' : 'text-white';
      var inactiveText = isDark ? 'text-gray-400' : 'text-slate-600';
      var todayName = JS_DAYS_MAP[new Date().getDay()];
-     tabsContainer.innerHTML = DAYS_OF_WEEK.map(day => `
+     const html = DAYS_OF_WEEK.map(day => `
          <button onclick="filterDay('${day.id}')" 
              class="day-tab whitespace-nowrap transition-all duration-300 flex-shrink-0 font-bold ${currentDayFilter === day.id ? activeBg + ' ' + activeText + ' day-tab-active' : inactiveText}">
              ${day.id === todayName ? '<span class="tab-today-dot" title="Сегодня"></span>' : ''}${day.name}
          </button>
      `).join('');
+
+     if (html === _tabsHtml) return;
+     _tabsHtml = html;
+     tabsContainer.innerHTML = html;
 
      setTimeout(() => {
          const activeTab = tabsContainer.querySelector(`button[onclick="filterDay('${currentDayFilter}')"]`);
@@ -790,8 +800,16 @@ function fetchScheduleVersion() {
             // Основной путь: крошечный schedule-meta.json. updated_at меняется
             // только вместе с данными, поэтому 600-КБ таблица не скачивается
             // заново на каждой проверке.
+            let metaStatus = 0;
             try {
-                const res = await fetch(REMOTE_META + '?v=' + Date.now(), { cache: 'no-store' });
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 1200);
+                const res = await fetch(REMOTE_META + '?v=' + Date.now(), {
+                    cache: 'no-store',
+                    signal: ctrl.signal,
+                });
+                clearTimeout(timer);
+                metaStatus = res.status;
                 if (res.ok) {
                     const meta = await res.json();
                     if (meta && meta.updated_at) {
@@ -801,9 +819,13 @@ function fetchScheduleVersion() {
                         };
                     }
                 }
-            } catch (e) { /* ниже попробуем Last-Modified */ }
+            } catch (e) {
+                // Медленный GitHub не должен задерживать загрузку самой таблицы.
+                return null;
+            }
 
-            // Фолбэк, если meta ещё не задеплоена.
+            // Фолбэк, если meta ещё не задеплоена (404).
+            if (metaStatus !== 404) return null;
             try {
                 const res = await fetch(REMOTE_SCHEDULE, { method: 'HEAD', cache: 'no-store' });
                 if (!res.ok) return null;
@@ -1263,7 +1285,10 @@ function populateGroupSelect() {
 
     updatePickerLabel();
     syncPickerModes();
-    renderGroupOptions('');
+    // 150 кнопок нужны только когда панель реально открыта; при открытии
+    // setGroupPickerOpen сам вызывает renderGroupOptions.
+    const picker = document.getElementById('group-picker');
+    if (picker && picker.classList.contains('is-open')) renderGroupOptions('');
 }
 
 function renderGroupOptions(filter) {
@@ -1688,11 +1713,29 @@ function nextLessonHint() {
     return parts.join(' · ');
 }
 
+/* Последняя отрисовка «сейчас идёт»: перерисовка раз в 30 секунд с тем же
+ * содержимым перезапускала пульсацию точки и вызывала лишний reflow. */
+let _nowPaint = '';
+
+function paintNowBar(bar, cls, html) {
+    const key = cls + '|' + html;
+    if (key === _nowPaint) return;
+    _nowPaint = key;
+    bar.className = cls;
+    bar.hidden = false;
+    bar.innerHTML = html;
+}
+
+function hideNowBar(bar) {
+    bar.hidden = true;
+    _nowPaint = '';
+}
+
 function renderNowBar() {
     const bar = document.getElementById('now-bar');
     if (!bar) return;
     if (!viewHasData()) {
-        bar.hidden = true;
+        hideNowBar(bar);
         return;
     }
 
@@ -1704,15 +1747,13 @@ function renderNowBar() {
     if (!todayName || lessons.length === 0) {
         const hint = nextLessonHint();
         if (!hint) {
-            bar.hidden = true;
+            hideNowBar(bar);
             return;
         }
-        bar.hidden = false;
-        bar.className = 'now-bar is-free';
-        bar.innerHTML = `
+        paintNowBar(bar, 'now-bar is-free', `
             <span class="now-dot"></span>
             <span>Сегодня пар нет</span>
-            <span class="now-left">${escapeHtml(hint)}</span>`;
+            <span class="now-left">${escapeHtml(hint)}</span>`);
         return;
     }
 
@@ -1724,14 +1765,12 @@ function renderNowBar() {
     if (live) {
         const r = parseLessonRange(live.time);
         const liveRoom = lessonRoomsText(live);
-        bar.hidden = false;
-        bar.className = 'now-bar is-live';
-        bar.innerHTML = `
+        paintNowBar(bar, 'now-bar is-live', `
             <span class="now-dot"></span>
             <span><b>Идёт сейчас:</b> ${escapeHtml(live.subject || '')}</span>
             ${viewMode === 'teacher' ? `<span>${escapeHtml(lessonGroupsWithRooms(live))}</span>` : ''}
             ${viewMode !== 'teacher' && liveRoom ? `<span>Каб: ${escapeHtml(liveRoom)}</span>` : ''}
-            <span class="now-left">до ${String(Math.floor(r.end / 60)).padStart(2, '0')}:${String(r.end % 60).padStart(2, '0')} · осталось ${fmtLeft(r.end - cur)}</span>`;
+            <span class="now-left">до ${String(Math.floor(r.end / 60)).padStart(2, '0')}:${String(r.end % 60).padStart(2, '0')} · осталось ${fmtLeft(r.end - cur)}</span>`);
         return;
     }
 
@@ -1743,23 +1782,20 @@ function renderNowBar() {
     if (next) {
         const r = parseLessonRange(next.time);
         const nextRoom = lessonRoomsText(next);
-        bar.hidden = false;
-        bar.className = 'now-bar is-free';
-        bar.innerHTML = `
+        paintNowBar(bar, 'now-bar is-free', `
             <span class="now-dot"></span>
             <span><b>Следующая пара</b> в ${String(Math.floor(r.start / 60)).padStart(2, '0')}:${String(r.start % 60).padStart(2, '0')}</span>
             <span>${escapeHtml(next.subject || '')}</span>
             ${viewMode === 'teacher' ? `<span>${escapeHtml(lessonGroupsWithRooms(next))}</span>` : ''}
             ${viewMode !== 'teacher' && nextRoom ? `<span>Каб: ${escapeHtml(nextRoom)}</span>` : ''}
-            <span class="now-left">через ${fmtLeft(r.start - cur)}</span>`;
+            <span class="now-left">через ${fmtLeft(r.start - cur)}</span>`);
         return;
     }
 
     const hint = nextLessonHint();
-    bar.hidden = false;
-    bar.className = 'now-bar is-free';
-    bar.innerHTML = `<span class="now-dot"></span><span>На сегодня пары закончились</span>` +
-        (hint ? `<span class="now-left">${escapeHtml(hint)}</span>` : '');
+    paintNowBar(bar, 'now-bar is-free',
+        `<span class="now-dot"></span><span>На сегодня пары закончились</span>` +
+        (hint ? `<span class="now-left">${escapeHtml(hint)}</span>` : ''));
 }
 
 function initNowBar() {

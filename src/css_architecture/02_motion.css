@@ -46,6 +46,12 @@
 
     pointer-events: none;
     opacity: 0;
+    /* Блик включаем только на время полёта капсулы (класс dock-moving).
+       Постоянная анимация градиента у невидимого элемента зря жгла кадры. */
+    will-change: auto;
+}
+
+#days-tabs.dock-moving .dock-pill {
     will-change: left, width, transform;
     animation: gold-flow 1.1s linear infinite;
 }
