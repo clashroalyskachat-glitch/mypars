@@ -634,11 +634,19 @@
             if (user) st = normalize(clone(user.state));
         }
         if (!st) st = state;
+        // Для превью в настройках: цвета + картинка фона, если у темы она есть
+        // (например, «Акаши»). Загруженные с устройства фото сюда не тащим —
+        // они лежат в IndexedDB и весят слишком много для мини-карточки.
+        var bg = st.background || {};
+        var image = '';
+        if (bg.type === 'image' && !bg.imageId) image = bg.url || bg.mobileUrl || '';
         return {
             bg: st.tokens.bg,
             surface: st.tokens.surface,
             accent: st.tokens.accent,
-            text: st.tokens.text
+            text: st.tokens.text,
+            border: st.tokens.border,
+            image: image
         };
     }
 
@@ -649,6 +657,11 @@
             next = presetState(def);
             // keep sound preferences across theme switches
             next.sound = clone(state.sound);
+            // Загруженное пользователем фото не должно «слетать» при простом
+            // переборе тем: если у пресета нет своего фона — оставляем фото.
+            if (!def.background && state.background && state.background.imageId) {
+                next.background = clone(state.background);
+            }
         } else {
             var user = userPresets.filter(function (p) { return p.id === id; })[0];
             if (!user) return false;

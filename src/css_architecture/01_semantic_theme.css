@@ -1107,27 +1107,25 @@ html[data-style="hub"][data-theme="light"] {
 
 html[data-style="hub"][data-theme][data-bg="none"] body.app-body {
     background-color: var(--t-bg) !important;
-    /* Тёплый вечерний свет: мягкое янтарное пятно сверху, прохладный
-       отблеск снизу и деликатное затемнение по краям — уютнее, чем
-       просто чёрный фон. */
+    /* Спокойный графит: нейтральная основа, очень мягкий тёплый свет
+       сверху и такой же мягкий холодный — снизу. Без тяжёлой виньетки,
+       чтобы фон не выглядел грязным пятном. */
     background-image:
-        radial-gradient(120% 80% at 50% -18%, rgba(214, 168, 110, .10), transparent 62%),
-        radial-gradient(110% 85% at 86% 2%, rgba(190, 118, 58, .24), transparent 58%),
-        radial-gradient(95% 75% at 8% 104%, rgba(72, 92, 128, .20), transparent 62%),
-        radial-gradient(140% 110% at 50% 38%, transparent 42%, rgba(0, 0, 0, .58) 100%),
-        linear-gradient(178deg, #0d0b0a 0%, #0a0908 48%, #070606 100%) !important;
+        radial-gradient(120% 70% at 50% -18%, rgba(255, 246, 232, .055), transparent 62%),
+        radial-gradient(90% 65% at 88% 0%, rgba(201, 154, 99, .12), transparent 58%),
+        radial-gradient(85% 65% at 6% 104%, rgba(86, 112, 150, .10), transparent 62%),
+        linear-gradient(178deg, #0a0a0c 0%, #08080a 52%, #060607 100%) !important;
     background-size: cover !important;
     background-attachment: fixed !important;
 }
 
 html[data-style="hub"][data-theme="light"][data-bg="none"] body.app-body {
-    /* Светлая тема: тёплая бумага с персиковым светом и лёгкой прохладой. */
+    /* Светлая тема: чистая тёплая бумага, без жёлтых разводов. */
     background-image:
-        radial-gradient(120% 80% at 50% -18%, rgba(255, 255, 255, .55), transparent 60%),
-        radial-gradient(110% 85% at 86% 2%, rgba(212, 160, 104, .26), transparent 58%),
-        radial-gradient(95% 75% at 8% 104%, rgba(118, 138, 172, .16), transparent 62%),
-        radial-gradient(140% 110% at 50% 38%, transparent 52%, rgba(92, 70, 44, .10) 100%),
-        linear-gradient(178deg, #f7f3ec 0%, #f0eae0 48%, #e9e2d6 100%) !important;
+        radial-gradient(120% 70% at 50% -18%, rgba(255, 255, 255, .60), transparent 60%),
+        radial-gradient(90% 65% at 88% 0%, rgba(214, 166, 110, .16), transparent 58%),
+        radial-gradient(85% 65% at 6% 104%, rgba(120, 140, 175, .10), transparent 62%),
+        linear-gradient(178deg, #f6f2ea 0%, #f0ebe2 52%, #eae4d9 100%) !important;
 }
 
 /* медленный тёплый отсвет поверх полотна — как на стартовой странице */
