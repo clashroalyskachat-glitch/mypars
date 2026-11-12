@@ -166,6 +166,12 @@ function setUpdatedLabel(modTime, checkedAt) {
         el.textContent = formatUpdatedLabel(modTime);
         el.removeAttribute('title');
     }
+    // На телефоне подсказка недоступна (нет hover), поэтому время изменения
+    // самой таблицы дублируем в подвале.
+    const dataTime = document.getElementById('data-time');
+    if (dataTime) {
+        dataTime.textContent = modTime ? 'Данные обновлены ' + formatClock(modTime) : '';
+    }
 }
 
 // Поворот телефона/ресайз окна: пересобрать подпись в нужном формате.
