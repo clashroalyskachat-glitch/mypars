@@ -633,6 +633,7 @@
             visibility: visible;
             pointer-events: auto;
             transform: translateY(0) scale(1);
+            will-change: transform, opacity;
         }
         [data-theme="dark"] .group-panel {
             background: #0b0f19;
@@ -662,6 +663,9 @@
             /* momentum scrolling on touch, smooth for the programmatic jump */
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
+            /* список не влияет на layout/paint снаружи: открытие панели дешевле */
+            contain: content;
+            touch-action: pan-y;
         }
         .group-opt {
             display: flex;
@@ -678,6 +682,9 @@
             border-radius: calc(var(--radius-sm) - 0.25rem);
             cursor: pointer;
             transition: background-color .12s ease;
+            /* 150+ строк: невидимые элементы не считают layout и не рисуются */
+            content-visibility: auto;
+            contain-intrinsic-size: auto 34px;
         }
         .group-opt:hover,
         .group-opt.is-cursor { background: rgba(148, 163, 184, 0.18); }

@@ -1204,6 +1204,10 @@ function teacherLessonCount(name) {
 
 let allGroupList = [];
 let groupCursor = -1;
+/* Подпись последнего отрисованного списка групп/преподавателей: повторное
+ * открытие панели без смены фильтра/режима не пересобирает 150+ кнопок. */
+let _optionsKey = '';
+let _optionsSource = null;
 
 function updatePickerLabel() {
     const label = document.getElementById('group-trigger-label');
@@ -1273,6 +1277,13 @@ function renderGroupOptions(filter) {
     const items = q ? source.filter((x) => x.toLowerCase().includes(q)) : source;
 
     groupCursor = items.indexOf(selected);
+
+    // Тот же список уже в DOM — не пересобираем (открытие/закрытие панели,
+    // повторный вызов после выбора группы и т.п.).
+    const key = `${pickerMode}|${q}|${items.length}|${selected}|${source === _optionsSource ? 1 : 0}`;
+    if (key === _optionsKey) return;
+    _optionsKey = key;
+    _optionsSource = source;
 
     if (items.length === 0) {
         list.innerHTML = '<div class="group-opt" aria-disabled="true">Ничего не найдено</div>';
