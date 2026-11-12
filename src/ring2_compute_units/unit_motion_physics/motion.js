@@ -195,8 +195,22 @@
         raf = requestAnimationFrame(tick);
     }
 
+    // Настройки — фиксированная панель поверх страницы. Колесо внутри её
+    // списка оставляем нативным, а над шапкой/фоном не даём прокручивать
+    // страницу под панелью.
+    function modalOpen() {
+        var panel = document.getElementById('settings-panel');
+        return !!(panel && !panel.hidden);
+    }
+
     window.addEventListener('wheel', function (event) {
         if (event.defaultPrevented || event.ctrlKey || event.metaKey) return;
+        if (modalOpen()) {
+            if (!(event.target && event.target.closest && event.target.closest('.settings-body'))) {
+                event.preventDefault();
+            }
+            return;
+        }
         if (inNativeScroller(event.target)) return;
 
         var dy = event.deltaY;
