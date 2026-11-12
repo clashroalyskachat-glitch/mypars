@@ -657,11 +657,6 @@
             next = presetState(def);
             // keep sound preferences across theme switches
             next.sound = clone(state.sound);
-            // Загруженное пользователем фото не должно «слетать» при простом
-            // переборе тем: если у пресета нет своего фона — оставляем фото.
-            if (!def.background && state.background && state.background.imageId) {
-                next.background = clone(state.background);
-            }
         } else {
             var user = userPresets.filter(function (p) { return p.id === id; })[0];
             if (!user) return false;
