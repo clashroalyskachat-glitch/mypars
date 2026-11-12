@@ -128,19 +128,51 @@ function formatClock(ms) {
     return `${date} · ${time}`;
 }
 
+function isNarrowHeader() {
+    return typeof window.matchMedia === 'function'
+        && window.matchMedia('(max-width: 639px)').matches;
+}
+
+// На телефоне полная дата не влезает в шапку. Если проверка была сегодня —
+// показываем только время, иначе оставляем дату, чтобы не соврать.
+function shortClock(ms) {
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const sameDay =
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate();
+    if (!sameDay) return formatClock(ms);
+    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
+let _labelModTime = null;
+let _labelCheckedAt = null;
+
 // В шапке показываем «Проверено ЧЧ:ММ» — это время последней проверки сайта
 // колледжа, оно двигается каждые 10 минут. Когда именно менялись сами данные —
 // в подсказке (и это же время уходит в offline-кэш).
 function setUpdatedLabel(modTime, checkedAt) {
+    _labelModTime = modTime || null;
+    _labelCheckedAt = checkedAt || null;
     const el = document.getElementById('last-updated');
     if (!el) return;
     if (checkedAt) {
-        el.textContent = 'Проверено ' + formatClock(checkedAt);
+        const clock = isNarrowHeader() ? shortClock(checkedAt) : formatClock(checkedAt);
+        el.textContent = 'Проверено ' + clock;
         el.title = modTime ? 'Данные обновлены ' + formatClock(modTime) : '';
     } else {
         el.textContent = formatUpdatedLabel(modTime);
         el.removeAttribute('title');
     }
+}
+
+// Поворот телефона/ресайз окна: пересобрать подпись в нужном формате.
+if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('resize', () => {
+        if (_labelCheckedAt || _labelModTime) setUpdatedLabel(_labelModTime, _labelCheckedAt);
+    });
 }
 
 function renderPinButton() {
