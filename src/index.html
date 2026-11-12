@@ -56,7 +56,7 @@
            "forwards" + a bare `opacity: 0`, so cards can never be left
            invisible if the animation is skipped. */
         .schedule-card {
-            animation: fadeInUp 0.52s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+            animation: fadeInUp calc(0.52s * var(--anim-speed, 1)) cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
         }
         @keyframes fadeInUp {
             0% { transform: translateY(36px); opacity: 0; }
@@ -1152,7 +1152,7 @@
            cards look like they were simply blinking in. */
         @media (prefers-reduced-motion: reduce) {
             .schedule-card {
-                animation: fadeInUpSoft 0.42s ease-out backwards !important;
+                animation: fadeInUpSoft calc(0.42s * var(--anim-speed, 1)) ease-out backwards !important;
             }
             @keyframes fadeInUpSoft {
                 0%   { opacity: 0; transform: translateY(12px); }

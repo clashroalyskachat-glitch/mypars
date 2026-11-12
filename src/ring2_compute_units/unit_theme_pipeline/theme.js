@@ -93,7 +93,11 @@
         cardOpacity: 1.0,
         glow: 0,
         displayFont: 'sans',
-        motion: true
+        motion: true,
+        /* auto — стиль из темы; gold/glow/soft/none — ручной выбор */
+        animStyle: 'auto',
+        /* множитель длительности: 1.3 медленно, 1 обычно, 0.75 быстро */
+        animSpeed: 1
     };
 
     var COLOR_VARS = {
@@ -148,6 +152,7 @@
             name: 'НКСЭ Тёмная',
             mode: 'dark',
             style: 'hub',
+            anim: 'gold',
             metrics: { displayFont: 'serif', radius: 16, lineHeight: 1.45 }
         },
         {
@@ -155,12 +160,14 @@
             name: 'НКСЭ Светлая',
             mode: 'light',
             style: 'hub',
+            anim: 'gold',
             metrics: { displayFont: 'serif', radius: 16, lineHeight: 1.45 }
         },
         {
             id: 'dark-old',
             name: 'Тёмная (старая)',
             mode: 'dark',
+            anim: 'glow',
             colors: {
                 bg: '#000000', surface: '#000000', surface2: '#0b0f19', text: '#ffffff',
                 muted: '#9ca3af', accent: '#a855f7', accentContrast: '#ffffff',
@@ -178,6 +185,7 @@
             id: 'light-old',
             name: 'Светлая (старая)',
             mode: 'light',
+            anim: 'soft',
             colors: {
                 bg: '#eef1f6', surface: '#ffffff', surface2: '#f8fafc', text: '#1e293b',
                 muted: '#64748b', accent: '#a855f7', accentContrast: '#ffffff',
@@ -195,6 +203,7 @@
             id: 'paper',
             name: 'Бумага',
             mode: 'light',
+            anim: 'soft',
             colors: {
                 bg: '#f4f1e8', surface: '#fffdf6', surface2: '#fbf7ec', text: '#2b2a26',
                 muted: '#786f5e', accent: '#7c3aed', border: '#ddd6c4', borderStrong: '#c9c0a9',
@@ -210,6 +219,7 @@
             id: 'contrast',
             name: 'Контраст',
             mode: 'light',
+            anim: 'none',
             colors: {
                 bg: '#ffffff', surface: '#ffffff', surface2: '#f5f5f5', text: '#000000',
                 muted: '#3f3f46', accent: '#000000', accentContrast: '#ffffff',
@@ -226,12 +236,14 @@
             id: 'compact',
             name: 'Компакт',
             mode: 'dark',
+            anim: 'gold',
             metrics: { radius: 12, spaceScale: 0.82, textScale: 0.92 }
         },
         {
             id: 'cozy',
             name: 'Уютная',
             mode: 'light',
+            anim: 'soft',
             colors: {
                 bg: '#f7f2ff', surface: '#ffffff', surface2: '#fdfbff', text: '#2b2140',
                 muted: '#6b5c86', accent: '#7c3aed', border: '#e8def8', borderStrong: '#d8c9f2',
@@ -247,6 +259,7 @@
             id: 'neon',
             name: 'Неон',
             mode: 'dark',
+            anim: 'glow',
             colors: {
                 bg: '#05010f', surface: '#080315', surface2: '#0d0620', text: '#f5f3ff',
                 muted: '#a99fca', accent: '#22d3ee', accentContrast: '#041016',
@@ -264,6 +277,7 @@
             id: 'calm',
             name: 'Спокойная',
             mode: 'light',
+            anim: 'soft',
             colors: {
                 bg: '#f3f4f6', surface: '#ffffff', surface2: '#fafafa', text: '#334155',
                 muted: '#64748b', accent: '#64748b', border: '#e2e8f0', borderStrong: '#cbd5e1',
@@ -280,6 +294,7 @@
             name: 'Акаши',
             mode: 'dark',
             fx: 'akashi',
+            anim: 'glow',
             colors: {
                 bg: '#050000', surface: '#080000', surface2: '#160309',
                 text: '#fff5f2', muted: '#c98a96',
@@ -320,12 +335,23 @@
     var SOUND_PACKS = {
         soft: { type: 'sine', base: 660, gain: 0.12, dur: 0.07, gap: 0.035 },
         click: { type: 'triangle', base: 1100, gain: 0.15, dur: 0.035, gap: 0.02 },
-        retro: { type: 'square', base: 520, gain: 0.08, dur: 0.06, gap: 0.03 }
+        retro: { type: 'square', base: 520, gain: 0.08, dur: 0.06, gap: 0.03 },
+        bell: { type: 'sine', base: 880, gain: 0.10, dur: 0.18, gap: 0.06 },
+        wood: { type: 'triangle', base: 320, gain: 0.18, dur: 0.09, gap: 0.035 },
+        digital: { type: 'square', base: 1400, gain: 0.05, dur: 0.035, gap: 0.02 }
     };
 
     var audioCtx = null;
+    var masterNode = null;
     var lastSound = 0;
     var runtimeImageUrl = '';
+
+    /* Свой звук хранится отдельно от темы: это не оформление, а аудиофайл.
+       localStorage переживает перезагрузку, а тема остаётся компактной. */
+    var CUSTOM_SOUND_KEY = 'nkse-custom-sound-v1';
+    var customSoundCache = null;
+    var customSoundBuffer = null;
+    var customSoundLoading = null;
 
     /* ---------------- storage ---------------- */
 
@@ -355,7 +381,7 @@
                 position: 'center',
                 dim: 0.35
             },
-            sound: { enabled: false, volume: 55, pack: 'soft' }
+            sound: { enabled: false, volume: 55, pack: 'soft', customName: '' }
         };
     }
 
@@ -384,6 +410,10 @@
         out.metrics.cardOpacity = clamp(out.metrics.cardOpacity, 0.5, 1);
         out.metrics.glow = clamp(out.metrics.glow, 0, 30);
         out.metrics.displayFont = raw.metrics && raw.metrics.displayFont === 'serif' ? 'serif' : 'sans';
+        out.metrics.animStyle = raw.metrics && ['auto', 'gold', 'glow', 'soft', 'none'].indexOf(raw.metrics.animStyle) >= 0
+            ? raw.metrics.animStyle
+            : 'auto';
+        out.metrics.animSpeed = clamp(Number(out.metrics.animSpeed) || 1, 0.7, 1.5);
         out.fx = raw.fx === 'akashi' ? 'akashi' : 'none';
         out.style = raw.style === 'hub' ? 'hub' : 'none';
 
@@ -399,8 +429,11 @@
 
         if (raw.sound && typeof raw.sound === 'object') {
             out.sound.enabled = !!raw.sound.enabled;
-            if (typeof raw.sound.volume === 'number' && isFinite(raw.sound.volume)) out.sound.volume = clamp(raw.sound.volume, 0, 100);
-            if (SOUND_PACKS[raw.sound.pack]) out.sound.pack = raw.sound.pack;
+            // до 1000%: громкость выше 100 усиливает сигнал, компрессор в аудио
+            // не даёт ему превратиться в клиппинг.
+            if (typeof raw.sound.volume === 'number' && isFinite(raw.sound.volume)) out.sound.volume = clamp(raw.sound.volume, 0, 1000);
+            if (SOUND_PACKS[raw.sound.pack] || raw.sound.pack === 'custom') out.sound.pack = raw.sound.pack;
+            if (typeof raw.sound.customName === 'string') out.sound.customName = raw.sound.customName.slice(0, 60);
         }
         out.preset = typeof raw.preset === 'string' ? raw.preset : 'custom';
         return out;
@@ -568,6 +601,8 @@
         root.setAttribute('data-glow', m.glow > 0 ? 'on' : 'off');
         root.setAttribute('data-fx', state.fx || 'none');
         root.setAttribute('data-motion', m.motion ? 'on' : 'off');
+        root.setAttribute('data-anim', m.animStyle || 'auto');
+        root.style.setProperty('--anim-speed', String(m.animSpeed || 1));
 
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute('content', tokens.bg);
@@ -597,6 +632,7 @@
         base.preset = def.id;
         base.style = def.style || 'none';
         base.fx = def.fx || 'none';
+        base.metrics.animStyle = def.anim || 'auto';
         // built-ins may ship a generated background (the Akashi preset does)
         if (def.background) {
             var b = def.background;
@@ -958,7 +994,78 @@
         var AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return null;
         try { audioCtx = new AC(); } catch (e) { audioCtx = null; }
+        if (audioCtx) {
+            // Компрессор после громкости: на 1000% звук не режет уши клиппингом.
+            try {
+                masterNode = audioCtx.createDynamicsCompressor();
+                masterNode.threshold.value = -16;
+                masterNode.knee.value = 24;
+                masterNode.ratio.value = 8;
+                masterNode.attack.value = 0.003;
+                masterNode.release.value = 0.18;
+                masterNode.connect(audioCtx.destination);
+            } catch (e) {
+                masterNode = null;
+            }
+        }
         return audioCtx;
+    }
+
+    function getCustomSound() {
+        if (customSoundCache !== null) return customSoundCache;
+        try { customSoundCache = localStorage.getItem(CUSTOM_SOUND_KEY) || ''; }
+        catch (e) { customSoundCache = ''; }
+        return customSoundCache;
+    }
+
+    function setCustomSound(dataUrl, name) {
+        var data = String(dataUrl || '');
+        if (!/^data:audio\//i.test(data)) return Promise.reject(new Error('Это не аудиофайл'));
+        if (data.length > 1200000) return Promise.reject(new Error('Файл слишком большой — до ~600 КБ'));
+        try { localStorage.setItem(CUSTOM_SOUND_KEY, data); }
+        catch (e) { return Promise.reject(new Error('В браузере не хватило места')); }
+        customSoundCache = data;
+        customSoundBuffer = null;
+        customSoundLoading = null;
+        state.sound.pack = 'custom';
+        state.sound.customName = String(name || 'Свой звук').slice(0, 60);
+        saveSoon();
+        announce();
+        return Promise.resolve(true);
+    }
+
+    function playCustom(kind, force) {
+        if (!force && !state.sound.enabled) return;
+        var data = getCustomSound();
+        if (!data) { playWith(kind, 'soft', true); return; }
+        var a = audio();
+        if (!a) return;
+        var volume = Math.min(10, state.sound.volume / 100);
+        var rate = kind === 'switch' ? 1.08 : kind === 'success' ? 1.15 : kind === 'error' ? 0.9 : 1;
+        var start = function (buffer) {
+            try {
+                var src = a.createBufferSource();
+                src.buffer = buffer;
+                src.playbackRate.value = rate;
+                var gain = a.createGain();
+                gain.gain.value = volume * 0.9;
+                src.connect(gain);
+                gain.connect(masterNode || a.destination);
+                src.start();
+            } catch (e) { /* звук не критичен */ }
+        };
+        if (customSoundBuffer) { start(customSoundBuffer); return; }
+        if (!customSoundLoading) {
+            customSoundLoading = fetch(data)
+                .then(function (r) { return r.arrayBuffer(); })
+                .then(function (buf) { return a.decodeAudioData(buf); })
+                .then(function (decoded) { customSoundBuffer = decoded; return decoded; })
+                .catch(function () { customSoundLoading = null; return null; });
+        }
+        customSoundLoading.then(function (decoded) {
+            if (decoded) start(decoded);
+            else playWith(kind, 'soft', true);
+        });
     }
 
     function soundNotes(kind, pack) {
@@ -973,6 +1080,10 @@
 
     function playWith(kind, packName, force) {
         if (!force && !state.sound.enabled) return;
+        if (packName === 'custom') {
+            playCustom(kind, force);
+            return;
+        }
         var a = audio();
         if (!a) return;
         var now = Date.now();
@@ -994,7 +1105,7 @@
                 gain.gain.exponentialRampToValueAtTime(gainValue, t + 0.008);
                 gain.gain.exponentialRampToValueAtTime(0.0001, t + pack.dur);
                 osc.connect(gain);
-                gain.connect(a.destination);
+                gain.connect(masterNode || a.destination);
                 osc.start(t);
                 osc.stop(t + pack.dur + 0.02);
                 t += pack.dur + pack.gap;
@@ -1201,6 +1312,8 @@
         setBackgroundImage: setBackgroundImage,
         processImageFile: processImageFile,
         setSound: setSound,
+        setCustomSound: setCustomSound,
+        hasCustomSound: function () { return !!getCustomSound(); },
         play: play,
         previewSound: previewSound,
         audioState: audioState,

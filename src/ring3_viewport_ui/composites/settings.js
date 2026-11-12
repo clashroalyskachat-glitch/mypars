@@ -53,6 +53,7 @@
             shape: '<rect x="4" y="4" width="16" height="16" rx="4"/>',
             bg: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.5"/><path d="M4 17l5-5 4 4 2-2 5 5"/>',
             behavior: '<path d="M4 7h10"/><circle cx="17" cy="7" r="3"/><path d="M4 17h4"/><circle cx="11" cy="17" r="3"/><path d="M14 17h6"/>',
+            motion: '<path d="M3 12h3l2.5-6 3.5 12 2.5-6H21"/>',
             data: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>'
         };
         return '<span class="settings-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (paths[name] || '') + '</svg></span>';
@@ -112,6 +113,7 @@
                 '<button type="button" class="settings-nav-chip" data-target="sec-colors">Цвета</button>' +
                 '<button type="button" class="settings-nav-chip" data-target="sec-text">Текст</button>' +
                 '<button type="button" class="settings-nav-chip" data-target="sec-shape">Форма</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-motion">Анимации</button>' +
                 '<button type="button" class="settings-nav-chip" data-target="sec-bg">Фон</button>' +
                 '<button type="button" class="settings-nav-chip" data-target="sec-behavior">Поведение</button>' +
                 '<button type="button" class="settings-nav-chip" data-target="sec-data">Данные</button>' +
@@ -158,21 +160,34 @@
                     '<label class="settings-toggle"><span>Включить звуки</span><input type="checkbox" id="sound-enabled"></label>' +
                     '<div class="settings-slider">' +
                         '<div class="settings-row"><span>Громкость</span><output class="settings-value" id="sound-volume-value">55%</output></div>' +
-                        '<input type="range" id="sound-volume" min="0" max="100" step="1">' +
+                        '<input type="range" id="sound-volume" min="0" max="1000" step="5">' +
                     '</div>' +
+                    '<div class="settings-hint">Можно до 1000% — это громко, в наушниках лучше не сразу.</div>' +
                     '<div class="settings-row"><span>Набор</span>' +
                         '<select id="sound-pack">' +
                             '<option value="soft">Мягкие</option>' +
                             '<option value="click">Короткие клики</option>' +
                             '<option value="retro">Ретро</option>' +
+                            '<option value="bell">Колокольчик</option>' +
+                            '<option value="wood">Дерево</option>' +
+                            '<option value="digital">Цифровые</option>' +
+                            '<option value="custom">Свой звук</option>' +
                         '</select>' +
                     '</div>' +
-                    '<div class="settings-buttons">' +
+                    '<div class="settings-subhead">Проверить звук</div>' +
+                    '<div class="settings-buttons settings-sound-preview">' +
                         '<button type="button" class="settings-btn" data-preview-sound="tap">Клик</button>' +
                         '<button type="button" class="settings-btn" data-preview-sound="switch">Переключение</button>' +
                         '<button type="button" class="settings-btn" data-preview-sound="success">Успех</button>' +
                         '<button type="button" class="settings-btn" data-preview-sound="error">Ошибка</button>' +
                     '</div>' +
+                    '<div class="settings-hint">Эти кнопки проигрывают выбранный набор — даже если звуки выключены.</div>' +
+                    '<div class="settings-inline">' +
+                        '<input id="sound-file" type="file" accept="audio/*" hidden>' +
+                        '<button type="button" class="settings-btn" id="sound-upload">Загрузить свой звук…</button>' +
+                        '<span class="settings-hint" id="sound-custom-name">не выбран</span>' +
+                    '</div>' +
+                    '<div class="settings-hint">Короткий mp3/wav/ogg до ~600 КБ. Играет вместо набора, когда выбран «Свой звук».</div>' +
                     '<div class="settings-hint">По умолчанию звуки выключены. Настройка хранится только на этом устройстве.</div>' +
                 '</section>' +
 
@@ -221,7 +236,28 @@
                         '<div class="settings-row"><span>Свечение</span><output class="settings-value" id="glow-value">0 px</output></div>' +
                         '<input type="range" id="glow" min="0" max="30" step="1">' +
                     '</div>' +
-                    '<label class="settings-toggle"><span>Анимации</span><input type="checkbox" id="motion"></label>' +
+                '</section>' +
+
+                '<section class="settings-group" id="sec-motion">' +
+                    '<div class="settings-group-head"><h3>' + ico('motion') + 'Анимации</h3><button type="button" class="settings-reset" data-reset="motion">Сброс</button></div>' +
+                    '<label class="settings-toggle"><span>Включить анимации</span><input type="checkbox" id="motion"></label>' +
+                    '<div class="settings-row"><span>Стиль переключения дней</span>' +
+                        '<select id="anim-style">' +
+                            '<option value="auto">Как в теме</option>' +
+                            '<option value="gold">Золотая капсула</option>' +
+                            '<option value="glow">Свечение</option>' +
+                            '<option value="soft">Мягкое</option>' +
+                            '<option value="none">Без</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div class="settings-row"><span>Скорость</span>' +
+                        '<select id="anim-speed">' +
+                            '<option value="1.3">Медленно</option>' +
+                            '<option value="1">Обычно</option>' +
+                            '<option value="0.75">Быстро</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div class="settings-hint">По умолчанию стиль задаёт тема. Здесь можно переопределить, замедлить или выключить.</div>' +
                 '</section>' +
 
                 '<section class="settings-group" id="sec-bg">' +
@@ -330,6 +366,8 @@
         $('#sound-enabled').checked = !!s.sound.enabled;
         setRange('sound-volume', s.sound.volume, function (v) { return Math.round(v) + '%'; });
         $('#sound-pack').value = s.sound.pack;
+        var customName = $('#sound-custom-name');
+        if (customName) customName.textContent = s.sound.customName ? s.sound.customName : 'не выбран';
 
         $$('.settings-color').forEach(function (row) {
             var key = row.dataset.color;
@@ -347,6 +385,8 @@
         setRange('glow', s.metrics.glow, function (v) { return Math.round(v) + ' px'; });
         $('#display-font').value = s.metrics.displayFont || 'sans';
         $('#motion').checked = !!s.metrics.motion;
+        $('#anim-style').value = s.metrics.animStyle || 'auto';
+        $('#anim-speed').value = String(s.metrics.animSpeed || 1);
 
         $('#pref-smooth-wheel').checked = getPref(PREF_SMOOTH, true);
         $('#pref-now-bar').checked = getPref(PREF_NOW, true);
@@ -381,16 +421,24 @@
         var s = T.getState();
         $('#preset-grid').innerHTML = T.getPresets().map(function (p) {
             var c = T.getPresetColors(p.id);
+            var style =
+                '--p-bg:' + esc(c.bg) +
+                ';--p-surface:' + esc(c.surface) +
+                ';--p-accent:' + esc(c.accent) +
+                ';--p-text:' + esc(c.text) +
+                ';--p-border:' + esc(c.border || c.surface);
+            if (c.image) {
+                style += ';background-image:url(&quot;' + esc(c.image) + '&quot;);background-size:cover;background-position:center';
+            }
             return (
                 '<button type="button" class="preset-card' + (s.preset === p.id ? ' is-active' : '') + '" data-preset="' + esc(p.id) + '">' +
-                    '<span class="preset-preview" style="--p-bg:' + esc(c.bg) +
-                        ';--p-surface:' + esc(c.surface) +
-                        ';--p-accent:' + esc(c.accent) +
-                        ';--p-text:' + esc(c.text) + '">' +
+                    '<span class="preset-preview' + (c.image ? ' has-photo' : '') + '" style="' + style + '">' +
                         '<span class="pp-accent"></span>' +
                         '<span class="pp-card">' +
-                            '<span class="pp-line"></span>' +
+                            '<span class="pp-line pp-time"></span>' +
+                            '<span class="pp-line pp-subject"></span>' +
                             '<span class="pp-line is-short"></span>' +
+                            '<span class="pp-pill"></span>' +
                         '</span>' +
                     '</span>' +
                     '<span class="preset-foot">' +
@@ -728,6 +776,41 @@
     $('#sound-pack').addEventListener('change', function (e) {
         T.setSound({ pack: e.target.value });
         T.previewSound('tap', e.target.value);
+        if (e.target.value === 'custom' && !T.hasCustomSound()) {
+            status('Сначала загрузите свой звук');
+        }
+    });
+
+    $('#sound-upload').addEventListener('click', function () {
+        $('#sound-file').click();
+    });
+
+    $('#sound-file').addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        if (!/^audio\//.test(file.type)) {
+            status('Нужен аудиофайл (mp3, wav, ogg)');
+            return;
+        }
+        if (file.size > 620000) {
+            status('Файл больше ~600 КБ — возьмите короткий звук');
+            return;
+        }
+        var reader = new FileReader();
+        reader.onerror = function () { status('Не удалось прочитать файл'); };
+        reader.onload = function () {
+            T.setCustomSound(reader.result, file.name)
+                .then(function () {
+                    status('Свой звук загружен');
+                    sync();
+                    T.previewSound('success', 'custom');
+                })
+                .catch(function (err) {
+                    status('Не получилось: ' + (err && err.message ? err.message : 'ошибка'));
+                });
+        };
+        reader.readAsDataURL(file);
     });
 
     $$('[data-preview-sound]').forEach(function (btn) {
@@ -794,6 +877,16 @@
     });
     $('#motion').addEventListener('change', function (e) {
         T.setMetric('motion', e.target.checked);
+    });
+
+    $('#anim-style').addEventListener('change', function (e) {
+        T.setMetric('animStyle', e.target.value);
+        T.play('switch');
+    });
+
+    $('#anim-speed').addEventListener('change', function (e) {
+        T.setMetric('animSpeed', parseFloat(e.target.value) || 1);
+        T.play('switch');
     });
 
     /* ---------------- поведение ---------------- */
@@ -966,6 +1059,10 @@
                 T.setMetric('motion', true);
             } else if (what === 'background') {
                 T.resetBackground();
+            } else if (what === 'motion') {
+                T.setMetric('motion', true);
+                T.setMetric('animStyle', 'auto');
+                T.setMetric('animSpeed', 1);
             } else if (what === 'behavior') {
                 setPref(PREF_SMOOTH, true);
                 setPref(PREF_NOW, true);

@@ -2217,7 +2217,7 @@ function renderSchedule() {
                         }
                          
                         return `
-                        <div class="lesson-card border transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: ${idx * 0.07}s">
+                        <div class="lesson-card border transition hover:-translate-y-0.5 duration-200 shadow-none schedule-card ${accentClass}" style="animation-delay: calc(${idx * 0.07}s * var(--anim-speed, 1))">
                             <div class="lesson-head">
                                 <span class="fs-badge lesson-num ${active ? 'is-active' : ''}">
                                     ${isTeacher ? '' : `<span class="num">№${lesson.number}</span>`}

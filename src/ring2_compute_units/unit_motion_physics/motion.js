@@ -63,6 +63,14 @@
         var old = tabs.querySelector('.day-tab-active');
         if (!old || old === tab) return;
 
+        // Анимация из настроек: «без» и выключенные анимации пропускаем,
+        // скорость берём из переменной темы.
+        var root = document.documentElement;
+        if (root.getAttribute('data-motion') === 'off') return;
+        var animStyle = root.getAttribute('data-anim') || 'auto';
+        if (animStyle === 'none') return;
+        var animSpeed = parseFloat(getComputedStyle(root).getPropertyValue('--anim-speed')) || 1;
+
         var from = box(tabs, old);
         var wanted = tab;
 
@@ -117,7 +125,7 @@
                         transform: 'scaleY(1)'
                     }
                 ], {
-                    duration: 620,
+                    duration: 620 * animSpeed,
                     easing: 'cubic-bezier(.32, .82, .24, 1)',
                     fill: 'forwards'
                 });

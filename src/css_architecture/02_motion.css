@@ -24,6 +24,7 @@
     border: 1px solid rgb(255 226 178 / .55);
 
     background-color: #b9863f;
+    /* фолбэк для браузеров без color-mix */
     background-image: linear-gradient(
         100deg,
         #8a5a2b 0%,
@@ -35,13 +36,25 @@
         #e8c48c 86%,
         #8a5a2b 100%
     );
+    /* капсула красится в акцент темы: золото в НКСЭ, бирюза в неоне,
+       фиолетовый в уютной — поэтому анимация у каждой темы своя */
+    background-image: linear-gradient(
+        100deg,
+        color-mix(in srgb, var(--t-accent) 62%, #000) 0%,
+        color-mix(in srgb, var(--t-accent) 82%, #fff) 22%,
+        color-mix(in srgb, var(--t-accent) 92%, #fff) 38%,
+        var(--t-accent) 55%,
+        color-mix(in srgb, var(--t-accent) 82%, #fff) 74%,
+        color-mix(in srgb, var(--t-accent) 62%, #000) 100%
+    );
     background-size: 320% 100%;
     background-position: 0% 50%;
 
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / .45),
         inset 0 -1px 0 rgb(90 55 20 / .45),
-        0 6px 20px -8px rgb(201 154 99 / .65),
+        0 6px 20px -8px color-mix(in srgb, var(--t-accent) 65%, transparent),
+        0 0 26px color-mix(in srgb, var(--t-accent) 45%, transparent),
         0 12px 26px -18px rgb(0 0 0 / .9);
 
     pointer-events: none;
@@ -50,6 +63,31 @@
        Постоянная анимация градиента у невидимого элемента зря жгла кадры. */
     will-change: auto;
 }
+
+/* ---- варианты анимации из настроек ---- */
+
+/* «Свечение»: не капсула, а мягкое пятно света, летящее к вкладке. */
+html[data-anim="glow"] #days-tabs .dock-pill {
+    border-color: transparent;
+    background-image: radial-gradient(
+        circle at 50% 50%,
+        color-mix(in srgb, var(--t-accent) 55%, transparent),
+        transparent 72%
+    );
+    box-shadow: 0 0 38px 14px color-mix(in srgb, var(--t-accent) 42%, transparent);
+}
+html[data-anim="glow"] #days-tabs.dock-moving .dock-pill { animation: none; }
+
+/* «Мягкое»: спокойная заливка без блика. */
+html[data-anim="soft"] #days-tabs .dock-pill {
+    background-image: none;
+    background-color: var(--t-accent);
+    border-color: color-mix(in srgb, var(--t-accent) 45%, transparent);
+    box-shadow: 0 4px 16px -6px color-mix(in srgb, var(--t-accent) 55%, transparent);
+}
+html[data-anim="soft"] #days-tabs.dock-moving .dock-pill { animation: none; }
+
+/* «Без» — motion.js вообще не запускает полёт капсулы. */
 
 #days-tabs.dock-moving .dock-pill {
     will-change: left, width, transform;
