@@ -7,6 +7,24 @@ const REMOTE_SCHEDULE = 'https://clashroalyskachat-glitch.github.io/mypars/sched
 /* Маленький файл рядом: updated_at — когда таблица реально изменилась,
  * checked_at — когда парсер последний раз проверил сайт колледжа. */
 const REMOTE_META = 'https://clashroalyskachat-glitch.github.io/mypars/schedule-meta.json';
+
+/* Поведение из панели настроек. Ключи читает и settings.js. */
+const PREF_NOW_BAR = 'nkse-pref-now-bar';
+const PREF_NOW_ENDED = 'nkse-pref-now-ended';
+const PREF_HIDE_PAST = 'nkse-pref-hide-past';
+function readPrefBool(key, fallback) {
+    try {
+        const v = localStorage.getItem(key);
+        return v === null ? fallback : v === '1';
+    } catch (e) {
+        return fallback;
+    }
+}
+let showNowBar = readPrefBool(PREF_NOW_BAR, true);
+/* «На сегодня пары закончились» по умолчанию не показываем: это статус,
+ * а не полезная информация. Включается галочкой в настройках. */
+let showNowEnded = readPrefBool(PREF_NOW_ENDED, false);
+let hidePastLessons = readPrefBool(PREF_HIDE_PAST, false);
 let currentGroup = localStorage.getItem('selected_group') || 'СЗ-13-26';
 let currentDayFilter = 'all';
 let lastModTime = null;
@@ -1734,6 +1752,10 @@ function hideNowBar(bar) {
 function renderNowBar() {
     const bar = document.getElementById('now-bar');
     if (!bar) return;
+    if (!showNowBar) {
+        hideNowBar(bar);
+        return;
+    }
     if (!viewHasData()) {
         hideNowBar(bar);
         return;
@@ -1746,7 +1768,7 @@ function renderNowBar() {
 
     if (!todayName || lessons.length === 0) {
         const hint = nextLessonHint();
-        if (!hint) {
+        if (!hint || !showNowEnded) {
             hideNowBar(bar);
             return;
         }
@@ -1792,6 +1814,12 @@ function renderNowBar() {
         return;
     }
 
+    // Пар больше нет: по умолчанию плашку не показываем, чтобы не мозолила
+    // глаза. Включается галочкой «Показывать „пары закончились“».
+    if (!showNowEnded) {
+        hideNowBar(bar);
+        return;
+    }
     const hint = nextLessonHint();
     paintNowBar(bar, 'now-bar is-free',
         `<span class="now-dot"></span><span>На сегодня пары закончились</span>` +
@@ -2120,14 +2148,21 @@ function renderSchedule() {
     const todayName = JS_DAYS_MAP[todayJsDay];
 
     daysToDisplay.forEach(dayName => {
-        const lessons = groupSchedule[dayName] || [];
-        totalLessonsCount += lessons.length;
-        
-        if (currentDayFilter === 'all' && lessons.length === 0) {
+        const allLessons = groupSchedule[dayName] || [];
+        totalLessonsCount += allLessons.length;
+
+        const isToday = (dayName === todayName);
+        // «Скрывать прошедшие пары» действует только на сегодня: прошлые дни
+        // в режиме «вся неделя» остаются как были.
+        const lessons = hidePastLessons && isToday
+            ? allLessons.filter((l) => !isLessonPassed(l.time, dayName))
+            : allLessons;
+        const hiddenPast = allLessons.length - lessons.length;
+
+        if (currentDayFilter === 'all' && lessons.length === 0 && !hiddenPast) {
             return;
         }
 
-        const isToday = (dayName === todayName);
         const dayLabelBadge = getRelativeDayLabel(dayName);
         const subCount = lessons.filter((l) => l.substituted).length;
 
@@ -2151,7 +2186,7 @@ function renderSchedule() {
                 </div>
                 <div class="stack flex-grow">
                     ${lessons.length === 0 ? `
-                        <p class="fs-meta text-slate-400 dark:text-slate-500 text-center py-8 font-bold">Выходной день ☕</p>
+                        <p class="fs-meta text-slate-400 dark:text-slate-500 text-center py-8 font-bold">${hiddenPast ? 'На сегодня пары закончились' : 'Выходной день ☕'}</p>
                     ` : lessons.map((lesson, idx) => {
                         const active = isLessonActive(lesson.time, dayName);
                         const passed = isLessonPassed(lesson.time, dayName);
@@ -2301,6 +2336,15 @@ function revalidateOnReturn() {
 
 document.addEventListener('visibilitychange', revalidateOnReturn);
 window.addEventListener('focus', revalidateOnReturn);
+
+// Настройки поведения из панели применяются сразу, без перезагрузки.
+window.addEventListener('nkse-prefs-changed', () => {
+    showNowBar = readPrefBool(PREF_NOW_BAR, true);
+    showNowEnded = readPrefBool(PREF_NOW_ENDED, false);
+    hidePastLessons = readPrefBool(PREF_HIDE_PAST, false);
+    renderNowBar();
+    renderSchedule();
+});
 // телефон вышел из тоннеля
 window.addEventListener('online', revalidateOnReturn);
 // возврат из bfcache (Safari/Chrome восстанавливают страницу без DOMContentLoaded)

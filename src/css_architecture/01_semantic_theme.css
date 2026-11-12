@@ -405,7 +405,9 @@ html[data-theme="dark"] #theme-toggle .theme-icon-moon { display: none; }
 .settings-scrim {
     position: absolute;
     inset: 0;
-    background: rgba(15, 23, 42, 0.14);
+    background: rgba(8, 8, 10, 0.32);
+    opacity: 0;
+    transition: opacity .24s ease;
 }
 
 .settings-drawer {
@@ -419,6 +421,71 @@ html[data-theme="dark"] #theme-toggle .theme-icon-moon { display: none; }
     color: var(--t-text);
     border-left: 1px solid var(--t-border);
     box-shadow: -22px 0 60px -30px rgba(0, 0, 0, 0.55);
+    /* выезд справа: только transform/opacity, без layout */
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.22, .8, .24, 1);
+    will-change: transform;
+}
+
+#settings-panel.is-open .settings-scrim { opacity: 1; }
+#settings-panel.is-open .settings-drawer { transform: translateX(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    .settings-scrim,
+    .settings-drawer { transition: none; }
+}
+
+/* ---- разделы настроек: быстрый переход ---- */
+.settings-nav {
+    flex: 0 0 auto;
+    display: flex;
+    gap: .35rem;
+    padding: .5rem clamp(.9rem, .7rem + .5vw, 1.25rem);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--t-border);
+    background: var(--t-surface);
+    scroll-snap-type: x proximity;
+}
+.settings-nav::-webkit-scrollbar { display: none; }
+.settings-nav.is-stuck { box-shadow: 0 10px 22px -24px rgba(0, 0, 0, .95); }
+
+.settings-nav-chip {
+    flex: 0 0 auto;
+    font: inherit;
+    font-size: var(--fs-badge);
+    font-weight: 800;
+    color: var(--t-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: .34rem .7rem;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+}
+.settings-nav-chip:hover { color: var(--t-text); background: var(--t-chip-bg); }
+.settings-nav-chip.is-active {
+    color: var(--t-accent);
+    background: var(--t-accent-soft);
+    border-color: var(--t-accent-border);
+}
+
+/* перебиваем глобальный «все кнопки тёмные» из старой темы */
+html[data-theme] #settings-panel .settings-nav-chip {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--t-muted) !important;
+}
+html[data-theme] #settings-panel .settings-nav-chip:hover {
+    background: var(--t-chip-bg) !important;
+    color: var(--t-text) !important;
+}
+html[data-theme] #settings-panel .settings-nav-chip.is-active {
+    background: var(--t-accent-soft) !important;
+    border-color: var(--t-accent-border) !important;
+    color: var(--t-accent) !important;
 }
 
 .settings-head,
@@ -439,12 +506,25 @@ html[data-theme="dark"] #theme-toggle .theme-icon-moon { display: none; }
 
 .settings-foot {
     border-top: 1px solid var(--t-border);
+    padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
 }
 
 .settings-head h2 {
     font-size: var(--fs-title);
     font-weight: 800;
     letter-spacing: -0.02em;
+}
+
+.settings-head-text { min-width: 0; }
+
+.settings-sub {
+    margin-top: .15rem;
+    font-size: var(--fs-badge);
+    font-weight: 600;
+    opacity: .55;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .settings-body {
@@ -484,7 +564,20 @@ html[data-theme="dark"] #theme-toggle .theme-icon-moon { display: none; }
     font-weight: 800;
     letter-spacing: 0.02em;
     opacity: .85;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
 }
+
+.settings-ico {
+    display: inline-flex;
+    flex: 0 0 auto;
+    opacity: .6;
+}
+.settings-ico svg { display: block; }
+
+/* чтобы раздел не прятался под липкой строкой вкладок */
+.settings-group { scroll-margin-top: .6rem; }
 
 .settings-hint {
     font-size: var(--fs-badge);

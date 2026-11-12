@@ -13,6 +13,8 @@
     var isOpen = false;
     var prevOverflow = '';
     var savedTimer = null;
+    var closeTimer = null;
+    var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -41,6 +43,40 @@
 
     function validHex(v) { return /^#[0-9a-f]{6}$/i.test(String(v || '').trim()); }
 
+    /* Маленькие иконки разделов: тот же штриховой стиль, что у кнопок шапки. */
+    function ico(name) {
+        var paths = {
+            presets: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/>',
+            sound: '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8.5a5 5 0 010 7"/><path d="M19.5 6a8.5 8.5 0 010 12"/>',
+            colors: '<path d="M12 3s6 6.2 6 10a6 6 0 11-12 0c0-3.8 6-10 6-10z"/>',
+            text: '<path d="M5 6h14"/><path d="M12 6v13"/><path d="M8 19h8"/>',
+            shape: '<rect x="4" y="4" width="16" height="16" rx="4"/>',
+            bg: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.5"/><path d="M4 17l5-5 4 4 2-2 5 5"/>',
+            behavior: '<path d="M4 7h10"/><circle cx="17" cy="7" r="3"/><path d="M4 17h4"/><circle cx="11" cy="17" r="3"/><path d="M14 17h6"/>',
+            data: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>'
+        };
+        return '<span class="settings-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (paths[name] || '') + '</svg></span>';
+    }
+
+    /* Настройки поведения живут отдельно от темы: их читает и сам сайт
+       (app.js / motion.js), а не только движок оформления. */
+    var PREF_SMOOTH = 'nkse-pref-smooth-wheel';
+    var PREF_NOW = 'nkse-pref-now-bar';
+    var PREF_NOW_ENDED = 'nkse-pref-now-ended';
+    var PREF_PAST = 'nkse-pref-hide-past';
+
+    function getPref(key, def) {
+        try {
+            var v = localStorage.getItem(key);
+            return v === null ? def : v === '1';
+        } catch (e) { return def; }
+    }
+
+    function setPref(key, val) {
+        try { localStorage.setItem(key, val ? '1' : '0'); } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('nkse-prefs-changed')); } catch (e) {}
+    }
+
     function isImageUrlInput(u) {
         return /^(https?:\/\/|data:image\/|\.{0,2}\/|\/|[\w-]+\/)/i.test(u) ||
             /^[\w.-]+\.(png|jpe?g|webp|svg|gif)$/i.test(u);
@@ -62,11 +98,24 @@
         '<div class="settings-scrim" data-close></div>' +
         '<aside class="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title">' +
             '<header class="settings-head">' +
-                '<h2 id="settings-title">Настройки</h2>' +
+                '<div class="settings-head-text">' +
+                    '<h2 id="settings-title">Настройки</h2>' +
+                    '<p class="settings-sub" id="settings-sub">Тема: НКСЭ Тёмная</p>' +
+                '</div>' +
                 '<button type="button" id="settings-close" class="header-icon-btn" title="Закрыть" aria-label="Закрыть настройки">' +
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
                 '</button>' +
             '</header>' +
+            '<nav class="settings-nav" id="settings-nav" aria-label="Разделы настроек">' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-presets">Темы</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-sound">Звук</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-colors">Цвета</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-text">Текст</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-shape">Форма</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-bg">Фон</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-behavior">Поведение</button>' +
+                '<button type="button" class="settings-nav-chip" data-target="sec-data">Данные</button>' +
+            '</nav>' +
             '<div class="settings-body">' +
                 '<div class="settings-preview" aria-hidden="true">' +
                     '<div class="lesson-card" style="border-left:3px solid var(--t-accent)">' +
@@ -82,8 +131,8 @@
                     '</div>' +
                 '</div>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Пресеты темы</h3></div>' +
+                '<section class="settings-group" id="sec-presets">' +
+                    '<div class="settings-group-head"><h3>' + ico('presets') + 'Пресеты темы</h3></div>' +
                     '<div class="preset-grid" id="preset-grid"></div>' +
                     '<div class="settings-inline">' +
                         '<input id="preset-name" type="text" maxlength="40" placeholder="Название своего пресета">' +
@@ -104,8 +153,8 @@
                     '<div class="settings-hint">«НКСЭ Тёмная» и «НКСЭ Светлая» — основные темы в стиле сайта. Старые тёмная и светлая помечены «(старая)». Остальные темы — дополнительные. Кнопка темы в шапке переключает основные.</div>' +
                 '</section>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Звуки</h3></div>' +
+                '<section class="settings-group" id="sec-sound">' +
+                    '<div class="settings-group-head"><h3>' + ico('sound') + 'Звуки</h3></div>' +
                     '<label class="settings-toggle"><span>Включить звуки</span><input type="checkbox" id="sound-enabled"></label>' +
                     '<div class="settings-slider">' +
                         '<div class="settings-row"><span>Громкость</span><output class="settings-value" id="sound-volume-value">55%</output></div>' +
@@ -127,13 +176,13 @@
                     '<div class="settings-hint">По умолчанию звуки выключены. Настройка хранится только на этом устройстве.</div>' +
                 '</section>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Цвета</h3><button type="button" class="settings-reset" data-reset="colors">Сброс</button></div>' +
+                '<section class="settings-group" id="sec-colors">' +
+                    '<div class="settings-group-head"><h3>' + ico('colors') + 'Цвета</h3><button type="button" class="settings-reset" data-reset="colors">Сброс</button></div>' +
                     '<div class="settings-color-list" id="color-list">' + colorRows() + '</div>' +
                 '</section>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Текст</h3><button type="button" class="settings-reset" data-reset="text">Сброс</button></div>' +
+                '<section class="settings-group" id="sec-text">' +
+                    '<div class="settings-group-head"><h3>' + ico('text') + 'Текст</h3><button type="button" class="settings-reset" data-reset="text">Сброс</button></div>' +
                     '<div class="settings-slider">' +
                         '<div class="settings-row"><span>Размер текста</span><output class="settings-value" id="text-scale-value">100%</output></div>' +
                         '<input type="range" id="text-scale" min="85" max="130" step="1">' +
@@ -150,8 +199,8 @@
                     '</div>' +
                 '</section>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Форма и отступы</h3><button type="button" class="settings-reset" data-reset="shape">Сброс</button></div>' +
+                '<section class="settings-group" id="sec-shape">' +
+                    '<div class="settings-group-head"><h3>' + ico('shape') + 'Форма и отступы</h3><button type="button" class="settings-reset" data-reset="shape">Сброс</button></div>' +
                     '<div class="settings-slider">' +
                         '<div class="settings-row"><span>Скругление</span><output class="settings-value" id="radius-value">18 px</output></div>' +
                         '<input type="range" id="radius" min="0" max="32" step="1">' +
@@ -175,8 +224,8 @@
                     '<label class="settings-toggle"><span>Анимации</span><input type="checkbox" id="motion"></label>' +
                 '</section>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Фон</h3><button type="button" class="settings-reset" data-reset="background">Сброс</button></div>' +
+                '<section class="settings-group" id="sec-bg">' +
+                    '<div class="settings-group-head"><h3>' + ico('bg') + 'Фон</h3><button type="button" class="settings-reset" data-reset="background">Сброс</button></div>' +
                     '<div class="settings-row"><span>Тип фона</span>' +
                         '<select id="bg-type">' +
                             '<option value="none">Нет</option>' +
@@ -233,8 +282,17 @@
                     '</div>' +
                 '</section>' +
 
-                '<section class="settings-group">' +
-                    '<div class="settings-group-head"><h3>Данные</h3></div>' +
+                '<section class="settings-group" id="sec-behavior">' +
+                    '<div class="settings-group-head"><h3>' + ico('behavior') + 'Поведение</h3><button type="button" class="settings-reset" data-reset="behavior">Сброс</button></div>' +
+                    '<label class="settings-toggle"><span>Плавная прокрутка колесом</span><input type="checkbox" id="pref-smooth-wheel"></label>' +
+                    '<div class="settings-hint">Для компьютера: колесо мыши догоняет плавно, на телефоне прокрутка остаётся обычной.</div>' +
+                    '<label class="settings-toggle"><span>Показывать «сейчас идёт»</span><input type="checkbox" id="pref-now-bar"></label>' +
+                    '<label class="settings-toggle"><span>Показывать «пары закончились»</span><input type="checkbox" id="pref-now-ended"></label>' +
+                    '<label class="settings-toggle"><span>Скрывать прошедшие пары сегодня</span><input type="checkbox" id="pref-hide-past"></label>' +
+                '</section>' +
+
+                '<section class="settings-group" id="sec-data">' +
+                    '<div class="settings-group-head"><h3>' + ico('data') + 'Данные</h3></div>' +
                     '<div class="settings-buttons">' +
                         '<button type="button" class="settings-btn" id="export-theme">Экспорт</button>' +
                         '<button type="button" class="settings-btn" id="import-theme">Импорт</button>' +
@@ -262,6 +320,13 @@
     function sync() {
         var s = T.getState();
 
+        var presetName = 'Своя тема';
+        T.getPresets().forEach(function (p) {
+            if (p.id === s.preset) presetName = p.name;
+        });
+        var sub = $('#settings-sub');
+        if (sub) sub.textContent = 'Тема: ' + presetName;
+
         $('#sound-enabled').checked = !!s.sound.enabled;
         setRange('sound-volume', s.sound.volume, function (v) { return Math.round(v) + '%'; });
         $('#sound-pack').value = s.sound.pack;
@@ -282,6 +347,11 @@
         setRange('glow', s.metrics.glow, function (v) { return Math.round(v) + ' px'; });
         $('#display-font').value = s.metrics.displayFont || 'sans';
         $('#motion').checked = !!s.metrics.motion;
+
+        $('#pref-smooth-wheel').checked = getPref(PREF_SMOOTH, true);
+        $('#pref-now-bar').checked = getPref(PREF_NOW, true);
+        $('#pref-now-ended').checked = getPref(PREF_NOW_ENDED, false);
+        $('#pref-hide-past').checked = getPref(PREF_PAST, false);
 
         var bg = s.background;
         $('#bg-type').value = bg.type || 'none';
@@ -381,29 +451,129 @@
         savedTimer = setTimeout(function () { savedTimer = null; }, 1200);
     }
 
+    /* ---------------- разделы (быстрый переход) ---------------- */
+
+    var nav = $('#settings-nav');
+    var bodyEl = $('.settings-body');
+    var navRaf = 0;
+    /* После клика по вкладке не даём scroll-spy перебить выбранный раздел,
+       пока плавная прокрутка не закончится. */
+    var navLockUntil = 0;
+
+    function navChips() { return $$('.settings-nav-chip'); }
+
+    function ensureChipVisible(chip) {
+        if (!nav) return;
+        var left = chip.offsetLeft;
+        var right = left + chip.offsetWidth;
+        if (left < nav.scrollLeft + 4) {
+            nav.scrollTo({ left: Math.max(0, left - 12), behavior: reduceMotion ? 'auto' : 'smooth' });
+        } else if (right > nav.scrollLeft + nav.clientWidth - 4) {
+            nav.scrollTo({ left: right - nav.clientWidth + 12, behavior: reduceMotion ? 'auto' : 'smooth' });
+        }
+    }
+
+    function updateNavActive() {
+        if (!nav || !bodyEl) return;
+        var chips = navChips();
+        if (!chips.length) return;
+        var bodyTop = bodyEl.getBoundingClientRect().top;
+        var atBottom = bodyEl.scrollTop + bodyEl.clientHeight >= bodyEl.scrollHeight - 2;
+        var activeId = '';
+        if (!atBottom) {
+            chips.forEach(function (chip) {
+                var sec = document.getElementById(chip.dataset.target);
+                if (sec && sec.getBoundingClientRect().top - bodyTop <= 40) activeId = chip.dataset.target;
+            });
+        }
+        // В самом низу раздел уже не поднять к верху — подсвечиваем первый
+        // видимый, иначе клик по «Поведению» оставлял бы «Фон».
+        if (!activeId) {
+            for (var i = 0; i < chips.length; i += 1) {
+                var s = document.getElementById(chips[i].dataset.target);
+                if (s && s.getBoundingClientRect().top - bodyTop >= -8) {
+                    activeId = chips[i].dataset.target;
+                    break;
+                }
+            }
+        }
+        if (!activeId) activeId = chips[0].dataset.target;
+        chips.forEach(function (chip) {
+            var on = chip.dataset.target === activeId;
+            chip.classList.toggle('is-active', on);
+            chip.setAttribute('aria-current', on ? 'true' : 'false');
+            if (on) ensureChipVisible(chip);
+        });
+    }
+
+    function scrollToSection(id) {
+        if (!bodyEl) return;
+        var target = document.getElementById(id);
+        if (!target) return;
+        var top = bodyEl.scrollTop + target.getBoundingClientRect().top - bodyEl.getBoundingClientRect().top - 8;
+        bodyEl.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
+
+    if (nav) {
+        nav.addEventListener('click', function (e) {
+            var chip = e.target.closest('.settings-nav-chip');
+            if (!chip) return;
+            navChips().forEach(function (c) {
+                var on = c === chip;
+                c.classList.toggle('is-active', on);
+                c.setAttribute('aria-current', on ? 'true' : 'false');
+            });
+            navLockUntil = performance.now() + 900;
+            scrollToSection(chip.dataset.target);
+        });
+    }
+
+    if (bodyEl) {
+        bodyEl.addEventListener('scroll', function () {
+            if (navRaf) return;
+            navRaf = requestAnimationFrame(function () {
+                navRaf = 0;
+                if (nav) nav.classList.toggle('is-stuck', bodyEl.scrollTop > 4);
+                if (performance.now() >= navLockUntil) updateNavActive();
+            });
+        }, { passive: true });
+    }
+
     /* ---------------- open / close ---------------- */
 
     function open() {
         if (isOpen) return;
         isOpen = true;
+        if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
         prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         panel.hidden = false;
+        // сначала кадр в закрытом положении, затем класс is-open — так
+        // срабатывает CSS-переход, а не мгновенное появление
+        panel.classList.remove('is-open');
+        void panel.offsetWidth;
+        requestAnimationFrame(function () { panel.classList.add('is-open'); });
         gear.setAttribute('aria-expanded', 'true');
         sync();
         status('Сохранено');
         try { T.play('open'); } catch (e) {}
         setTimeout(function () { var b = $('#settings-close'); if (b) b.focus(); }, 0);
+        updateNavActive();
     }
 
     function close() {
         if (!isOpen) return;
         isOpen = false;
-        panel.hidden = true;
-        document.body.style.overflow = prevOverflow;
+        panel.classList.remove('is-open');
         gear.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = prevOverflow;
         try { T.play('close'); } catch (e) {}
         gear.focus();
+        var finish = function () {
+            if (!isOpen) panel.hidden = true;
+        };
+        if (reduceMotion) finish();
+        else closeTimer = setTimeout(function () { closeTimer = null; finish(); }, 300);
     }
 
     gear.addEventListener('click', function () {
@@ -615,6 +785,29 @@
         T.setMetric('motion', e.target.checked);
     });
 
+    /* ---------------- поведение ---------------- */
+
+    $('#pref-smooth-wheel').addEventListener('change', function (e) {
+        setPref(PREF_SMOOTH, e.target.checked);
+        if (window.NKSEScroll) window.NKSEScroll.setEnabled(e.target.checked);
+        showSaved();
+    });
+
+    $('#pref-now-bar').addEventListener('change', function (e) {
+        setPref(PREF_NOW, e.target.checked);
+        showSaved();
+    });
+
+    $('#pref-now-ended').addEventListener('change', function (e) {
+        setPref(PREF_NOW_ENDED, e.target.checked);
+        showSaved();
+    });
+
+    $('#pref-hide-past').addEventListener('change', function (e) {
+        setPref(PREF_PAST, e.target.checked);
+        showSaved();
+    });
+
     /* ---------------- background ---------------- */
 
     $('#bg-type').addEventListener('change', function (e) {
@@ -762,6 +955,12 @@
                 T.setMetric('motion', true);
             } else if (what === 'background') {
                 T.resetBackground();
+            } else if (what === 'behavior') {
+                setPref(PREF_SMOOTH, true);
+                setPref(PREF_NOW, true);
+                setPref(PREF_NOW_ENDED, false);
+                setPref(PREF_PAST, false);
+                if (window.NKSEScroll) window.NKSEScroll.setEnabled(true);
             }
             renderPresets();
             sync();
@@ -780,4 +979,5 @@
 
     renderPresets();
     sync();
+    updateNavActive();
 })();

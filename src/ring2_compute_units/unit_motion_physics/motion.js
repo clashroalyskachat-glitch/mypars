@@ -157,11 +157,24 @@
 
     var SCROLLERS = '.group-list, #search-results, .settings-body, #days-tabs';
     var EASE_MS = 65; // меньше — резче, больше — «плывёт»
+    var PREF_KEY = 'nkse-pref-smooth-wheel';
+
+    var enabled = true;
+    try {
+        if (localStorage.getItem(PREF_KEY) === '0') enabled = false;
+    } catch (e) { /* приватный режим */ }
 
     var target = window.scrollY || 0;
     var current = target;
     var raf = 0;
     var last = 0;
+
+    function stopAnim() {
+        if (raf) {
+            cancelAnimationFrame(raf);
+            raf = 0;
+        }
+    }
 
     function maxY() {
         var doc = document.documentElement;
@@ -204,6 +217,7 @@
     }
 
     window.addEventListener('wheel', function (event) {
+        if (!enabled) return;
         if (event.defaultPrevented || event.ctrlKey || event.metaKey) return;
         if (modalOpen()) {
             if (!(event.target && event.target.closest && event.target.closest('.settings-body'))) {
@@ -247,4 +261,13 @@
         target = clampY(target);
         current = clampY(current);
     }, { passive: true });
+
+    // Переключатель из настроек: выключаем сглаживание без перезагрузки.
+    window.NKSEScroll = {
+        setEnabled: function (v) {
+            enabled = !!v;
+            if (!enabled) stopAnim();
+        },
+        isEnabled: function () { return enabled; }
+    };
 })();
