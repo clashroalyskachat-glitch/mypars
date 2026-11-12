@@ -120,16 +120,25 @@ function formatUpdatedLabel(modTime) {
     return `Обновлено ${date} · ${time}`;
 }
 
+function formatClock(ms) {
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return '';
+    const date = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return `${date} · ${time}`;
+}
+
+// В шапке показываем «Проверено ЧЧ:ММ» — это время последней проверки сайта
+// колледжа, оно двигается каждые 10 минут. Когда именно менялись сами данные —
+// в подсказке (и это же время уходит в offline-кэш).
 function setUpdatedLabel(modTime, checkedAt) {
     const el = document.getElementById('last-updated');
     if (!el) return;
-    el.textContent = formatUpdatedLabel(modTime);
     if (checkedAt) {
-        const d = new Date(checkedAt);
-        const date = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-        const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        el.title = `Проверено ${date} · ${time}`;
+        el.textContent = 'Проверено ' + formatClock(checkedAt);
+        el.title = modTime ? 'Данные обновлены ' + formatClock(modTime) : '';
     } else {
+        el.textContent = formatUpdatedLabel(modTime);
         el.removeAttribute('title');
     }
 }
@@ -802,8 +811,9 @@ function paintHotSlice() {
         renderPinButton();
         renderTabs();
         renderSchedule();
-        markStaleness(slice.t || null, true);
-        setUpdatedLabel(slice.t || null);
+        const checkedAt = parseInt(localStorage.getItem('nkse-checked-at') || '0', 10);
+        markStaleness(checkedAt || slice.t || null, true);
+        setUpdatedLabel(slice.t || null, checkedAt || 0);
     } catch (e) {
         return false;
     }
@@ -2160,6 +2170,14 @@ function checkForUpdates(once) {
     fetchScheduleVersion()
         .then((data) => {
             if (!data || !data.mod_time) return;
+
+            // «Проверено ЧЧ:ММ» должно тикать, даже если расписание не менялось:
+            // обновляем подпись на каждой успешной проверке.
+            if (data.checked_at) {
+                try { localStorage.setItem('nkse-checked-at', String(data.checked_at)); } catch (e) {}
+                setUpdatedLabel(data.mod_time, data.checked_at);
+            }
+
             const next = parseFloat(data.mod_time);
             const prev = lastModTime ? parseFloat(lastModTime) : null;
 
