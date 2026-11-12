@@ -9,7 +9,9 @@ name: Firebase guard
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Раз в час. Раньше было каждые 15 минут, но частые scheduled-workflow
+    # заставляют GitHub задерживать основной парсер расписания на часы.
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:

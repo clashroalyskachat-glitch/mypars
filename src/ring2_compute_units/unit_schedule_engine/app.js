@@ -4,6 +4,9 @@ let allGroupsData = {};
 /* Firebase-версия не хранит расписание: данные всегда берутся с GitHub Pages.
  * Локальный schedule.json остаётся только офлайн-фолбэком. */
 const REMOTE_SCHEDULE = 'https://clashroalyskachat-glitch.github.io/mypars/schedule.json';
+/* Маленький файл рядом: updated_at — когда таблица реально изменилась,
+ * checked_at — когда парсер последний раз проверил сайт колледжа. */
+const REMOTE_META = 'https://clashroalyskachat-glitch.github.io/mypars/schedule-meta.json';
 let currentGroup = localStorage.getItem('selected_group') || 'СЗ-13-26';
 let currentDayFilter = 'all';
 let lastModTime = null;
@@ -108,18 +111,27 @@ function togglePin() {
 // "Обновление на сервере: 02.10.2026 в 20:44" -> "Обновлено 02.10 · 20:44".
 // Accepts either ms or s; anything falsy means "we do not know yet".
 function formatUpdatedLabel(modTime) {
-    if (!modTime) return 'Обновляется каждые 6 часов';
+    if (!modTime) return 'Обновляется каждые 10 минут';
     const ms = modTime < 1e11 ? modTime * 1000 : modTime;
     const d = new Date(ms);
-    if (isNaN(d.getTime())) return 'Обновляется каждые 6 часов';
+    if (isNaN(d.getTime())) return 'Обновляется каждые 10 минут';
     const date = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
     const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     return `Обновлено ${date} · ${time}`;
 }
 
-function setUpdatedLabel(modTime) {
+function setUpdatedLabel(modTime, checkedAt) {
     const el = document.getElementById('last-updated');
-    if (el) el.textContent = formatUpdatedLabel(modTime);
+    if (!el) return;
+    el.textContent = formatUpdatedLabel(modTime);
+    if (checkedAt) {
+        const d = new Date(checkedAt);
+        const date = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        el.title = `Проверено ${date} · ${time}`;
+    } else {
+        el.removeAttribute('title');
+    }
 }
 
 function renderPinButton() {
@@ -727,13 +739,35 @@ function syncHeaderOffset() {
 let _versionPromise = null;
 function fetchScheduleVersion() {
     if (!_versionPromise) {
-        _versionPromise = fetch(REMOTE_SCHEDULE, { method: 'HEAD', cache: 'no-store' })
-            .then((res) => {
+        _versionPromise = (async () => {
+            // Основной путь: крошечный schedule-meta.json. updated_at меняется
+            // только вместе с данными, поэтому 600-КБ таблица не скачивается
+            // заново на каждой проверке.
+            try {
+                const res = await fetch(REMOTE_META + '?v=' + Date.now(), { cache: 'no-store' });
+                if (res.ok) {
+                    const meta = await res.json();
+                    if (meta && meta.updated_at) {
+                        return {
+                            mod_time: Number(meta.updated_at),
+                            checked_at: Number(meta.checked_at) || 0,
+                        };
+                    }
+                }
+            } catch (e) { /* ниже попробуем Last-Modified */ }
+
+            // Фолбэк, если meta ещё не задеплоена.
+            try {
+                const res = await fetch(REMOTE_SCHEDULE, { method: 'HEAD', cache: 'no-store' });
                 if (!res.ok) return null;
                 const lastModified = res.headers.get('Last-Modified');
-                return lastModified ? { mod_time: Date.parse(lastModified) } : null;
-            })
-            .catch(() => null);
+                return lastModified
+                    ? { mod_time: Date.parse(lastModified), checked_at: 0 }
+                    : null;
+            } catch (e) {
+                return null;
+            }
+        })();
         // let a later poll ask GitHub again
         setTimeout(() => { _versionPromise = null; }, 60 * 1000);
     }
@@ -806,11 +840,19 @@ function saveHotSlice() {
      const CACHE_VER_KEY = 'nkse-cache-ver';
      const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
 
-     // Fetch server mod_time
+     // Fetch server mod_time (когда изменились данные) и checked_at
+     // (когда парсер последний раз проверял источник).
      let serverModTime = null;
+     let serverCheckedAt = 0;
      try {
          const infoData = await fetchScheduleVersion();
-         if (infoData) serverModTime = infoData.mod_time;
+         if (infoData) {
+             serverModTime = infoData.mod_time;
+             serverCheckedAt = infoData.checked_at || 0;
+             if (serverCheckedAt) {
+                 try { localStorage.setItem('nkse-checked-at', String(serverCheckedAt)); } catch (e) {}
+             }
+         }
      } catch (e) {}
 
      // Check cache first
@@ -830,8 +872,12 @@ function saveHotSlice() {
                 checkAndAutoSwitchDay();
 
 const cachedFileMtime = localStorage.getItem('nkse-file-mtime');
-                  markStaleness(cachedFileMtime ? parseInt(cachedFileMtime) : null, true);
-                  setUpdatedLabel(cachedFileMtime ? parseInt(cachedFileMtime) : serverModTime);
+                  const cachedCheckedAt = parseInt(localStorage.getItem('nkse-checked-at') || '0', 10);
+                  markStaleness(cachedCheckedAt || (cachedFileMtime ? parseInt(cachedFileMtime) : null), true);
+                  setUpdatedLabel(
+                      cachedFileMtime ? parseInt(cachedFileMtime) : serverModTime,
+                      cachedCheckedAt || serverCheckedAt
+                  );
                   
 renderTabs();
                  renderSchedule();
@@ -877,10 +923,12 @@ renderTabs();
           const rawText = await res.text();
           allGroupsData = JSON.parse(rawText);
           
-          // Get last-modified from headers
-          let fileModTime = null;
+          // Время изменения данных берём из schedule-meta.json; Last-Modified
+          // остаётся фолбэком (и меняется при каждом деплое Pages, поэтому
+          // показывать его как «обновлено» нельзя).
+          let fileModTime = serverModTime || null;
           const lastModified = res.headers.get('Last-Modified');
-          if (lastModified) {
+          if (!fileModTime && lastModified) {
               fileModTime = new Date(lastModified).getTime();
           }
           
@@ -896,8 +944,8 @@ renderTabs();
           renderDataHealth();
           checkAndAutoSwitchDay();
 
-          markStaleness(fileModTime || null, false);
-          setUpdatedLabel(fileModTime || serverModTime);
+          markStaleness(serverCheckedAt || fileModTime || null, false);
+          setUpdatedLabel(fileModTime || serverModTime, serverCheckedAt);
           
 renderTabs();
          renderSchedule();
@@ -1476,7 +1524,10 @@ function fmtLeft(mins) {
     return `${h} ч ${m} мин`;
 }
 
-const STALE_AFTER_MS = 6 * 60 * 60 * 1000; // match the cloud re-parse cadence
+// Парсер проверяет источник каждые 10 минут днём. Если checked_at не
+// обновлялся два часа — что-то действительно сломалось (Actions/CDN), а не
+// просто «расписание не менялось».
+const STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 function markStaleness(modTimeMs, fromCache) {
     const dot = document.getElementById('stale-dot');

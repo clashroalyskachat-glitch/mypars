@@ -389,8 +389,44 @@ def main():
     master_schedule.clear()
     master_schedule.update(ordered)
 
+    new_text = json.dumps(master_schedule, ensure_ascii=False, indent=2)
+    old_text = ""
+    try:
+        with open(output_path, "r", encoding="utf-8") as f:
+            old_text = f.read()
+    except Exception:
+        old_text = ""
+
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(master_schedule, f, ensure_ascii=False, indent=2)
+        f.write(new_text)
+
+    # schedule-meta.json хранит два разных времени:
+    #   updated_at — когда расписание реально изменилось (его показывает сайт);
+    #   checked_at — когда парсер последний раз проверял источник.
+    # В репозитории checked_at меняется только вместе с данными (иначе бот
+    # делал бы коммит каждые 10 минут); при деплое Pages его освежает
+    # toolchain_foundry/schedule_meta.mjs.
+    meta_path = os.path.join(os.path.dirname(output_path), "schedule-meta.json")
+    prev_meta = {}
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            prev_meta = json.load(f)
+    except Exception:
+        prev_meta = {}
+
+    content_changed = new_text != old_text
+    now_ms = int(time.time() * 1000)
+    if content_changed or not prev_meta.get("updated_at"):
+        meta_out = {
+            "updated_at": now_ms if content_changed else prev_meta.get("updated_at", now_ms),
+            "checked_at": now_ms,
+            "groups": len(master_schedule),
+            "lessons": new_count,
+            "source": HOST,
+        }
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta_out, f, ensure_ascii=False, indent=1)
+            f.write("\n")
 
     total = time.time() - t_start
     print(
