@@ -1697,8 +1697,9 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Биология",
-        "teacher": "Кальченко М А",
-        "room": "А413"
+        "teacher": "Орехова М В",
+        "room": "А413",
+        "substituted": true
       }
     ],
     "Среда": [
@@ -2136,8 +2137,9 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Биология",
-        "teacher": "Кальченко М А",
-        "room": "А413"
+        "teacher": "Орехова М В",
+        "room": "А413",
+        "substituted": true
       },
       {
         "number": "3",
@@ -7687,8 +7689,9 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "Химия",
-        "teacher": "Кальченко М А",
-        "room": "А423"
+        "teacher": "Попкова Л Ф",
+        "room": "А423",
+        "substituted": true
       },
       {
         "number": "2",
@@ -7827,8 +7830,9 @@
         "number": "2",
         "time": "13:10-14:30",
         "subject": "Биология",
-        "teacher": "Кальченко М А",
-        "room": "А413"
+        "teacher": "Орехова М В",
+        "room": "А413",
+        "substituted": true
       },
       {
         "number": "3",
@@ -10112,7 +10116,7 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Химия",
-        "teacher": "Кальченко М А",
+        "teacher": "Попкова Л Ф",
         "room": "А415",
         "substituted": true
       },
@@ -10120,7 +10124,7 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Биология",
-        "teacher": "Кальченко М А",
+        "teacher": "Дьякова В С",
         "room": "А415",
         "substituted": true
       }
@@ -16106,7 +16110,7 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "Биология",
-        "teacher": "Кальченко М А",
+        "teacher": "Дьякова В С",
         "room": "А415",
         "substituted": true
       },
@@ -17962,15 +17966,17 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Химия",
-        "teacher": "Кальченко М А",
-        "room": "А427"
+        "teacher": "Попкова Л Ф",
+        "room": "А427",
+        "substituted": true
       },
       {
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Биология",
-        "teacher": "Кальченко М А",
-        "room": "А415"
+        "teacher": "Орехова М В",
+        "room": "А415",
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -20887,8 +20893,9 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "Химия",
-        "teacher": "Кальченко М А",
-        "room": "А404"
+        "teacher": "Попкова Л Ф",
+        "room": "А404",
+        "substituted": true
       },
       {
         "number": "2",
