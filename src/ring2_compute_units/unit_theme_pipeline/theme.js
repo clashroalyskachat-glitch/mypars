@@ -259,7 +259,8 @@
             id: 'neon',
             name: 'Неон',
             mode: 'dark',
-            anim: 'glow',
+            fx: 'neon',
+            anim: 'soft',
             colors: {
                 bg: '#05010f', surface: '#080315', surface2: '#0d0620', text: '#f5f3ff',
                 muted: '#a99fca', accent: '#22d3ee', accentContrast: '#041016',
@@ -271,7 +272,7 @@
                 tabActiveText: '#22d3ee', tabActiveBorder: '#22d3ee', headerBg: '#05010f',
                 footerBg: '#05010f', chipBg: 'rgba(34,211,238,0.10)', nowBg: '#080315'
             },
-            metrics: { radius: 18, glow: 10 }
+            metrics: { radius: 18, glow: 5 }
         },
         {
             id: 'calm',
@@ -294,7 +295,7 @@
             name: 'Акаши',
             mode: 'dark',
             fx: 'akashi',
-            anim: 'glow',
+            anim: 'soft',
             colors: {
                 bg: '#050000', surface: '#080000', surface2: '#160309',
                 text: '#fff5f2', muted: '#c98a96',
@@ -414,7 +415,7 @@
             ? raw.metrics.animStyle
             : 'auto';
         out.metrics.animSpeed = clamp(Number(out.metrics.animSpeed) || 1, 0.7, 1.5);
-        out.fx = raw.fx === 'akashi' ? 'akashi' : 'none';
+        out.fx = raw.fx === 'akashi' ? 'akashi' : raw.fx === 'neon' ? 'neon' : 'none';
         out.style = raw.style === 'hub' ? 'hub' : 'none';
 
         if (raw.background && typeof raw.background === 'object') {

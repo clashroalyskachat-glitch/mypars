@@ -54,7 +54,7 @@
         inset 0 1px 0 rgb(255 255 255 / .45),
         inset 0 -1px 0 rgb(90 55 20 / .45),
         0 6px 20px -8px color-mix(in srgb, var(--t-accent) 65%, transparent),
-        0 0 26px color-mix(in srgb, var(--t-accent) 45%, transparent),
+        0 0 18px color-mix(in srgb, var(--t-accent) 40%, transparent),
         0 12px 26px -18px rgb(0 0 0 / .9);
 
     pointer-events: none;
@@ -74,7 +74,7 @@ html[data-anim="glow"] #days-tabs .dock-pill {
         color-mix(in srgb, var(--t-accent) 55%, transparent),
         transparent 72%
     );
-    box-shadow: 0 0 38px 14px color-mix(in srgb, var(--t-accent) 42%, transparent);
+    box-shadow: 0 0 24px 8px color-mix(in srgb, var(--t-accent) 38%, transparent);
 }
 html[data-anim="glow"] #days-tabs.dock-moving .dock-pill { animation: none; }
 
