@@ -337,6 +337,13 @@
                 glow: 0,
                 displayFont: 'humanist',
                 motion: true
+            },
+            background: {
+                url: 'assets/akashi-desktop.webp',
+                mobileUrl: 'assets/akashi-phone.webp',
+                fit: 'cover',
+                position: 'center',
+                dim: 0.35
             }
         }
     ];
