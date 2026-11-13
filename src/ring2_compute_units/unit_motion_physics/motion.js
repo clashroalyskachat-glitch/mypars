@@ -21,9 +21,14 @@
     function box(container, el) {
         var c = container.getBoundingClientRect();
         var r = el.getBoundingClientRect();
+        // Полоса дней на телефоне прокручивается по горизонтали. Позиция
+        // капсулы задаётся внутри самой полосы, поэтому к координатам
+        // относительно окна нужно добавить scrollLeft/scrollTop и убрать
+        // рамку контейнера. Без этого капсула улетала мимо вкладки ровно
+        // на величину прокрутки.
         return {
-            left: r.left - c.left,
-            top: r.top - c.top,
+            left: r.left - c.left - container.clientLeft + container.scrollLeft,
+            top: r.top - c.top - container.clientTop + container.scrollTop,
             width: r.width,
             height: r.height
         };
