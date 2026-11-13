@@ -15,12 +15,16 @@ import androidx.core.view.WindowInsetsControllerCompat
 
 /**
  * Полноэкранная оболочка. Камера в экране не «съедает» верх страницы:
- * вырез измеряется здесь и отдаётся в WebView, а каждая страница сайта
- * сама продлевает свою шапку под камеру и опускает содержимое ниже неё.
+ * вырез измеряется здесь при каждом изменении (поворот, складывание,
+ * смена ориентации) и отдаётся в WebView. Страница сама решает, что
+ * продлить под камеру — шапку или фон, — поэтому статичного кружка нет.
  */
 class MainActivity : TauriActivity() {
   private var webView: WebView? = null
   private var cutoutTopDp = 0f
+  private var cutoutLeftDp = 0f
+  private var cutoutRightDp = 0f
+  private var cutoutBottomDp = 0f
 
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
@@ -35,12 +39,16 @@ class MainActivity : TauriActivity() {
 
     hideSystemBars()
 
-    // Слушаем вырез на корне окна: значение нужно и до загрузки страницы
-    // (для моста NKSEInsets), и после поворота экрана.
+    // Слушаем вырез на корне окна: значения нужны и до загрузки страницы
+    // (для моста NKSEInsets), и после каждого поворота/изменения окна.
     val root = window.decorView
     ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
       val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
-      cutoutTopDp = cutout.top / resources.displayMetrics.density
+      val density = resources.displayMetrics.density
+      cutoutTopDp = cutout.top / density
+      cutoutLeftDp = cutout.left / density
+      cutoutRightDp = cutout.right / density
+      cutoutBottomDp = cutout.bottom / density
       pushCutout()
       insets
     }
@@ -61,13 +69,16 @@ class MainActivity : TauriActivity() {
     if (hasFocus) hideSystemBars()
   }
 
-  /** Отдаёт странице высоту выреза в dp. */
+  /** Отдаёт странице вырез в dp по всем четырём сторонам. */
   private fun pushCutout() {
     val view = webView ?: return
-    val dp = cutoutTopDp
+    val top = cutoutTopDp
+    val left = cutoutLeftDp
+    val right = cutoutRightDp
+    val bottom = cutoutBottomDp
     view.post {
       view.evaluateJavascript(
-        "window.__nkseApplyCutout && window.__nkseApplyCutout($dp)",
+        "window.__nkseApplyCutout && window.__nkseApplyCutout($top,$left,$right,$bottom)",
         null
       )
     }
@@ -76,6 +87,15 @@ class MainActivity : TauriActivity() {
   inner class CutoutBridge {
     @JavascriptInterface
     fun top(): Float = cutoutTopDp
+
+    @JavascriptInterface
+    fun left(): Float = cutoutLeftDp
+
+    @JavascriptInterface
+    fun right(): Float = cutoutRightDp
+
+    @JavascriptInterface
+    fun bottom(): Float = cutoutBottomDp
   }
 
   private fun hideSystemBars() {

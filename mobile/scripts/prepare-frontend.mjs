@@ -148,36 +148,84 @@ const MESSENGER_CARD = `
 
 /**
  * Вырез камеры. Android-оболочка измеряет его и вызывает
- * window.__nkseApplyCutout(dp). Каждая страница сама решает, что продлить
- * под камеру: шапку с фоном или фон страницы. Чёрной полосы нет.
+ * window.__nkseApplyCutout(top, left, right, bottom) в dp. Значения живые:
+ * при повороте, складывании и смене ориентации они приходят заново.
  */
 const CUTOUT_HEAD = `
 <style id="nkse-cutout-style">
-:root { --nkse-cutout: env(safe-area-inset-top, 0px); }
+:root {
+    --nkse-cutout-top: env(safe-area-inset-top, 0px);
+    --nkse-cutout-left: env(safe-area-inset-left, 0px);
+    --nkse-cutout-right: env(safe-area-inset-right, 0px);
+    --nkse-cutout-bottom: env(safe-area-inset-bottom, 0px);
+    --nkse-cutout: var(--nkse-cutout-top);
+}
+
+/* Страница занимает весь экран: ни рамок, ни полос по краям.
+   В тёмной теме сайт рисует body рамку 1px #fff — это и были белые линии. */
+html[data-theme] body,
+html[data-theme] body.app-body {
+    border: 0 !important;
+    outline: 0 !important;
+}
+html, body {
+    border: 0 !important;
+    outline: 0 !important;
+    overscroll-behavior: none;
+}
+html {
+    background-color: var(--t-bg, var(--bg, #08080a)) !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
 
 /* Расписание: фон шапки уходит под камеру, текст остаётся ниже неё. */
-body > header.sticky { padding-top: var(--nkse-cutout) !important; }
+body > header.sticky {
+    padding-top: var(--nkse-cutout-top) !important;
+    padding-left: var(--nkse-cutout-left) !important;
+    padding-right: var(--nkse-cutout-right) !important;
+}
 
 /* Библиотека и пожелания: у их шапок свой фон. */
-body > header.topbar { padding-top: var(--nkse-cutout) !important; }
+body > header.topbar {
+    padding-top: var(--nkse-cutout-top) !important;
+    padding-left: var(--nkse-cutout-left) !important;
+    padding-right: var(--nkse-cutout-right) !important;
+}
 
 /* Меню: у шапки фона нет, поэтому отступает вся страница. Берём больший
    из двух отступов — родной отступ сайта или вырез камеры. */
 body > main.wrap {
-    padding-top: max(var(--nkse-cutout), var(--nkse-base-top, 0px)) !important;
+    padding-top: max(var(--nkse-cutout-top), var(--nkse-base-top, 0px)) !important;
+    padding-left: var(--nkse-cutout-left) !important;
+    padding-right: var(--nkse-cutout-right) !important;
 }
 
 /* Страницы без верхней шапки: отступает весь документ. */
-body.nkse-pad-top { padding-top: var(--nkse-cutout) !important; }
+body.nkse-pad-top {
+    padding-top: var(--nkse-cutout-top) !important;
+    padding-left: var(--nkse-cutout-left) !important;
+    padding-right: var(--nkse-cutout-right) !important;
+}
 
 /* Мессенджер: карточка целиком ниже камеры, фон страницы закрывает вырез. */
-body.nkse-messenger { padding-top: var(--nkse-cutout) !important; }
+body.nkse-messenger {
+    padding-top: var(--nkse-cutout-top) !important;
+    padding-left: var(--nkse-cutout-left) !important;
+    padding-right: var(--nkse-cutout-right) !important;
+}
 body.nkse-messenger > #app.app {
-    height: min(860px, calc(100dvh - 24px - var(--nkse-cutout))) !important;
+    height: min(860px, calc(100dvh - 24px - var(--nkse-cutout-top))) !important;
 }
 body.nkse-messenger.is-fullscreen > #app.app,
 body.nkse-messenger > #app.app.is-fullscreen {
-    height: calc(100dvh - var(--nkse-cutout)) !important;
+    height: calc(100dvh - var(--nkse-cutout-top)) !important;
 }
 </style>
 `;
@@ -187,13 +235,24 @@ const CUTOUT_SCRIPT = `
 (function () {
     var root = document.documentElement;
     var last = -1;
-    function apply(dp) {
-        var v = (typeof dp === 'number' && isFinite(dp) && dp > 0) ? dp : 0;
-        root.style.setProperty('--nkse-cutout', v.toFixed(2) + 'px');
-        root.classList.toggle('nkse-has-cutout', v > 0.5);
+
+    function num(v) {
+        v = Number(v);
+        return (isFinite(v) && v > 0) ? v : 0;
+    }
+
+    function apply(top, left, right, bottom) {
+        var t = num(top), l = num(left), r = num(right), b = num(bottom);
+        root.style.setProperty('--nkse-cutout-top', t.toFixed(2) + 'px');
+        root.style.setProperty('--nkse-cutout-left', l.toFixed(2) + 'px');
+        root.style.setProperty('--nkse-cutout-right', r.toFixed(2) + 'px');
+        root.style.setProperty('--nkse-cutout-bottom', b.toFixed(2) + 'px');
+        root.style.setProperty('--nkse-cutout', t.toFixed(2) + 'px');
+        var sum = t + l + r + b;
+        root.classList.toggle('nkse-has-cutout', sum > 0.5);
         /* Шапки и вкладки пересчитывают свои отступы по resize. */
-        if (Math.abs(v - last) > 0.25) {
-            last = v;
+        if (Math.abs(sum - last) > 0.25) {
+            last = sum;
             try { window.dispatchEvent(new Event('resize')); } catch (e) {}
             try { requestAnimationFrame(placeBadge); } catch (e) {}
         }
@@ -202,9 +261,14 @@ const CUTOUT_SCRIPT = `
 
     function fromBridge() {
         try {
-            if (window.NKSEInsets && typeof window.NKSEInsets.top === 'function') {
-                var dp = Number(window.NKSEInsets.top());
-                if (isFinite(dp)) { apply(dp); return dp > 0.5; }
+            var api = window.NKSEInsets;
+            if (api && typeof api.top === 'function') {
+                var t = Number(api.top());
+                var l = typeof api.left === 'function' ? Number(api.left()) : 0;
+                var r = typeof api.right === 'function' ? Number(api.right()) : 0;
+                var b = typeof api.bottom === 'function' ? Number(api.bottom()) : 0;
+                apply(t, l, r, b);
+                return (num(t) + num(l) + num(r) + num(b)) > 0.5;
             }
         } catch (e) {}
         return false;
