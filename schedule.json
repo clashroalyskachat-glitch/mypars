@@ -1686,9 +1686,8 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Биология",
-        "teacher": "Орехова М В",
-        "room": "А413",
-        "substituted": true
+        "teacher": "Кальченко М А",
+        "room": "А413"
       }
     ],
     "Среда": [
@@ -1829,8 +1828,18 @@
         "number": "4",
         "time": "16:20-17:40",
         "subject": "Ин.яз в ПД",
-        "teacher": "Шалуба М А",
-        "room": "А420",
+        "teacher": "Шалуба М А, Щербакова Э А",
+        "room": "А420, А406",
+        "subgroups": [
+          {
+            "teacher": "Шалуба М А",
+            "room": "А420"
+          },
+          {
+            "teacher": "Щербакова Э А",
+            "room": "А406"
+          }
+        ],
         "substituted": true
       }
     ],
@@ -2105,9 +2114,8 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Биология",
-        "teacher": "Орехова М В",
-        "room": "А413",
-        "substituted": true
+        "teacher": "Кальченко М А",
+        "room": "А413"
       },
       {
         "number": "3",
@@ -4911,8 +4919,18 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
-        "room": "А401",
+        "teacher": "Шалуба М А, Щербакова Э А",
+        "room": "А421, А401",
+        "subgroups": [
+          {
+            "teacher": "Шалуба М А",
+            "room": "А421"
+          },
+          {
+            "teacher": "Щербакова Э А",
+            "room": "А401"
+          }
+        ],
         "substituted": true
       }
     ],
@@ -7936,9 +7954,8 @@
         "number": "2",
         "time": "13:10-14:30",
         "subject": "Биология",
-        "teacher": "Орехова М В",
-        "room": "А413",
-        "substituted": true
+        "teacher": "Кальченко М А",
+        "room": "А413"
       },
       {
         "number": "3",
@@ -8319,8 +8336,18 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
-        "room": "А401",
+        "teacher": "Шалуба М А, Щербакова Э А",
+        "room": "А421, А401",
+        "subgroups": [
+          {
+            "teacher": "Шалуба М А",
+            "room": "А421"
+          },
+          {
+            "teacher": "Щербакова Э А",
+            "room": "А401"
+          }
+        ],
         "substituted": true
       },
       {
@@ -8618,8 +8645,18 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Ин. яз.",
-        "teacher": "Шалуба М А",
-        "room": "А401",
+        "teacher": "Шалуба М А, Щербакова Э А",
+        "room": "А421, А401",
+        "subgroups": [
+          {
+            "teacher": "Шалуба М А",
+            "room": "А421"
+          },
+          {
+            "teacher": "Щербакова Э А",
+            "room": "А401"
+          }
+        ],
         "substituted": true
       },
       {
@@ -12774,16 +12811,18 @@
       {
         "number": "2",
         "time": "09:40-11:00",
-        "subject": "Лит-ра",
-        "teacher": "Расторгуева Т В",
-        "room": "А305"
+        "subject": "Математика",
+        "teacher": "Пушкина Т П",
+        "room": "А208",
+        "substituted": true
       },
       {
         "number": "3",
         "time": "11:20-12:40",
-        "subject": "Математика",
-        "teacher": "Пушкина Т П",
-        "room": "А209"
+        "subject": "Лит-ра",
+        "teacher": "Расторгуева Т В",
+        "room": "А305",
+        "substituted": true
       }
     ],
     "Среда": [
@@ -19101,16 +19140,18 @@
       {
         "number": "2",
         "time": "09:40-11:00",
-        "subject": "География",
-        "teacher": "Сорока О И",
-        "room": "А118"
+        "subject": "Рус. яз.",
+        "teacher": "Расторгуева Т В",
+        "room": "А305",
+        "substituted": true
       },
       {
         "number": "3",
         "time": "11:20-12:40",
-        "subject": "Рус. яз.",
-        "teacher": "Расторгуева Т В",
-        "room": "А305"
+        "subject": "География",
+        "teacher": "Сорока О И",
+        "room": "А118",
+        "substituted": true
       }
     ],
     "Среда": [
@@ -20844,21 +20885,21 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "УП.04 Учебная практика",
-        "teacher": "Гусятинская Е Ю",
+        "teacher": "Антипина Т В",
         "room": "А418"
       },
       {
         "number": "2",
         "time": "09:40-11:00",
         "subject": "УП.04 Учебная практика",
-        "teacher": "Тищенко С В",
+        "teacher": "Антипина Т В",
         "room": "А418"
       },
       {
         "number": "3",
         "time": "11:20-12:40",
         "subject": "УП.04 Учебная практика",
-        "teacher": "Тищенко С В",
+        "teacher": "Антипина Т В",
         "room": "А418"
       }
     ],
@@ -20995,9 +21036,8 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "Химия",
-        "teacher": "Попкова Л Ф",
-        "room": "А404",
-        "substituted": true
+        "teacher": "Кальченко М А",
+        "room": "А404"
       },
       {
         "number": "2",
