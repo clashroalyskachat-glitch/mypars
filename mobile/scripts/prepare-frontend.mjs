@@ -78,15 +78,35 @@ const BADGE = `
             return v || 0;
         } catch (e) { return 0; }
     }
-    function update() {
-        var off = !navigator.onLine;
+    var forced = false;
+    function render() {
+        var off = forced || !navigator.onLine;
         box.classList.toggle('is-on', off);
         if (off) when.textContent = fmt(lastTime());
     }
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    setInterval(update, 5000);
-    update();
+    function probe() {
+        if (!navigator.onLine) { forced = true; render(); return; }
+        var ctrl = new AbortController();
+        var timer = setTimeout(function () { ctrl.abort(); }, 4000);
+        fetch('https://clashroalyskachat-glitch.github.io/mypars/schedule-meta.json?probe=' + Date.now(), {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: ctrl.signal
+        }).then(function (res) {
+            clearTimeout(timer);
+            forced = !res.ok;
+            render();
+        }).catch(function () {
+            clearTimeout(timer);
+            forced = true;
+            render();
+        });
+    }
+    window.addEventListener('online', function () { forced = false; render(); probe(); });
+    window.addEventListener('offline', function () { forced = true; render(); });
+    setInterval(probe, 20000);
+    render();
+    probe();
 })();
 </script>
 `;
