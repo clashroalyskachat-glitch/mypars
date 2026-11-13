@@ -142,19 +142,43 @@ html[data-fx="akashi"] header {
 html[data-fx="akashi"] footer {
     border-top: 1px solid var(--t-accent) !important;
 }
+/* Герб Акаши: детальная корона вместо дешёвого символа ♛. */
 html[data-fx="akashi"] .brand-word::before {
-    content: '♛';
-    color: var(--t-warning);
-    font-size: 0.74em;
-    margin-right: 0.16em;
-    transform: translateY(-0.12em);
-    text-shadow: 0 0 10px var(--t-accent-border);
+    content: '';
+    display: block;
+    flex: 0 0 auto;
+    align-self: center;
+    width: 1.18em;
+    height: 1.18em;
+    margin-right: 0.3em;
+    background: url('assets/akashi-crest.svg') center / contain no-repeat;
+    filter:
+        drop-shadow(0 1px 0 rgba(0, 0, 0, .65))
+        drop-shadow(0 0 7px rgba(255, 0, 56, .45));
 }
-html[data-fx="akashi"] .meta-item.is-room::after {
-    content: '♛';
-    color: var(--t-warning);
-    font-size: 0.86em;
-    margin-left: 0.35em;
+
+/* Буквы НКСЭ — не плоская заливка, а металл с бликом и тенью. */
+html[data-fx="akashi"] .brand-word {
+    font-weight: 800;
+    letter-spacing: .05em;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    background-image: linear-gradient(180deg, #fff4df 0%, #ffd98f 24%, #e8a34c 50%, #c2183a 76%, #ff5c75 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter:
+        drop-shadow(0 1px 0 rgba(0, 0, 0, .55))
+        drop-shadow(0 2px 8px rgba(255, 0, 56, .35));
+}
+
+html[data-fx="akashi"] .brand-word .accent {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    background-image: linear-gradient(180deg, #fff6e6 0%, #ffd166 42%, #ff0038 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
 }
 .footer-tagline {
     display: none;
