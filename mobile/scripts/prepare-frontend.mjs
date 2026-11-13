@@ -227,6 +227,17 @@ body.nkse-messenger.is-fullscreen > #app.app,
 body.nkse-messenger > #app.app.is-fullscreen {
     height: calc(100dvh - var(--nkse-cutout-top)) !important;
 }
+/* На телефоне мессенджер — плавающая карточка со скруглениями, а не
+   квадрат во весь экран: снизу виден фон, углы не обрезаны. */
+@media (max-width: 760px) {
+    body.nkse-messenger > #app.app {
+        width: calc(100% - 16px) !important;
+        height: calc(100dvh - var(--nkse-cutout-top) - 20px) !important;
+        border-radius: 24px !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: 0 26px 70px -34px #000 !important;
+    }
+}
 </style>
 `;
 
@@ -318,6 +329,123 @@ const CUTOUT_SCRIPT = `
 </script>
 `;
 
+const MESSENGER_ISLAND = `
+<style id="nkse-island-style">
+#nkse-island {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9998;
+    width: 172px;
+    height: calc(var(--nkse-cutout-top, 36px) + 2px);
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    background: #000;
+    color: #f6f0e4;
+    font: 700 11px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+    letter-spacing: .02em;
+    box-shadow: 0 10px 28px -14px #000, inset 0 1px 0 rgba(255, 255, 255, .08);
+    transition: width .28s cubic-bezier(.2, .8, .25, 1), border-color .28s ease;
+}
+html:not(.nkse-has-cutout) #nkse-island { display: none; }
+#nkse-island .nkse-island-left,
+#nkse-island .nkse-island-right { display: flex; align-items: center; }
+#nkse-island .nkse-island-left { min-width: 0; }
+#nkse-island .nkse-island-right { justify-content: flex-end; color: #c9c4bc; font-variant-numeric: tabular-nums; }
+#nkse-island .nkse-island-dot {
+    width: 7px; height: 7px; margin-right: 6px; border-radius: 50%;
+    background: #35d07f; box-shadow: 0 0 10px #35d07f;
+}
+#nkse-island .nkse-island-phone { width: 14px; height: 14px; opacity: .8; }
+#nkse-island #nkse-island-timer { display: none; }
+#nkse-island.is-open { width: 200px; border-color: rgba(255, 214, 150, .4); }
+#nkse-island.is-open #nkse-island-timer,
+#nkse-island.is-call #nkse-island-timer { display: inline; }
+#nkse-island.is-open .nkse-island-phone,
+#nkse-island.is-call .nkse-island-phone { display: none; }
+#nkse-island.is-call { border-color: rgba(255, 77, 94, .45); }
+#nkse-island.is-call .nkse-island-dot {
+    background: #ff4d5e; box-shadow: 0 0 10px #ff4d5e;
+    animation: nkse-island-pulse 1.2s ease-in-out infinite;
+}
+@keyframes nkse-island-pulse { 50% { opacity: .35; } }
+</style>
+<div id="nkse-island" role="status" aria-label="Мессенджер НКСЭ">
+    <span class="nkse-island-left"><i class="nkse-island-dot"></i><b id="nkse-island-title">PPS</b></span>
+    <span class="nkse-island-right">
+        <svg class="nkse-island-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6.7 3.5h2.1l1.4 3.3-1.6 1.2a12 12 0 0 0 5.4 5.4l1.2-1.6 3.3 1.4v2.1a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4.7 5.7a2 2 0 0 1 2-2.2z"/>
+        </svg>
+        <span id="nkse-island-timer"></span>
+    </span>
+</div>
+<script id="nkse-island-script">
+(function () {
+    var el = document.getElementById('nkse-island');
+    if (!el) return;
+    var title = document.getElementById('nkse-island-title');
+    var timer = document.getElementById('nkse-island-timer');
+    var callModal = document.getElementById('call-modal');
+    var callStarted = 0;
+    var interval = 0;
+    var collapse = 0;
+
+    function isCall() { return !!(callModal && !callModal.hidden); }
+    function fmt(sec) {
+        sec = Math.max(0, sec | 0);
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+    function paintCall() {
+        if (!isCall()) {
+            el.classList.remove('is-call');
+            title.textContent = 'PPS';
+            timer.textContent = '';
+            if (interval) { clearInterval(interval); interval = 0; }
+            callStarted = 0;
+            return;
+        }
+        el.classList.add('is-call');
+        title.textContent = 'Звонок';
+        if (!callStarted) callStarted = Date.now();
+        if (!interval) interval = setInterval(paintCall, 1000);
+        timer.textContent = fmt(Math.floor((Date.now() - callStarted) / 1000));
+    }
+    function showClock() {
+        el.classList.add('is-open');
+        timer.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        clearTimeout(collapse);
+        collapse = setTimeout(function () {
+            if (isCall()) return;
+            el.classList.remove('is-open');
+            timer.textContent = '';
+        }, 2600);
+    }
+
+    if (callModal && window.MutationObserver) {
+        new MutationObserver(paintCall).observe(callModal, { attributes: true, attributeFilter: ['hidden'] });
+    }
+    el.addEventListener('click', function () {
+        if (isCall()) {
+            var card = callModal.querySelector('.call-card');
+            if (card && card.scrollIntoView) card.scrollIntoView({ block: 'center' });
+            return;
+        }
+        showClock();
+    });
+    paintCall();
+})();
+</script>
+`;
+
 function ensureViewportFit(html) {
     return html.replace(
         /<meta\s+name=["']viewport["']\s+content=["']([^"']*)["'][^>]*>/i,
@@ -332,7 +460,8 @@ function injectCutout(file) {
     if (html.includes('id="nkse-cutout-style"')) return false;
     html = ensureViewportFit(html);
     if (html.includes('</head>')) html = html.replace('</head>', CUTOUT_HEAD + '</head>');
-    html = html.replace(/<\/body>/i, CUTOUT_SCRIPT + '</body>');
+    const isMessenger = /[\\/]mypars[\\/]messenger[\\/]index\.html$/i.test(file);
+    html = html.replace(/<\/body>/i, CUTOUT_SCRIPT + (isMessenger ? MESSENGER_ISLAND : '') + '</body>');
     fs.writeFileSync(file, html, 'utf8');
     return true;
 }

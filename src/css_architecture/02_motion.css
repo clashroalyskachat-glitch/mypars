@@ -110,7 +110,7 @@ html[data-anim="soft"] #days-tabs.dock-moving .dock-pill { animation: none; }
 /* «Вода»: пока капсула летит, вкладки чуть проседают и пружинят обратно. */
 #days-tabs.dock-moving .day-tab {
     transform: scaleY(.97);
-    transition: transform .18s ease;
+    transition: transform .18s ease, color .18s ease;
 }
 #days-tabs.dock-moving .day-tab.day-tab-active { transform: scaleY(1); }
 
@@ -138,23 +138,17 @@ html[data-anim="soft"] #days-tabs.dock-moving .dock-pill { animation: none; }
 }
 
 /*
- * Пока капсула летит, фон снимаем у всех вкладок — остаётся чистый текст.
- * Селектор с лишним классом, чтобы перебить !important из theme.css.
+ * Пока капсула летит, фон и рамки вкладок убираем полностью: иначе
+ * сквозь золото просвечивают прямоугольные блоки вкладок. Текст остаётся
+ * сверху и читается на золоте. После приземления класс снимается и
+ * оформление возвращается.
  */
-/* Пока капсула летит, вкладки остаются с обводкой. Фон делаем
-   полупрозрачным, чтобы капсула просвечивала сквозь них, как через воду,
-   а не стирала все рамки на время анимации. */
-html[data-theme] #days-tabs.dock-moving .day-tab {
-    background-color: transparent !important;
-    background-color: color-mix(in srgb, var(--t-tab-pill-bg) 45%, transparent) !important;
-    background-image: none !important;
-    border-color: var(--t-tab-pill-border) !important;
-    box-shadow: none !important;
-}
+html[data-theme] #days-tabs.dock-moving .day-tab,
 html[data-theme] #days-tabs.dock-moving .day-tab.day-tab-active {
     background-color: transparent !important;
-    background-color: color-mix(in srgb, var(--t-tab-pill-bg) 45%, transparent) !important;
-    border-color: var(--t-tab-active-border) !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 /* в полёте подписи чуть плотнее — чтобы читались на золоте */

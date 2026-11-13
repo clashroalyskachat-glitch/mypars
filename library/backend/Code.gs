@@ -1652,6 +1652,14 @@ function authRateAdd_(prop, max, windowMs) {
     } catch (error) { state = { n: 0, until: 0 }; }
 
     var now = new Date().getTime();
+    state.n = Math.max(0, Number(state.n) || 0);
+
+    /* Если в свойствах застряла дата из будущего (старый баг, ручная
+       правка или переезд часов), не держим регистрацию заблокированной
+       неделями — срезаем до нормального окна. */
+    if (!isFinite(state.until) || state.until > now + windowMs) {
+        state.until = now + windowMs;
+    }
 
     if (state.until > now) {
         return { ok: false, minutes: Math.ceil((state.until - now) / 60000) };

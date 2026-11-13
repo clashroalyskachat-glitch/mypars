@@ -118,9 +118,10 @@ button { cursor: pointer; }
 [hidden] { display: none !important; }
 
 :focus-visible {
-    outline: 2px solid var(--accent);
+    /* Не задаём border-radius: иначе круглая кнопка-карандаш на фокусе
+       превращается в квадрат. Обводка должна повторять форму элемента. */
+    outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
     outline-offset: 2px;
-    border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {

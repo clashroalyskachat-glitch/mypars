@@ -99,6 +99,9 @@
         pendingFiles: [],
         pendingPreviews: [],
         searchTimer: 0,
+        searchSeq: 0,
+        authCooldownTimer: 0,
+        qrLib: null,
         authMode: 'login',
         retry: 0,
         call: null,
@@ -310,12 +313,31 @@
         updatePeerCount();
     }
 
-    function showAuth(message) {
+    function showAuth(message, cooldownMinutes) {
         document.body.classList.add('auth-locked');
         $('auth-modal').hidden = false;
-        if (message) {
+        clearTimeout(state.authCooldownTimer);
+        state.authCooldownTimer = 0;
+        if (cooldownMinutes > 0) {
+            const until = Date.now() + Math.max(1, Number(cooldownMinutes)) * 60000;
+            const tick = () => {
+                const left = until - Date.now();
+                if (left <= 0) {
+                    $('auth-error').hidden = true;
+                    state.authCooldownTimer = 0;
+                    return;
+                }
+                const wait = Math.max(1, Math.ceil(left / 60000));
+                $('auth-error').textContent = 'Слишком много попыток. Подожди ' + wait + ' мин.';
+                $('auth-error').hidden = false;
+                state.authCooldownTimer = setTimeout(tick, 1000);
+            };
+            tick();
+        } else if (message) {
             $('auth-error').textContent = message;
             $('auth-error').hidden = false;
+        } else {
+            $('auth-error').hidden = true;
         }
         let lastNick = '';
         try { lastNick = localStorage.getItem('pps.lastNick') || ''; } catch (e) { /* private mode */ }
@@ -327,6 +349,8 @@
         document.body.classList.remove('auth-locked');
         $('auth-modal').hidden = true;
         $('auth-error').hidden = true;
+        clearTimeout(state.authCooldownTimer);
+        state.authCooldownTimer = 0;
         try {
             if (!localStorage.getItem('pps.onboarded')) setTimeout(showHelp, 700);
         } catch (e) { /* private mode */ }
@@ -422,7 +446,7 @@
                     $('search').disabled = true;
                     $('chat-view').hidden = true;
                     $('empty').hidden = false;
-                    showAuth(authError(msg.error));
+                    showAuth(authError(msg.error, msg.minutes), msg.minutes);
                 }
                 break;
 
@@ -433,11 +457,21 @@
                 renderPresence();
                 break;
 
-            case 'search':
-                state.search = (msg.users || []).filter((u) => !state.me || u.nick !== state.me.nick);
+            case 'search': {
+                const query = ($('search').value || '').trim();
+                if (!query) {
+                    state.search = [];
+                    state.searchLoading = false;
+                    $('search-results').hidden = true;
+                    break;
+                }
+                const lower = query.toLowerCase();
+                state.search = (msg.users || [])
+                    .filter((u) => (!state.me || u.nick !== state.me.nick) && u.nick.toLowerCase().includes(lower));
                 state.searchLoading = false;
                 renderSearch();
                 break;
+            }
 
             case 'history': {
                 const peer = msg.with;
@@ -479,13 +513,16 @@
         }
     }
 
-    function authError(code) {
+    function authError(code, minutes) {
+        if (code === 'too_many') {
+            const wait = Math.max(1, Math.ceil(Number(minutes) || 1));
+            return 'Слишком много попыток. Подожди ' + wait + ' мин.';
+        }
         return {
             bad_nick: 'Ник: 3–20 знаков, буквы, цифры, _ и -.',
             bad_pass: 'Пароль: от 6 до 100 знаков.',
             nick_taken: 'Этот ник уже занят.',
             wrong_pass: 'Неверный ник или пароль.',
-            too_many: 'Слишком много попыток. Подожди минуту.',
             no_session: 'Сессия истекла — войди снова.',
         }[code] || 'Ошибка входа.';
     }
@@ -2131,8 +2168,10 @@
 
     function onSearch() {
         clearTimeout(state.searchTimer);
+        state.searchSeq += 1;
         const query = $('search').value.trim();
         if (!query) {
+            state.search = [];
             state.searchLoading = false;
             $('search-results').hidden = true;
             return;
@@ -2157,6 +2196,11 @@
 
     function renderSearch() {
         const box = $('search-results');
+        if (!($('search').value || '').trim()) {
+            box.replaceChildren();
+            box.hidden = true;
+            return;
+        }
         box.replaceChildren();
         box.hidden = false;
 
@@ -2205,21 +2249,44 @@
         return location.origin + location.pathname + '?add=' + encodeURIComponent(state.me.nick);
     }
 
+    /* Библиотека QR весит ~56 КБ и нужна только при открытии QR.
+       Не грузим её на старте мессенджера. */
+    function loadQrLib() {
+        if (window.qrcode) return Promise.resolve();
+        if (state.qrLib) return state.qrLib;
+        state.qrLib = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'qrcode.js?v=35';
+            script.onload = () => resolve();
+            script.onerror = () => {
+                state.qrLib = null;
+                reject(new Error('qr library'));
+            };
+            document.head.appendChild(script);
+        });
+        return state.qrLib;
+    }
+
     function openQr() {
         if (!state.me) return showAuth();
         const link = myLink();
         $('qr-link').textContent = link;
         const box = $('qr-box');
-        box.replaceChildren();
-        try {
-            const qr = qrcode(0, 'M');
-            qr.addData(link);
-            qr.make();
-            box.innerHTML = qr.createSvgTag(5, 4);
-        } catch (e) {
-            box.textContent = 'QR недоступен';
-        }
+        box.textContent = 'Загрузка QR…';
         $('qr-modal').hidden = false;
+        loadQrLib().then(() => {
+            box.replaceChildren();
+            try {
+                const qr = qrcode(0, 'M');
+                qr.addData(link);
+                qr.make();
+                box.innerHTML = qr.createSvgTag(5, 4);
+            } catch (e) {
+                box.textContent = 'QR недоступен';
+            }
+        }).catch(() => {
+            box.textContent = 'QR недоступен';
+        });
     }
 
     function loadQrDecoder() {
@@ -3012,9 +3079,13 @@
         });
 
         $('search').addEventListener('input', onSearch);
+        $('search').addEventListener('search', onSearch);
         $('search').addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 $('search').value = '';
+                state.searchSeq += 1;
+                state.search = [];
+                state.searchLoading = false;
                 $('search-results').hidden = true;
             }
             if (event.key === 'Enter' && state.search.length) openChat(state.search[0].nick);
@@ -3305,7 +3376,7 @@
         try {
             const data = await appsScriptCall({ board: 'auth', op: mode, nick, pass: password });
             if (!data || !data.ok) {
-                showAuth(authError(data && data.error));
+                showAuth(authError(data && data.error, data && data.minutes), data && data.minutes);
                 return;
             }
             writeNkseSession(data.token, data.user);
@@ -3618,11 +3689,22 @@
 
     async function supabaseSearch(query) {
         if (!state.sb) return;
+        const seq = ++state.searchSeq;
         const { data, error } = await state.sb
             .from('profiles')
             .select('id,nick,last_seen')
             .ilike('nick', '%' + query + '%')
             .limit(20);
+        /* Пока запрос летел, строку могли стереть или изменить.
+           Устаревший ответ не должен возвращать список на экран. */
+        if (seq !== state.searchSeq) return;
+        const current = ($('search').value || '').trim();
+        if (!current) {
+            state.search = [];
+            state.searchLoading = false;
+            $('search-results').hidden = true;
+            return;
+        }
         if (error) {
             console.warn(error);
             state.search = [];
@@ -3633,6 +3715,7 @@
         state.searchLoading = false;
         state.search = (data || [])
             .filter((user) => user.id !== state.sbUid)
+            .filter((user) => user.nick.toLowerCase().includes(current.toLowerCase()))
             .map((user) => ({
                 nick: user.nick,
                 uid: user.id,
