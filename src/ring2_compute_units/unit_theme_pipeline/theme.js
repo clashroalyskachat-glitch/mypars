@@ -312,30 +312,30 @@
             fx: 'akashi',
             anim: 'soft',
             colors: {
-                bg: '#0a0a0a', surface: '#121212', surface2: '#1a1a1a',
-                text: '#f5f5f5', muted: '#8a8a8a',
-                accent: '#ff2e4d', accentContrast: '#ffffff',
-                border: 'rgba(255,255,255,0.10)', borderStrong: 'rgba(255,255,255,0.22)',
-                softBorder: 'rgba(255,255,255,0.12)', panelBorder: 'rgba(255,255,255,0.14)',
-                warning: '#ffd166', success: '#4ade80', danger: '#ff4d4d',
-                lessonBg: '#121212', lessonBgHover: '#181818',
-                lessonBorder: 'rgba(255,255,255,0.08)', roomBorder: 'rgba(255,46,77,0.35)',
-                tabBg: '#0a0a0a', tabPillBg: '#121212',
-                tabPillBorder: 'rgba(255,255,255,0.12)', tabActiveBg: '#ff2e4d',
-                tabActiveText: '#ffffff', tabActiveBorder: '#ff2e4d',
-                headerBg: 'rgba(10,10,10,0.92)', footerBg: '#0a0a0a',
-                inputBg: '#141414', chipBg: 'rgba(255,255,255,0.06)',
-                nowBg: '#121212'
+                bg: '#050000', surface: '#080000', surface2: '#160309',
+                text: '#fff5f2', muted: '#c98a96',
+                accent: '#ff0038', accentContrast: '#ffffff',
+                border: 'rgba(255,0,56,0.55)', borderStrong: '#ff5c75',
+                softBorder: 'rgba(255,0,56,0.32)', panelBorder: 'rgba(255,0,56,0.35)',
+                warning: '#ffd166', success: '#ffd166', danger: '#ff2e3f',
+                lessonBg: '#080000', lessonBgHover: '#14020a',
+                lessonBorder: 'rgba(255,0,56,0.40)', roomBorder: 'rgba(255,209,102,0.60)',
+                tabBg: '#070000', tabPillBg: '#070000',
+                tabPillBorder: 'rgba(255,0,56,0.40)', tabActiveBg: '#ff0038',
+                tabActiveText: '#ffffff', tabActiveBorder: '#ff5c75',
+                headerBg: '#050000', footerBg: '#050000',
+                inputBg: 'transparent', chipBg: 'rgba(255,255,255,0.035)',
+                nowBg: 'rgba(8,0,3,0.90)'
             },
             metrics: {
-                radius: 10,
-                spaceScale: 1,
-                textScale: 1,
-                lineHeight: 1.45,
+                radius: 6,
+                spaceScale: 1.0,
+                textScale: 1.0,
+                lineHeight: 1.4,
                 border: 1,
-                cardOpacity: 1,
-                glow: 0,
-                displayFont: 'humanist',
+                cardOpacity: 0.82,
+                glow: 8,
+                displayFont: 'sans',
                 motion: true
             },
             background: {
@@ -343,7 +343,7 @@
                 mobileUrl: 'assets/akashi-phone.webp',
                 fit: 'cover',
                 position: 'center',
-                dim: 0.35
+                dim: 0.08
             }
         }
     ];

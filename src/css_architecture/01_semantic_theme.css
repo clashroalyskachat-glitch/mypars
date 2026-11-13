@@ -135,15 +135,17 @@ html[data-glow="on"] #days-tabs .day-tab-active {
     box-shadow: 0 0 calc(var(--t-glow, 0) * 1px) var(--t-accent-border) !important;
 }
 
-/* Акаши: минимализм — белые буквы и один красный акцент.
-   Никаких градиентов, теней, обводок и декоративных рамок. */
+/* Акаши: снова сочный градиент, но без тени и фильтра — чтобы не ломалось
+   при масштабировании. «Э» — ровный красный акцент. */
 html[data-fx="akashi"] .brand-word {
     font-weight: 800;
     letter-spacing: .06em;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
     text-shadow: none !important;
-    background: none !important;
+    background-image: linear-gradient(180deg, #ffffff 0%, #ffe9ec 40%, #ff0038 78%, #8a0018 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
     filter: none !important;
 }
 
