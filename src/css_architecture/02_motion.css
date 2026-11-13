@@ -22,6 +22,7 @@
 
     border-radius: 999px;
     border: 1px solid rgb(255 226 178 / .55);
+    border: 1px solid color-mix(in srgb, var(--t-accent) 72%, #fff 18%);
 
     background-color: #b9863f;
     /* фолбэк для браузеров без color-mix */
@@ -102,6 +103,36 @@ html[data-anim="soft"] #days-tabs.dock-moving .dock-pill { animation: none; }
 #days-tabs .day-tab {
     position: relative;
     z-index: 1;
+}
+
+/* «Вода»: пока капсула летит, вкладки чуть проседают и пружинят обратно. */
+#days-tabs.dock-moving .day-tab {
+    transform: scaleY(.97);
+    transition: transform .18s ease;
+}
+#days-tabs.dock-moving .day-tab.day-tab-active { transform: scaleY(1); }
+
+/* Приземление: кольцо-рябь и мягкая пружина на целевой вкладке. */
+#days-tabs .day-tab.dock-landed::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--t-accent) 60%, transparent);
+    pointer-events: none;
+    animation: dock-ripple .55s cubic-bezier(.2, .7, .2, 1) forwards;
+}
+#days-tabs .day-tab.dock-landed {
+    animation: dock-settle .45s cubic-bezier(.2, .7, .2, 1);
+}
+@keyframes dock-ripple {
+    0% { opacity: .9; transform: scale(.96); }
+    100% { opacity: 0; transform: scale(1.18); }
+}
+@keyframes dock-settle {
+    0% { transform: scale(1.05); }
+    55% { transform: scale(.99); }
+    100% { transform: scale(1); }
 }
 
 /*

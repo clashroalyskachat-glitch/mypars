@@ -107,7 +107,8 @@
                         top: from.top + 'px',
                         width: from.width + 'px',
                         height: from.height + 'px',
-                        transform: 'scaleY(1)'
+                        transform: 'scaleY(1)',
+                        borderRadius: '999px'
                     },
                     {
                         left: midLeft + 'px',
@@ -115,6 +116,7 @@
                         width: (midRight - midLeft) + 'px',
                         height: from.height + 'px',
                         transform: 'scaleY(.93)',
+                        borderRadius: '44% / 52%',
                         offset: 0.5
                     },
                     {
@@ -122,7 +124,8 @@
                         top: to.top + 'px',
                         width: to.width + 'px',
                         height: to.height + 'px',
-                        transform: 'scaleY(1)'
+                        transform: 'scaleY(1)',
+                        borderRadius: '999px'
                     }
                 ], {
                     duration: 620 * animSpeed,
@@ -135,6 +138,11 @@
                     pill.style.transform = 'scaleY(1)';
                     pill.style.opacity = '0';
                     current.classList.remove('dock-moving');
+                    // «Приземление»: рябь и пружина на целевой вкладке.
+                    if (active && active.classList) {
+                        active.classList.add('dock-landed');
+                        setTimeout(function () { active.classList.remove('dock-landed'); }, 620);
+                    }
                     anim = null;
                 };
             });

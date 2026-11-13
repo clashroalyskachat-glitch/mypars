@@ -208,10 +208,17 @@
                     '</div>' +
                     '<div class="settings-row"><span>Шрифт заголовков</span>' +
                         '<select id="display-font">' +
-                            '<option value="sans">Обычный</option>' +
+                            '<option value="sans">Системный</option>' +
+                            '<option value="humanist">Segoe UI</option>' +
                             '<option value="serif">С засечками</option>' +
+                            '<option value="display">Palatino</option>' +
+                            '<option value="rounded">Trebuchet</option>' +
+                            '<option value="candara">Candara</option>' +
+                            '<option value="condensed">Узкий</option>' +
+                            '<option value="mono">Моно</option>' +
                         '</select>' +
                     '</div>' +
+                    '<div class="settings-hint">Все шрифты системные — ничего не скачивается и не замедляет загрузку.</div>' +
                 '</section>' +
 
                 '<section class="settings-group" id="sec-shape">' +
@@ -873,7 +880,7 @@
         T.setMetric('glow', v);
     });
     $('#display-font').addEventListener('change', function (e) {
-        T.setMetric('displayFont', e.target.value === 'serif' ? 'serif' : 'sans');
+        T.setMetric('displayFont', e.target.value);
     });
     $('#motion').addEventListener('change', function (e) {
         T.setMetric('motion', e.target.checked);

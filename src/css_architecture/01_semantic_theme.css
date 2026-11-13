@@ -142,55 +142,25 @@ html[data-fx="akashi"] header {
 html[data-fx="akashi"] footer {
     border-top: 1px solid var(--t-accent) !important;
 }
-/* Герб Акаши: резкий ромб вместо мультяшной короны. */
-html[data-fx="akashi"] .brand-word::before {
-    content: '';
-    display: block;
-    flex: 0 0 auto;
-    align-self: center;
-    width: 1.22em;
-    height: 1.22em;
-    margin-right: 0.3em;
-    background: url('assets/akashi-crest.svg') center / contain no-repeat;
-    filter:
-        drop-shadow(0 1px 0 rgba(0, 0, 0, .9))
-        drop-shadow(0 0 8px rgba(255, 0, 56, .35));
-}
-
-/* Красный штрих после слова — как в монтажных титрах. */
-html[data-fx="akashi"] .brand-word::after {
-    content: '';
-    display: block;
-    align-self: center;
-    width: 0.55em;
-    height: 0.14em;
-    margin-left: 0.18em;
-    background: #ff0038;
-    transform: skewX(-30deg);
-    box-shadow: 0 0 8px rgba(255, 0, 56, .55);
-}
-
-/* Буквы НКСЭ: белый металл, уходящий в красный, с чёткой тенью. */
+/* Акаши: чистый металлический wordmark. Без гербов, штрихов и обводок —
+   только буквы, свет и тень. */
 html[data-fx="akashi"] .brand-word {
     font-weight: 800;
-    font-style: italic;
-    letter-spacing: .01em;
+    letter-spacing: .06em;
     color: transparent !important;
     -webkit-text-fill-color: transparent;
     text-shadow: none !important;
-    background-image: linear-gradient(180deg, #ffffff 0%, #ffe9ec 24%, #ff7d8d 48%, #ff0038 74%, #7d0016 100%);
+    background-image: linear-gradient(180deg, #ffffff 0%, #ffe9ec 40%, #ff0038 78%, #8a0018 100%);
     -webkit-background-clip: text;
     background-clip: text;
-    filter:
-        drop-shadow(0 1px 0 rgba(0, 0, 0, .9))
-        drop-shadow(0 0 10px rgba(255, 0, 56, .30));
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .9));
 }
 
 html[data-fx="akashi"] .brand-word .accent {
     color: transparent !important;
     -webkit-text-fill-color: transparent;
     text-shadow: none !important;
-    background-image: linear-gradient(180deg, #ffffff 0%, #ffd166 38%, #ff0038 100%);
+    background-image: inherit;
     -webkit-background-clip: text;
     background-clip: text;
 }
@@ -219,15 +189,6 @@ html[data-fx="neon"] .brand-word .accent {
     background-clip: text;
 }
 
-/* На узком экране герб и штрих не должны отжимать название и «Меню». */
-@media (max-width: 639px) {
-    html[data-fx="akashi"] .brand-word::before {
-        width: 1em;
-        height: 1em;
-        margin-right: 0.22em;
-    }
-    html[data-fx="akashi"] .brand-word::after { display: none; }
-}
 .footer-tagline {
     display: none;
     margin-top: 0.6rem;

@@ -100,6 +100,19 @@
         animSpeed: 1
     };
 
+    /* Шрифты заголовков. Все — системные: ничего не скачивается, поэтому
+       выбор шрифта не влияет на загрузку сайта вообще. */
+    var FONT_FAMILIES = {
+        sans: 'inherit',
+        humanist: "'Segoe UI', system-ui, -apple-system, sans-serif",
+        serif: "Georgia, 'Times New Roman', 'Noto Serif', serif",
+        display: "'Palatino Linotype', 'Book Antiqua', Georgia, serif",
+        rounded: "'Trebuchet MS', 'Segoe UI', sans-serif",
+        candara: "Candara, 'Segoe UI', sans-serif",
+        condensed: "'Arial Narrow', 'Segoe UI', sans-serif",
+        mono: "'Cascadia Code', Consolas, 'JetBrains Mono', monospace"
+    };
+
     var COLOR_VARS = {
         bg: '--t-bg',
         surface: '--t-surface',
@@ -264,15 +277,15 @@
             colors: {
                 bg: '#05010f', surface: '#080315', surface2: '#0d0620', text: '#f5f3ff',
                 muted: '#a99fca', accent: '#22d3ee', accentContrast: '#041016',
-                border: 'rgba(34,211,238,0.35)', borderStrong: 'rgba(34,211,238,0.65)',
-                softBorder: 'rgba(34,211,238,0.28)', warning: '#fb7185',
-                lessonBg: '#080315', lessonBgHover: '#0b0420', lessonBorder: 'rgba(34,211,238,0.30)',
-                roomBorder: 'rgba(34,211,238,0.40)', tabBg: '#080315', tabPillBg: '#080315',
-                tabPillBorder: 'rgba(34,211,238,0.45)', tabActiveBg: 'transparent',
+                border: 'rgba(34,211,238,0.16)', borderStrong: 'rgba(34,211,238,0.38)',
+                softBorder: 'rgba(34,211,238,0.14)', warning: '#fb7185',
+                lessonBg: '#080315', lessonBgHover: '#0b0420', lessonBorder: 'rgba(34,211,238,0.12)',
+                roomBorder: 'rgba(34,211,238,0.30)', tabBg: '#080315', tabPillBg: '#080315',
+                tabPillBorder: 'rgba(34,211,238,0.24)', tabActiveBg: 'transparent',
                 tabActiveText: '#22d3ee', tabActiveBorder: '#22d3ee', headerBg: '#05010f',
                 footerBg: '#05010f', chipBg: 'rgba(34,211,238,0.10)', nowBg: '#080315'
             },
-            metrics: { radius: 18, glow: 5 }
+            metrics: { radius: 18, glow: 0 }
         },
         {
             id: 'calm',
@@ -410,7 +423,9 @@
         out.metrics.border = clamp(out.metrics.border, 0, 3);
         out.metrics.cardOpacity = clamp(out.metrics.cardOpacity, 0.5, 1);
         out.metrics.glow = clamp(out.metrics.glow, 0, 30);
-        out.metrics.displayFont = raw.metrics && raw.metrics.displayFont === 'serif' ? 'serif' : 'sans';
+        out.metrics.displayFont = raw.metrics && FONT_FAMILIES[raw.metrics.displayFont]
+            ? raw.metrics.displayFont
+            : 'sans';
         out.metrics.animStyle = raw.metrics && ['auto', 'gold', 'glow', 'soft', 'none'].indexOf(raw.metrics.animStyle) >= 0
             ? raw.metrics.animStyle
             : 'auto';
@@ -597,7 +612,7 @@
         root.style.setProperty('--t-card-bg', hexToRgba(tokens.surface, m.cardOpacity));
         root.style.setProperty('--t-lesson-card-bg', hexToRgba(tokens.lessonBg, m.cardOpacity));
         root.style.setProperty('--t-lesson-card-bg-hover', hexToRgba(tokens.lessonBgHover, m.cardOpacity));
-        root.style.setProperty('--t-display-font', m.displayFont === 'serif' ? "Georgia, 'Times New Roman', 'Noto Serif', serif" : 'inherit');
+        root.style.setProperty('--t-display-font', FONT_FAMILIES[m.displayFont] || 'inherit');
         root.style.setProperty('--t-glow', String(m.glow || 0));
         root.setAttribute('data-glow', m.glow > 0 ? 'on' : 'off');
         root.setAttribute('data-fx', state.fx || 'none');
