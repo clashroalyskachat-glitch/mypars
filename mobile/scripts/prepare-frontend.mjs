@@ -35,7 +35,7 @@ const BADGE = `
 #nkse-offline {
     position: fixed;
     left: 8px;
-    top: calc(var(--header-h, 64px) + 8px);
+    top: var(--nkse-badge-top, 72px);
     z-index: 9999;
     display: none;
     align-items: center;
@@ -146,7 +146,134 @@ const MESSENGER_CARD = `
         </a>
 `;
 
-function inject(file) {
+/**
+ * Вырез камеры. Android-оболочка измеряет его и вызывает
+ * window.__nkseApplyCutout(dp). Каждая страница сама решает, что продлить
+ * под камеру: шапку с фоном или фон страницы. Чёрной полосы нет.
+ */
+const CUTOUT_HEAD = `
+<style id="nkse-cutout-style">
+:root { --nkse-cutout: env(safe-area-inset-top, 0px); }
+
+/* Расписание: фон шапки уходит под камеру, текст остаётся ниже неё. */
+body > header.sticky { padding-top: var(--nkse-cutout) !important; }
+
+/* Библиотека и пожелания: у их шапок свой фон. */
+body > header.topbar { padding-top: var(--nkse-cutout) !important; }
+
+/* Меню: у шапки фона нет, поэтому отступает вся страница. Берём больший
+   из двух отступов — родной отступ сайта или вырез камеры. */
+body > main.wrap {
+    padding-top: max(var(--nkse-cutout), var(--nkse-base-top, 0px)) !important;
+}
+
+/* Страницы без верхней шапки: отступает весь документ. */
+body.nkse-pad-top { padding-top: var(--nkse-cutout) !important; }
+
+/* Мессенджер: карточка целиком ниже камеры, фон страницы закрывает вырез. */
+body.nkse-messenger { padding-top: var(--nkse-cutout) !important; }
+body.nkse-messenger > #app.app {
+    height: min(860px, calc(100dvh - 24px - var(--nkse-cutout))) !important;
+}
+body.nkse-messenger.is-fullscreen > #app.app,
+body.nkse-messenger > #app.app.is-fullscreen {
+    height: calc(100dvh - var(--nkse-cutout)) !important;
+}
+</style>
+`;
+
+const CUTOUT_SCRIPT = `
+<script id="nkse-cutout-script">
+(function () {
+    var root = document.documentElement;
+    var last = -1;
+    function apply(dp) {
+        var v = (typeof dp === 'number' && isFinite(dp) && dp > 0) ? dp : 0;
+        root.style.setProperty('--nkse-cutout', v.toFixed(2) + 'px');
+        root.classList.toggle('nkse-has-cutout', v > 0.5);
+        /* Шапки и вкладки пересчитывают свои отступы по resize. */
+        if (Math.abs(v - last) > 0.25) {
+            last = v;
+            try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+            try { requestAnimationFrame(placeBadge); } catch (e) {}
+        }
+    }
+    window.__nkseApplyCutout = apply;
+
+    function fromBridge() {
+        try {
+            if (window.NKSEInsets && typeof window.NKSEInsets.top === 'function') {
+                var dp = Number(window.NKSEInsets.top());
+                if (isFinite(dp)) { apply(dp); return dp > 0.5; }
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    /* Мост появляется чуть позже первого скрипта — ждём его до 4 секунд. */
+    if (!fromBridge()) {
+        var tries = 0;
+        var timer = setInterval(function () {
+            if (fromBridge() || ++tries > 40) clearInterval(timer);
+        }, 100);
+    }
+
+    function layout() {
+        var body = document.body;
+        if (!body) return;
+        var app = document.getElementById('app');
+        var messenger = !!(app && app.parentNode === body);
+        if (messenger) body.classList.add('nkse-messenger');
+
+        /* Меню: запоминаем родной верхний отступ страницы. */
+        var main = document.querySelector('body > main.wrap');
+        if (main) {
+            var base = parseFloat(getComputedStyle(main).paddingTop);
+            if (isFinite(base)) main.style.setProperty('--nkse-base-top', base + 'px');
+        }
+
+        if (!messenger && !document.querySelector('body > header.sticky, body > header.topbar, main.wrap > header.top')) {
+            body.classList.add('nkse-pad-top');
+        }
+        placeBadge();
+    }
+
+    /* Офлайн-плашка садится ровно под шапку, а не поверх неё. */
+    function placeBadge() {
+        if (!document.getElementById('nkse-offline')) return;
+        var head = document.querySelector('body > header.sticky, body > header.topbar, main.wrap > header.top');
+        var top = head ? head.getBoundingClientRect().bottom + 8 : 72;
+        root.style.setProperty('--nkse-badge-top', Math.round(top) + 'px');
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', layout);
+    } else {
+        layout();
+    }
+})();
+</script>
+`;
+
+function ensureViewportFit(html) {
+    return html.replace(
+        /<meta\s+name=["']viewport["']\s+content=["']([^"']*)["'][^>]*>/i,
+        (tag, content) => (/viewport-fit/i.test(content)
+            ? tag
+            : tag.replace(content, content.replace(/\s*$/, '') + ', viewport-fit=cover'))
+    );
+}
+
+function injectCutout(file) {
+    let html = fs.readFileSync(file, 'utf8');
+    if (html.includes('id="nkse-cutout-style"')) return false;
+    html = ensureViewportFit(html);
+    if (html.includes('</head>')) html = html.replace('</head>', CUTOUT_HEAD + '</head>');
+    html = html.replace(/<\/body>/i, CUTOUT_SCRIPT + '</body>');
+    fs.writeFileSync(file, html, 'utf8');
+    return true;
+}
+
+function injectBadge(file) {
     if (!fs.existsSync(file)) return false;
     let html = fs.readFileSync(file, 'utf8');
     if (html.includes('id="nkse-offline"')) return false;
@@ -161,11 +288,29 @@ function inject(file) {
     return true;
 }
 
-const targets = [
+function htmlFiles(dir) {
+    const out = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) out.push(...htmlFiles(full));
+        else if (entry.isFile() && entry.name.toLowerCase().endsWith('.html')) out.push(full);
+    }
+    return out;
+}
+
+const badgePages = [
     path.join(OUT, 'mypars', 'index.html'),
     path.join(OUT, 'index.html'),
 ];
-let injected = 0;
-for (const file of targets) if (inject(file)) injected++;
+let badges = 0;
+for (const file of badgePages) if (injectBadge(file)) badges++;
 
-console.log('app-frontend готов:', OUT, '| layout:', hasFull ? 'full' : 'schedule-only', '| badge:', injected);
+let cutouts = 0;
+for (const file of htmlFiles(OUT)) if (injectCutout(file)) cutouts++;
+
+console.log(
+    'app-frontend готов:', OUT,
+    '| layout:', hasFull ? 'full' : 'schedule-only',
+    '| badge:', badges,
+    '| cutout:', cutouts
+);
