@@ -97,7 +97,9 @@
         /* auto — стиль из темы; gold/glow/soft/none — ручной выбор */
         animStyle: 'auto',
         /* множитель длительности: 1.3 медленно, 1 обычно, 0.75 быстро */
-        animSpeed: 1
+        animSpeed: 1,
+        /* положение панели на ПК: сверху / слева / справа */
+        navPos: 'top'
     };
 
     /* Шрифты заголовков. Все — системные: ничего не скачивается, поэтому
@@ -310,38 +312,31 @@
             fx: 'akashi',
             anim: 'soft',
             colors: {
-                bg: '#050000', surface: '#080000', surface2: '#160309',
-                text: '#fff5f2', muted: '#c98a96',
-                accent: '#ff0038', accentContrast: '#ffffff',
-                border: 'rgba(255,0,56,0.55)', borderStrong: '#ff5c75',
-                softBorder: 'rgba(255,0,56,0.32)', panelBorder: 'rgba(255,0,56,0.35)',
-                warning: '#ffd166', success: '#ffd166', danger: '#ff2e3f',
-                lessonBg: '#080000', lessonBgHover: '#14020a',
-                lessonBorder: 'rgba(255,0,56,0.40)', roomBorder: 'rgba(255,209,102,0.60)',
-                tabBg: '#070000', tabPillBg: '#070000',
-                tabPillBorder: 'rgba(255,0,56,0.40)', tabActiveBg: '#ff0038',
-                tabActiveText: '#ffffff', tabActiveBorder: '#ff5c75',
-                headerBg: '#050000', footerBg: '#050000',
-                inputBg: 'transparent', chipBg: 'rgba(255,255,255,0.035)',
-                nowBg: 'rgba(8,0,3,0.90)'
+                bg: '#0a0a0a', surface: '#121212', surface2: '#1a1a1a',
+                text: '#f5f5f5', muted: '#8a8a8a',
+                accent: '#ff2e4d', accentContrast: '#ffffff',
+                border: 'rgba(255,255,255,0.10)', borderStrong: 'rgba(255,255,255,0.22)',
+                softBorder: 'rgba(255,255,255,0.12)', panelBorder: 'rgba(255,255,255,0.14)',
+                warning: '#ffd166', success: '#4ade80', danger: '#ff4d4d',
+                lessonBg: '#121212', lessonBgHover: '#181818',
+                lessonBorder: 'rgba(255,255,255,0.08)', roomBorder: 'rgba(255,46,77,0.35)',
+                tabBg: '#0a0a0a', tabPillBg: '#121212',
+                tabPillBorder: 'rgba(255,255,255,0.12)', tabActiveBg: '#ff2e4d',
+                tabActiveText: '#ffffff', tabActiveBorder: '#ff2e4d',
+                headerBg: 'rgba(10,10,10,0.92)', footerBg: '#0a0a0a',
+                inputBg: '#141414', chipBg: 'rgba(255,255,255,0.06)',
+                nowBg: '#121212'
             },
             metrics: {
-                radius: 6,
-                spaceScale: 1.0,
-                textScale: 1.0,
-                lineHeight: 1.4,
+                radius: 10,
+                spaceScale: 1,
+                textScale: 1,
+                lineHeight: 1.45,
                 border: 1,
-                cardOpacity: 0.82,
-                glow: 8,
-                displayFont: 'sans',
+                cardOpacity: 1,
+                glow: 0,
+                displayFont: 'humanist',
                 motion: true
-            },
-            background: {
-                url: 'assets/akashi-desktop.webp',
-                mobileUrl: 'assets/akashi-phone.webp',
-                fit: 'cover',
-                position: 'center',
-                dim: 0.08
             }
         }
     ];
@@ -395,7 +390,7 @@
                 position: 'center',
                 dim: 0.35
             },
-            sound: { enabled: false, volume: 55, pack: 'soft', customName: '' }
+            sound: { enabled: false, volume: 55, pack: 'soft', customName: '', allowLoud: false }
         };
     }
 
@@ -430,6 +425,9 @@
             ? raw.metrics.animStyle
             : 'auto';
         out.metrics.animSpeed = clamp(Number(out.metrics.animSpeed) || 1, 0.7, 1.5);
+        out.metrics.navPos = raw.metrics && ['top', 'left', 'right'].indexOf(raw.metrics.navPos) >= 0
+            ? raw.metrics.navPos
+            : 'top';
         out.fx = raw.fx === 'akashi' ? 'akashi' : raw.fx === 'neon' ? 'neon' : 'none';
         out.style = raw.style === 'hub' ? 'hub' : 'none';
 
@@ -445,9 +443,11 @@
 
         if (raw.sound && typeof raw.sound === 'object') {
             out.sound.enabled = !!raw.sound.enabled;
-            // до 1000%: громкость выше 100 усиливает сигнал, компрессор в аудио
-            // не даёт ему превратиться в клиппинг.
-            if (typeof raw.sound.volume === 'number' && isFinite(raw.sound.volume)) out.sound.volume = clamp(raw.sound.volume, 0, 1000);
+            // 1000% — только если пользователь отдельно разрешил усиление.
+            out.sound.allowLoud = !!raw.sound.allowLoud;
+            if (typeof raw.sound.volume === 'number' && isFinite(raw.sound.volume)) {
+                out.sound.volume = clamp(raw.sound.volume, 0, out.sound.allowLoud ? 1000 : 100);
+            }
             if (SOUND_PACKS[raw.sound.pack] || raw.sound.pack === 'custom') out.sound.pack = raw.sound.pack;
             if (typeof raw.sound.customName === 'string') out.sound.customName = raw.sound.customName.slice(0, 60);
         }
@@ -619,6 +619,7 @@
         root.setAttribute('data-motion', m.motion ? 'on' : 'off');
         root.setAttribute('data-anim', m.animStyle || 'auto');
         root.style.setProperty('--anim-speed', String(m.animSpeed || 1));
+        root.setAttribute('data-nav', m.navPos || 'top');
 
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute('content', tokens.bg);
@@ -1056,7 +1057,7 @@
         if (!data) { playWith(kind, 'soft', true); return; }
         var a = audio();
         if (!a) return;
-        var volume = Math.min(10, state.sound.volume / 100);
+        var volume = Math.min(state.sound.allowLoud ? 10 : 1, state.sound.volume / 100);
         var rate = kind === 'switch' ? 1.08 : kind === 'success' ? 1.15 : kind === 'error' ? 0.9 : 1;
         var start = function (buffer) {
             try {
@@ -1106,7 +1107,7 @@
         if (!force && now - lastSound < 35) return;
         lastSound = now;
         var pack = SOUND_PACKS[packName] || SOUND_PACKS.soft;
-        var volume = state.sound.volume / 100;
+        var volume = Math.min(state.sound.allowLoud ? 10 : 1, state.sound.volume / 100);
         var gainValue = pack.gain * volume;
         if (gainValue <= 0) return;
         var notes = soundNotes(kind, pack);
@@ -1150,7 +1151,8 @@
             state: a ? a.state : 'not-created',
             enabled: state.sound.enabled,
             volume: state.sound.volume,
-            pack: state.sound.pack
+            pack: state.sound.pack,
+            allowLoud: !!state.sound.allowLoud
         };
     }
 

@@ -162,7 +162,8 @@
                         '<div class="settings-row"><span>Громкость</span><output class="settings-value" id="sound-volume-value">55%</output></div>' +
                         '<input type="range" id="sound-volume" min="0" max="1000" step="5">' +
                     '</div>' +
-                    '<div class="settings-hint">Можно до 1000% — это громко, в наушниках лучше не сразу.</div>' +
+                    '<label class="settings-toggle"><span>Разрешить до 1000%</span><input type="checkbox" id="sound-loud"></label>' +
+                    '<div class="settings-hint">По умолчанию до 100%. 1000% — только если включить выше, это очень громко.</div>' +
                     '<div class="settings-row"><span>Набор</span>' +
                         '<select id="sound-pack">' +
                             '<option value="soft">Мягкие</option>' +
@@ -182,12 +183,14 @@
                         '<button type="button" class="settings-btn" data-preview-sound="error">Ошибка</button>' +
                     '</div>' +
                     '<div class="settings-hint">Эти кнопки проигрывают выбранный набор — даже если звуки выключены.</div>' +
-                    '<div class="settings-inline">' +
-                        '<input id="sound-file" type="file" accept="audio/*" hidden>' +
-                        '<button type="button" class="settings-btn" id="sound-upload">Загрузить свой звук…</button>' +
-                        '<span class="settings-hint" id="sound-custom-name">не выбран</span>' +
+                    '<div id="sound-custom-row" hidden>' +
+                        '<div class="settings-inline">' +
+                            '<input id="sound-file" type="file" accept="audio/*" hidden>' +
+                            '<button type="button" class="settings-btn" id="sound-upload">Загрузить свой звук…</button>' +
+                            '<span class="settings-hint" id="sound-custom-name">не выбран</span>' +
+                        '</div>' +
+                        '<div class="settings-hint">Короткий mp3/wav/ogg до ~600 КБ. Играет вместо набора, когда выбран «Свой звук».</div>' +
                     '</div>' +
-                    '<div class="settings-hint">Короткий mp3/wav/ogg до ~600 КБ. Играет вместо набора, когда выбран «Свой звук».</div>' +
                     '<div class="settings-hint">По умолчанию звуки выключены. Настройка хранится только на этом устройстве.</div>' +
                 '</section>' +
 
@@ -332,6 +335,14 @@
                     '<label class="settings-toggle"><span>Показывать «сейчас идёт»</span><input type="checkbox" id="pref-now-bar"></label>' +
                     '<label class="settings-toggle"><span>Показывать «пары закончились»</span><input type="checkbox" id="pref-now-ended"></label>' +
                     '<label class="settings-toggle"><span>Скрывать прошедшие пары сегодня</span><input type="checkbox" id="pref-hide-past"></label>' +
+                    '<div class="settings-row"><span>Положение панели</span>' +
+                        '<select id="nav-pos">' +
+                            '<option value="top">Сверху</option>' +
+                            '<option value="left">Слева</option>' +
+                            '<option value="right">Справа</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div class="settings-hint">Слева/справа — вертикальная панель на компьютере; на телефоне остаётся сверху.</div>' +
                 '</section>' +
 
                 '<section class="settings-group" id="sec-data">' +
@@ -371,8 +382,13 @@
         if (sub) sub.textContent = 'Тема: ' + presetName;
 
         $('#sound-enabled').checked = !!s.sound.enabled;
-        setRange('sound-volume', s.sound.volume, function (v) { return Math.round(v) + '%'; });
+        var loud = !!s.sound.allowLoud;
+        var volEl = $('#sound-volume');
+        if (volEl) volEl.max = loud ? '1000' : '100';
+        setRange('sound-volume', Math.min(s.sound.volume, loud ? 1000 : 100), function (v) { return Math.round(v) + '%'; });
+        $('#sound-loud').checked = loud;
         $('#sound-pack').value = s.sound.pack;
+        $('#sound-custom-row').hidden = s.sound.pack !== 'custom';
         var customName = $('#sound-custom-name');
         if (customName) customName.textContent = s.sound.customName ? s.sound.customName : 'не выбран';
 
@@ -399,6 +415,7 @@
         $('#pref-now-bar').checked = getPref(PREF_NOW, true);
         $('#pref-now-ended').checked = getPref(PREF_NOW_ENDED, false);
         $('#pref-hide-past').checked = getPref(PREF_PAST, false);
+        $('#nav-pos').value = s.metrics.navPos || 'top';
 
         var bg = s.background;
         $('#bg-type').value = bg.type || 'none';
@@ -786,6 +803,14 @@
         if (e.target.value === 'custom' && !T.hasCustomSound()) {
             status('Сначала загрузите свой звук');
         }
+        sync();
+    });
+
+    $('#sound-loud').addEventListener('change', function (e) {
+        var loud = e.target.checked;
+        T.setSound({ allowLoud: loud });
+        if (!loud && T.getState().sound.volume > 100) T.setSound({ volume: 100 });
+        sync();
     });
 
     $('#sound-upload').addEventListener('click', function () {
@@ -916,6 +941,11 @@
 
     $('#pref-hide-past').addEventListener('change', function (e) {
         setPref(PREF_PAST, e.target.checked);
+        showSaved();
+    });
+
+    $('#nav-pos').addEventListener('change', function (e) {
+        T.setMetric('navPos', e.target.value);
         showSaved();
     });
 
@@ -1075,6 +1105,7 @@
                 setPref(PREF_NOW, true);
                 setPref(PREF_NOW_ENDED, false);
                 setPref(PREF_PAST, false);
+                T.setMetric('navPos', 'top');
                 if (window.NKSEScroll) window.NKSEScroll.setEnabled(true);
             }
             renderPresets();
