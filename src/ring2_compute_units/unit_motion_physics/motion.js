@@ -71,10 +71,18 @@
         if (animStyle === 'none') return;
         var animSpeed = parseFloat(getComputedStyle(root).getPropertyValue('--anim-speed')) || 1;
 
-        var from = box(tabs, old);
+        var oldIndex = Array.prototype.indexOf.call(tabs.querySelectorAll('.day-tab'), old);
         var wanted = tab;
 
         stop();
+
+        // Класс ставим сразу, до перерисовки вкладок: иначе новая активная
+        // вкладка успевает мигнуть полным фоном до старта капсулы.
+        tabs.classList.add('dock-moving');
+        setTimeout(function () {
+            var t = getTabs();
+            if (t && !anim) t.classList.remove('dock-moving');
+        }, 1200);
 
         /* приложение перерисовывает вкладки в этом же клике — ждём кадр */
         requestAnimationFrame(function () {
@@ -83,14 +91,17 @@
                 if (!current) return;
 
                 var active = current.querySelector('.day-tab-active') || wanted;
+                // Позицию старой вкладки берём уже после перерисовки и
+                // мгновенного скролла полосы — иначе капсула стартует
+                // из старой точки и дёргается.
+                var oldNow = current.querySelectorAll('.day-tab')[oldIndex];
+                var from = oldNow ? box(current, oldNow) : box(current, active);
                 var to = box(current, active);
 
                 pill = ensurePill(current);
                 place(pill, from);
                 pill.style.transform = 'scaleY(1)';
                 pill.style.opacity = '1';
-
-                current.classList.add('dock-moving');
 
                 var rightwards = to.left >= from.left;
                 var lag = rightwards ? 0.26 : 0.74;

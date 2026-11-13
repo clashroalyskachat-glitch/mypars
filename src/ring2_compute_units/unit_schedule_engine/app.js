@@ -766,12 +766,13 @@ let _tabsHtml = '';
      _tabsHtml = html;
      tabsContainer.innerHTML = html;
 
-     setTimeout(() => {
-         const activeTab = tabsContainer.querySelector(`button[onclick="filterDay('${currentDayFilter}')"]`);
-         if (activeTab) {
-             activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-         }
-     }, 100);
+     // Скроллим сразу: отложенный smooth-скролл через 100 мс двигал полосу
+     // уже во время полёта капсулы, и она «промахивалась» мимо вкладки.
+     const activeTab = tabsContainer.querySelector(`button[onclick="filterDay('${currentDayFilter}')"]`);
+     if (activeTab) {
+         const instant = tabsContainer.classList.contains('dock-moving');
+         activeTab.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', inline: 'center', block: 'nearest' });
+     }
  }
 
 window.filterDay = function(dayId) {
