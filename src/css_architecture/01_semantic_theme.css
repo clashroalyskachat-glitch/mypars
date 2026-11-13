@@ -343,6 +343,18 @@ html[data-theme] .brand-word .accent {
         4px 6px 8px color-mix(in srgb, var(--t-accent) 40%, transparent) !important;
 }
 
+/* Акаши: глобальная 3D-тень выше перебивала настройку и вешала на «Э»
+   красный объём. Убираем её именно для этой темы — буква должна быть
+   такой же, как остальные. */
+html[data-theme][data-fx="akashi"] .brand-word .accent {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    background-image: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
 html[data-theme] .sub-flag,
 html[data-theme] .group-sub {
     color: var(--t-warning) !important;
