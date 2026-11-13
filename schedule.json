@@ -10204,16 +10204,16 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Химия",
-        "teacher": "Попкова Л Ф",
-        "room": "А413",
+        "teacher": "Кальченко М А",
+        "room": "А415",
         "substituted": true
       },
       {
         "number": "3",
         "time": "11:20-12:40",
         "subject": "Биология",
-        "teacher": "Дьякова В С",
-        "room": "А416",
+        "teacher": "Кальченко М А",
+        "room": "А415",
         "substituted": true
       }
     ],
@@ -16180,7 +16180,7 @@
         "number": "1",
         "time": "08:10-9:30",
         "subject": "Биология",
-        "teacher": "Дьякова В С",
+        "teacher": "Кальченко М А",
         "room": "А415",
         "substituted": true
       },
@@ -20962,11 +20962,11 @@
         "time": "08:10-9:30",
         "subject": "Ин. яз.",
         "teacher": "Маслова А С, Верещагина Э А",
-        "room": "А412",
+        "room": "А218, А412",
         "subgroups": [
           {
             "teacher": "Маслова А С",
-            "room": "А412"
+            "room": "А218"
           },
           {
             "teacher": "Верещагина Э А",
