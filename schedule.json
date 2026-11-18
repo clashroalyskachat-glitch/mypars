@@ -15853,16 +15853,18 @@
       {
         "number": "3",
         "time": "14:50-16:10",
-        "subject": "Бот. с осн. физиол. раст.",
-        "teacher": "Орехова М В",
-        "room": "А413"
+        "subject": "БЖД",
+        "teacher": "Ордиянц А В",
+        "room": "А413",
+        "substituted": true
       },
       {
         "number": "4",
         "time": "16:20-17:40",
-        "subject": "ОБП",
-        "teacher": "Орехова М В",
-        "room": "А413"
+        "subject": "История России",
+        "teacher": "Трикоз Е В",
+        "room": "А405",
+        "substituted": true
       }
     ],
     "Четверг": [
@@ -15986,9 +15988,10 @@
       {
         "number": "2",
         "time": "13:10-14:30",
-        "subject": "Бот. с осн. физиол. раст.",
-        "teacher": "Орехова М В",
-        "room": "А413"
+        "subject": "БЖД",
+        "teacher": "Ордиянц А В",
+        "room": "А413",
+        "substituted": true
       },
       {
         "number": "3",
