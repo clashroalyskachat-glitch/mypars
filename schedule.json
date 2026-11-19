@@ -90,9 +90,10 @@
       {
         "number": "2",
         "time": "09:40-11:00",
-        "subject": "Химия",
-        "teacher": "Попкова Л Ф",
-        "room": "А413"
+        "subject": "Биология",
+        "teacher": "Дьякова В С",
+        "room": "А413",
+        "substituted": true
       },
       {
         "number": "3",
@@ -234,9 +235,10 @@
       {
         "number": "1",
         "time": "08:10-9:30",
-        "subject": "Химия",
-        "teacher": "Попкова Л Ф",
-        "room": "А413"
+        "subject": "Физика",
+        "teacher": "Мельник Т Н",
+        "room": "А213",
+        "substituted": true
       },
       {
         "number": "2",
@@ -830,9 +832,10 @@
       {
         "number": "3",
         "time": "11:20-12:40",
-        "subject": "Химия",
-        "teacher": "Попкова Л Ф",
-        "room": "А413"
+        "subject": "История",
+        "teacher": "Брянцева М М",
+        "room": "А413",
+        "substituted": true
       }
     ],
     "Пятница": [
@@ -17446,9 +17449,10 @@
       {
         "number": "1",
         "time": "08:10-9:30",
-        "subject": "Химия",
-        "teacher": "Попкова Л Ф",
-        "room": "А410"
+        "subject": "Математика",
+        "teacher": "Даниленко О В",
+        "room": "А413",
+        "substituted": true
       },
       {
         "number": "2",
