@@ -383,8 +383,9 @@
         "number": "2",
         "time": "13:10-14:30",
         "subject": "Ист. арх",
-        "teacher": "Токарева Д А",
-        "room": "А418"
+        "teacher": "Бойко Е Н",
+        "room": "А418",
+        "substituted": true
       },
       {
         "number": "3",
@@ -15854,8 +15855,9 @@
         "number": "3",
         "time": "14:50-16:10",
         "subject": "Строит. дело и мат-лы",
-        "teacher": "Токарева Д А",
-        "room": "А322"
+        "teacher": "Сокольская А Н",
+        "room": "А322",
+        "substituted": true
       },
       {
         "number": "4",
@@ -16002,8 +16004,9 @@
         "number": "4",
         "time": "16:20-17:40",
         "subject": "Строит. дело и мат-лы",
-        "teacher": "Токарева Д А",
-        "room": "А402"
+        "teacher": "Сокольская А Н",
+        "room": "А402",
+        "substituted": true
       }
     ],
     "Пятница": [
