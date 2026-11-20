@@ -12353,9 +12353,10 @@
       {
         "number": "2",
         "time": "09:40-11:00",
-        "subject": "Физика",
-        "teacher": "Задорожный Ф К",
-        "room": "1Б"
+        "subject": "Лит-ра",
+        "teacher": "Ногайцева А С",
+        "room": "1Б",
+        "substituted": true
       },
       {
         "number": "3",
@@ -12465,9 +12466,10 @@
       {
         "number": "3",
         "time": "11:20-12:40",
-        "subject": "Физика",
-        "teacher": "Задорожный Ф К",
-        "room": "1Б"
+        "subject": "Математика",
+        "teacher": "Боброва Т В",
+        "room": "1Б",
+        "substituted": true
       }
     ]
   },
@@ -12508,7 +12510,8 @@
         "time": "09:40-11:00",
         "subject": "Математика",
         "teacher": "Боброва Т В",
-        "room": "В501"
+        "room": "В501",
+        "substituted": true
       },
       {
         "number": "3",
