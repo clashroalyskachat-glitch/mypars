@@ -12400,9 +12400,10 @@
       {
         "number": "1",
         "time": "08:10-9:30",
-        "subject": "История",
-        "teacher": "Сыроежкина Е В",
-        "room": "В305"
+        "subject": "Основы БиЗР",
+        "teacher": "Миронюк Е Ю",
+        "room": "В305",
+        "substituted": true
       },
       {
         "number": "2",
