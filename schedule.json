@@ -29,8 +29,9 @@
         "number": "3",
         "time": "11:20-12:40",
         "subject": "География",
-        "teacher": "Сорока О И",
-        "room": "А118"
+        "teacher": "Красноперова В И",
+        "room": "А404",
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -171,9 +172,10 @@
       {
         "number": "2",
         "time": "09:40-11:00",
-        "subject": "География",
-        "teacher": "Сорока О И",
-        "room": "А118"
+        "subject": "Биология",
+        "teacher": "Дьякова В С",
+        "room": "А420",
+        "substituted": true
       },
       {
         "number": "3",
@@ -4344,9 +4346,10 @@
       {
         "number": "1",
         "time": "08:10-9:30",
-        "subject": "География",
-        "teacher": "Сорока О И",
-        "room": "А118"
+        "subject": "Лит-ра",
+        "teacher": "Расторгуева Т В",
+        "room": "А305",
+        "substituted": true
       },
       {
         "number": "2",
@@ -7261,24 +7264,25 @@
       {
         "number": "1",
         "time": "08:10-9:30",
-        "subject": "Лит-ра",
-        "teacher": "Левкина С Г",
-        "room": "А407"
+        "subject": "Инф-ка",
+        "teacher": "Красноперова В И",
+        "room": "А404"
       },
       {
         "number": "2",
         "time": "09:40-11:00",
-        "subject": "Математика",
-        "teacher": "Лазарь Т С",
-        "room": "А307",
+        "subject": "Лит-ра",
+        "teacher": "Левкина С Г",
+        "room": "А407",
         "substituted": true
       },
       {
         "number": "3",
         "time": "11:20-12:40",
-        "subject": "Инф-ка",
-        "teacher": "Красноперова В И",
-        "room": "А404"
+        "subject": "Математика",
+        "teacher": "Лазарь Т С",
+        "room": "А307",
+        "substituted": true
       }
     ],
     "Вторник": [
@@ -14161,23 +14165,25 @@
       {
         "number": "1",
         "time": "08:10-9:30",
-        "subject": "Физика",
-        "teacher": "",
-        "room": "А214"
+        "subject": "Математика",
+        "teacher": "Лазарь Т С",
+        "room": "А307",
+        "substituted": true
       },
       {
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Биология",
-        "teacher": "Дьякова В С",
+        "teacher": "",
         "room": "А416"
       },
       {
         "number": "3",
         "time": "11:20-12:40",
-        "subject": "Математика",
-        "teacher": "Лазарь Т С",
-        "room": "А307"
+        "subject": "Физика",
+        "teacher": "",
+        "room": "А214",
+        "substituted": true
       }
     ],
     "Вторник": [
