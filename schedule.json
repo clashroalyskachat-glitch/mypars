@@ -3147,8 +3147,9 @@
         "number": "2",
         "time": "09:40-11:00",
         "subject": "Детали машин",
-        "teacher": "Барсукова Е А",
-        "room": "А212"
+        "teacher": "Ишмаева Т А",
+        "room": "А401",
+        "substituted": true
       },
       {
         "number": "3",
